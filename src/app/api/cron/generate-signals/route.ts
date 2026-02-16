@@ -9,10 +9,9 @@ import {
   formatMarketDataForAI,
 } from "@/lib/binance";
 import {
-  conductAIDebate,
-  parseSignalsFromAI,
-  callOpenRouter,
-} from "@/lib/openrouter";
+  analyzeWithThreePerspectives,
+  parseSignalsFromClaude,
+} from "@/lib/claude";
 import { scanTopStocks } from "@/lib/kis";
 import type { SignalCategory } from "@/types";
 
@@ -26,12 +25,11 @@ function verifyCronSecret(request: Request): boolean {
 }
 
 // ============================================
-// COIN SPOT Signal Generation
+// COIN SPOT Signal Generation (Claude Opus 4.6)
 // ============================================
 async function generateCoinSpotSignals(): Promise<Record<string, unknown>[]> {
-  console.log("[Signal Engine] Generating coin spot signals...");
+  console.log("[Signal Engine] Generating coin spot signals with Claude Opus 4.6...");
 
-  // Fetch market data for top symbols
   const marketDataPromises = TOP_CRYPTO_SYMBOLS.slice(0, 10).map(
     async (symbol) => {
       try {
@@ -52,13 +50,12 @@ async function generateCoinSpotSignals(): Promise<Record<string, unknown>[]> {
     .map((r) => r.data)
     .join("\n\n---\n\n");
 
-  const { consensus } = await conductAIDebate(
-    "코인 현물 매매 시그널 분석 (상위 10개 코인)",
-    combinedMarketData,
-    3
+  const { analysis } = await analyzeWithThreePerspectives(
+    "코인 현물 매매 시그널 분석 (Binance 상위 10개 코인, 실시간 데이터)",
+    combinedMarketData
   );
 
-  const parsedSignals = parseSignalsFromAI(consensus);
+  const parsedSignals = parseSignalsFromClaude(analysis);
 
   return parsedSignals.map((s) => ({
     ...s,
@@ -71,14 +68,13 @@ async function generateCoinSpotSignals(): Promise<Record<string, unknown>[]> {
 }
 
 // ============================================
-// COIN FUTURES Signal Generation
+// COIN FUTURES Signal Generation (Claude Opus 4.6)
 // ============================================
 async function generateCoinFuturesSignals(): Promise<
   Record<string, unknown>[]
 > {
-  console.log("[Signal Engine] Generating coin futures signals...");
+  console.log("[Signal Engine] Generating coin futures signals with Claude Opus 4.6...");
 
-  // Fetch futures data + get high volatility ones
   const tickers = await getSpotTickers();
   const sortedByVolatility = tickers
     .sort(
@@ -113,13 +109,12 @@ async function generateCoinFuturesSignals(): Promise<
     .map((r) => r.data)
     .join("\n\n---\n\n");
 
-  const { consensus } = await conductAIDebate(
-    "코인 선물 매매 시그널 분석 (레버리지 포함, Long/Short 양방향)",
-    combinedMarketData,
-    3
+  const { analysis } = await analyzeWithThreePerspectives(
+    "코인 선물 매매 시그널 분석 (Long/Short 양방향, 레버리지 포함)",
+    combinedMarketData
   );
 
-  const parsedSignals = parseSignalsFromAI(consensus);
+  const parsedSignals = parseSignalsFromClaude(analysis);
 
   return parsedSignals.map((s) => ({
     ...s,
@@ -129,56 +124,35 @@ async function generateCoinFuturesSignals(): Promise<
 }
 
 // ============================================
-// OVERSEAS FUTURES Signal Generation
+// OVERSEAS FUTURES Signal Generation (Claude Opus 4.6)
 // ============================================
 async function generateOverseasFuturesSignals(): Promise<
   Record<string, unknown>[]
 > {
-  console.log("[Signal Engine] Generating overseas futures signals...");
+  console.log("[Signal Engine] Generating overseas futures signals with Claude Opus 4.6...");
 
   const instruments = [
-    {
-      symbol: "NQ",
-      name: "나스닥100 선물",
-      description: "NASDAQ 100 E-mini Futures",
-    },
-    {
-      symbol: "ES",
-      name: "S&P500 선물",
-      description: "S&P 500 E-mini Futures",
-    },
+    { symbol: "NQ", name: "나스닥100 선물", description: "NASDAQ 100 E-mini Futures" },
+    { symbol: "ES", name: "S&P500 선물", description: "S&P 500 E-mini Futures" },
     { symbol: "GC", name: "금 선물", description: "Gold Futures (COMEX)" },
-    {
-      symbol: "CL",
-      name: "원유 선물",
-      description: "Crude Oil Futures (WTI)",
-    },
-    {
-      symbol: "6E",
-      name: "유로/달러 선물",
-      description: "Euro FX Futures (CME)",
-    },
+    { symbol: "CL", name: "원유 선물", description: "Crude Oil Futures (WTI)" },
+    { symbol: "6E", name: "유로/달러 선물", description: "Euro FX Futures (CME)" },
   ];
 
   const instrumentInfo = instruments
-    .map(
-      (i) =>
-        `- ${i.symbol} (${i.name}): ${i.description}`
-    )
+    .map((i) => `- ${i.symbol} (${i.name}): ${i.description}`)
     .join("\n");
 
-  const { consensus } = await conductAIDebate(
+  const { analysis } = await analyzeWithThreePerspectives(
     "해외선물 매매 시그널 분석",
     `분석 대상 해외선물:
 ${instrumentInfo}
 
 최근 글로벌 거시경제 상황과 기술적 분석을 기반으로 각 선물에 대한 매매 시그널을 생성해주세요.
-실시간 가격 데이터는 없지만, 당신의 최신 학습 데이터를 기반으로 합리적인 분석과 가격 수준을 제시해주세요.
-각 선물의 진입가, 손절가, 익절가를 구체적 수치로 제시하세요.`,
-    3
+각 선물의 진입가, 손절가, 익절가를 구체적 수치로 제시하세요.`
   );
 
-  const parsedSignals = parseSignalsFromAI(consensus);
+  const parsedSignals = parseSignalsFromClaude(analysis);
 
   return parsedSignals.map((s) => ({
     ...s,
@@ -201,22 +175,24 @@ async function generateKrStockSignals(): Promise<Record<string, unknown>[]> {
     console.log("[Signal Engine] KIS data fetched successfully");
   } catch (error) {
     console.error("[Signal Engine] KIS API failed, falling back to AI-only:", error);
-    // Fallback: AI에게 직접 추천 요청
-    const candidateResponse = await callOpenRouter("gpt", [
-      {
+    // Fallback: Claude에게 직접 추천 요청
+    const { callClaude } = await import("@/lib/claude");
+    const candidateResponse = await callClaude(
+      "당신은 한국 주식 시장 전문가입니다.",
+      [{
         role: "user",
         content: `한국 주식 시장에서 현재 매수 관심 종목 40개를 추천해주세요.
 대형주, 중형주, 성장주, 가치주를 고루 포함해주세요.
 각 종목의 종목코드, 종목명, 현재 관심 포인트를 간단히 설명해주세요.
 JSON 형식으로 응답해주세요.`,
-      },
-    ]);
+      }]
+    );
     marketData = candidateResponse;
   }
 
-  // Step 2: AI 3대장이 실제 데이터 기반으로 3라운드 토론
-  const { consensus } = await conductAIDebate(
-    "국내주식 Top 5 매수 추천 - AI 3대장 토론 (실시간 데이터 기반)",
+  // Step 2: Claude Opus 4.6 3관점 종합 분석 (펀더멘털 + 기술적 + 매크로)
+  const { analysis } = await analyzeWithThreePerspectives(
+    "국내주식 Top 5 매수 추천 (한국투자증권 실시간 데이터 기반)",
     `## 한국투자증권 API에서 가져온 실시간 주가 데이터입니다.
 
 ${marketData}
@@ -226,12 +202,10 @@ ${marketData}
 - 기술적 분석: 이동평균선, RSI, MACD, 볼린저밴드 관점
 - 펀더멘털: PER, PBR, EPS 기반 가치 평가
 - 거래량/거래대금 분석: 수급 동향
-- 3명 중 2명 이상 동의한 종목만 최종 추천
-- 진입가는 현재가 기준, 손절가(-3~5%), 1차/2차/3차 목표가를 구체적으로 제시`,
-    3
+- 진입가는 현재가 기준, 손절가(-3~5%), 1차/2차/3차 목표가를 구체적으로 제시`
   );
 
-  const parsedSignals = parseSignalsFromAI(consensus);
+  const parsedSignals = parseSignalsFromClaude(analysis);
 
   return parsedSignals.map((s) => ({
     ...s,
@@ -300,7 +274,7 @@ export async function GET(request: Request) {
           Date.now() + 4 * 60 * 60 * 1000
         ).toISOString(),
         ai_reasoning: (s.reasoning as string) || (s.ai_reasoning as string) || "",
-        ai_models_used: ["claude", "gemini", "gpt"],
+        ai_models_used: ["claude-opus-4.6"],
         status: "active",
         min_tier_required: (s.min_tier_required as string) || "basic",
       }));
