@@ -34,7 +34,7 @@ export default function TierUpgradeBanner({ tier }: { tier: TierKey }) {
     <div className="relative flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-[#F5B800]/10 to-[#FFD54F]/5 border border-[#F5B800]/20">
       <Sparkles className="w-5 h-5 text-[#F5B800] shrink-0" />
       <p className="text-xs text-[#8B95A5] flex-1">{message}</p>
-      <Link href="/auth/signup">
+      <Link href="/app/subscribe">
         <Button
           size="sm"
           className="bg-[#F5B800] text-[#0D0F14] hover:bg-[#FFD54F] text-[10px] h-7 px-3 font-semibold shrink-0"

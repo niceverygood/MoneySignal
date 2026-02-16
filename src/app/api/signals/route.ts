@@ -38,12 +38,15 @@ export async function GET(request: NextRequest) {
   if (tierConfig.dailyLimit !== Infinity) {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
-    const { count } = await supabase
+    const { count, error: viewError } = await supabase
       .from("signal_views")
       .select("*", { count: "exact", head: true })
       .eq("user_id", user.id)
       .gte("viewed_at", todayStart.toISOString());
-    viewedToday = count || 0;
+    // If table doesn't exist, ignore the error
+    if (!viewError) {
+      viewedToday = count || 0;
+    }
   }
 
   const dailyLimitReached = !checkDailyLimit(viewedToday, userTier);
