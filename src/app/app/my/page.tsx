@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Shield,
   Star,
+  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Profile, Subscription } from "@/types";
@@ -26,6 +27,11 @@ export default function MyPage() {
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [perfSummary, setPerfSummary] = useState<{
+    totalFollowed: number;
+    winRate: number;
+    avgPnl: number;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
@@ -49,6 +55,29 @@ export default function MyPage() {
         .order("created_at", { ascending: false });
 
       if (subsData) setSubscriptions(subsData as Subscription[]);
+
+      // Fetch performance summary
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const res = await fetch("/api/performance", {
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          });
+          if (res.ok) {
+            const perfData = await res.json();
+            if (perfData.stats) {
+              setPerfSummary({
+                totalFollowed: perfData.stats.totalFollowed,
+                winRate: perfData.stats.winRate,
+                avgPnl: perfData.stats.avgPnl,
+              });
+            }
+          }
+        }
+      } catch {
+        // Performance data is optional
+      }
+
       setLoading(false);
     }
 
@@ -136,6 +165,42 @@ export default function MyPage() {
           </div>
         </Card>
       )}
+
+      {/* Performance Card */}
+      <Card
+        className="bg-[#1A1D26] border-[#2A2D36] p-4 cursor-pointer hover:bg-[#1E2130] transition-colors"
+        onClick={() => router.push("/app/my/performance")}
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-[#F5B800]/10 flex items-center justify-center">
+            <TrendingUp className="w-5 h-5 text-[#F5B800]" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-white">내 투자 성과</p>
+            {perfSummary && perfSummary.totalFollowed > 0 ? (
+              <p className="text-xs text-[#8B95A5] mt-0.5">
+                팔로우 {perfSummary.totalFollowed}개, 승률{" "}
+                {perfSummary.winRate.toFixed(1)}%, 예상 수익률{" "}
+                <span
+                  className={
+                    perfSummary.avgPnl >= 0
+                      ? "text-[#00E676]"
+                      : "text-[#FF5252]"
+                  }
+                >
+                  {perfSummary.avgPnl >= 0 ? "+" : ""}
+                  {perfSummary.avgPnl.toFixed(2)}%
+                </span>
+              </p>
+            ) : (
+              <p className="text-xs text-[#8B95A5] mt-0.5">
+                시그널을 팔로우하고 성과를 추적하세요
+              </p>
+            )}
+          </div>
+          <ChevronRight className="w-4 h-4 text-[#8B95A5]" />
+        </div>
+      </Card>
 
       {/* Active Subscriptions */}
       <div>

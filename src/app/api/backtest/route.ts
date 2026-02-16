@@ -1,15 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { TIER_CONFIG, type TierKey } from "@/lib/tier-access";
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
   const { searchParams } = new URL(request.url);
 
   const category = searchParams.get("category") || "all";
-  const period = searchParams.get("period") || "90"; // days
+  const requestedPeriod = parseInt(searchParams.get("period") || "90");
+
+  // Get user auth and subscription tier
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let userTier: TierKey = "free";
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("subscription_tier")
+      .eq("id", user.id)
+      .single();
+
+    if (profile?.subscription_tier) {
+      userTier = profile.subscription_tier as TierKey;
+    }
+  }
+
+  // Apply tier-based period limit
+  const tierConfig = TIER_CONFIG[userTier];
+  const maxPeriodDays =
+    tierConfig.backtestPeriodDays === Infinity
+      ? requestedPeriod
+      : tierConfig.backtestPeriodDays;
+  const effectivePeriod = Math.min(requestedPeriod, maxPeriodDays);
 
   const periodStart = new Date();
-  periodStart.setDate(periodStart.getDate() - parseInt(period));
+  periodStart.setDate(periodStart.getDate() - effectivePeriod);
 
   // Fetch backtest results
   let query = supabase
@@ -91,5 +119,10 @@ export async function GET(request: NextRequest) {
           ? Math.round((avgProfit / Math.abs(avgLoss)) * 100) / 100
           : 0,
     },
+    userTier,
+    maxPeriodDays:
+      tierConfig.backtestPeriodDays === Infinity
+        ? null
+        : tierConfig.backtestPeriodDays,
   });
 }
