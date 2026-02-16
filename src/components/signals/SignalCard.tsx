@@ -4,8 +4,10 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Lock, Star, TrendingUp, TrendingDown } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import type { Signal, SubscriptionTier, SignalWithPrice } from "@/types";
-import { CATEGORY_LABELS, TIER_ACCESS } from "@/types";
+import type { FilteredSignal } from "@/lib/tier-access";
+import type { TierKey } from "@/lib/tier-access";
+import { getDelayLabel, getTierLabel, getMinTierForCategory } from "@/lib/tier-access";
+import DelayBadge from "./DelayBadge";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/ko";
@@ -15,9 +17,10 @@ dayjs.extend(relativeTime);
 dayjs.locale("ko");
 
 interface SignalCardProps {
-  signal: SignalWithPrice;
-  userTier: SubscriptionTier;
+  signal: FilteredSignal;
+  tier: TierKey;
   currentPrice?: number;
+  onUpgrade?: () => void;
 }
 
 function formatPrice(price: number): string {
@@ -26,29 +29,29 @@ function formatPrice(price: number): string {
   return price.toFixed(4);
 }
 
-function getTimeRemaining(validUntil: string): string {
-  const diff = dayjs(validUntil).diff(dayjs(), "minute");
-  if (diff <= 0) return "만료됨";
-  if (diff < 60) return `${diff}분 남음`;
-  const hours = Math.floor(diff / 60);
-  const mins = diff % 60;
-  return `${hours}h ${mins}m 남음`;
-}
+const CATEGORY_LABELS: Record<string, string> = {
+  coin_spot: "코인 현물",
+  coin_futures: "코인 선물",
+  overseas_futures: "해외선물",
+  kr_stock: "국내주식",
+};
 
 export default function SignalCard({
   signal,
-  userTier,
+  tier,
   currentPrice,
+  onUpgrade,
 }: SignalCardProps) {
   const isLong = signal.direction === "long" || signal.direction === "buy";
-  const canAccess = checkAccess(userTier, signal.min_tier_required as SubscriptionTier);
   const isCompleted = signal.status !== "active";
+  const isBlurred = signal._tier_info.isBlurred;
+  const lockedFields = signal._tier_info.lockedFields;
 
   // Calculate PnL
-  const entryPrice = Number(signal.entry_price);
-  const price = currentPrice || signal.current_price;
-  let pnlPercent = signal.current_pnl_percent || 0;
-  if (price && !isCompleted) {
+  const entryPrice = signal.entry_price ? Number(signal.entry_price) : 0;
+  const price = currentPrice;
+  let pnlPercent = 0;
+  if (price && entryPrice && !isCompleted) {
     pnlPercent = isLong
       ? ((price - entryPrice) / entryPrice) * 100
       : ((entryPrice - price) / entryPrice) * 100;
@@ -57,36 +60,25 @@ export default function SignalCard({
     pnlPercent = Number(signal.result_pnl_percent);
   }
 
-  // Calculate TP1 progress
+  // TP1 progress
   let tp1Progress = 0;
-  if (price && signal.take_profit_1 && !isCompleted) {
+  if (price && signal.take_profit_1 && !isCompleted && entryPrice) {
     const tp1 = Number(signal.take_profit_1);
-    if (isLong) {
-      tp1Progress = Math.min(
-        100,
-        Math.max(0, ((price - entryPrice) / (tp1 - entryPrice)) * 100)
-      );
-    } else {
-      tp1Progress = Math.min(
-        100,
-        Math.max(0, ((entryPrice - price) / (entryPrice - tp1)) * 100)
-      );
-    }
+    tp1Progress = isLong
+      ? Math.min(100, Math.max(0, ((price - entryPrice) / (tp1 - entryPrice)) * 100))
+      : Math.min(100, Math.max(0, ((entryPrice - price) / (entryPrice - tp1)) * 100));
   }
 
-  const statusLabel = getStatusLabel(signal.status);
-  const statusColor = getStatusColor(signal.status);
-
   return (
-    <Link href={`/app/signals/${signal.id}`}>
+    <Link href={tier === "free" && !isCompleted ? "#" : `/app/signals/${signal.id}`}>
       <div
         className={cn(
-          "rounded-xl border border-[#2A2D36] bg-[#1A1D26] p-4 transition-all hover:border-[#3A3D46]",
-          signal.status === "active" && "hover:shadow-[0_0_20px_rgba(245,184,0,0.05)]"
+          "relative rounded-xl border border-[#2A2D36] bg-[#1A1D26] p-4 transition-all hover:border-[#3A3D46]",
+          tier === "bundle" && signal.status === "active" && "border-[#F5B800]/20 shadow-[0_0_15px_rgba(245,184,0,0.05)]"
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <div
               className={cn(
@@ -101,16 +93,10 @@ export default function SignalCard({
               variant="outline"
               className={cn(
                 "text-[10px] px-1.5 py-0 border-0 font-bold",
-                isLong
-                  ? "bg-[#00E676]/10 text-[#00E676]"
-                  : "bg-[#FF5252]/10 text-[#FF5252]"
+                isLong ? "bg-[#00E676]/10 text-[#00E676]" : "bg-[#FF5252]/10 text-[#FF5252]"
               )}
             >
-              {isLong ? (
-                <TrendingUp className="w-3 h-3 mr-0.5" />
-              ) : (
-                <TrendingDown className="w-3 h-3 mr-0.5" />
-              )}
+              {isLong ? <TrendingUp className="w-3 h-3 mr-0.5" /> : <TrendingDown className="w-3 h-3 mr-0.5" />}
               {signal.direction.toUpperCase()}
             </Badge>
           </div>
@@ -118,118 +104,112 @@ export default function SignalCard({
             {Array.from({ length: 5 }).map((_, i) => (
               <Star
                 key={i}
-                className={cn(
-                  "w-3 h-3",
-                  i < signal.confidence
-                    ? "fill-[#F5B800] text-[#F5B800]"
-                    : "text-[#2A2D36]"
-                )}
+                className={cn("w-3 h-3", i < signal.confidence ? "fill-[#F5B800] text-[#F5B800]" : "text-[#2A2D36]")}
               />
             ))}
           </div>
         </div>
 
-        {/* Category & Time */}
-        <div className="flex items-center gap-2 text-[11px] text-[#8B95A5] mb-3">
+        {/* Category + Time + Delay Badge */}
+        <div className="flex items-center gap-2 text-[11px] text-[#8B95A5] mb-3 flex-wrap">
           <span>{CATEGORY_LABELS[signal.category] || signal.category}</span>
           <span>·</span>
           <span>{dayjs(signal.created_at).fromNow()}</span>
-          {signal.status === "active" && (
-            <>
-              <span>·</span>
-              <span className="text-[#F5B800]">
-                {getTimeRemaining(signal.valid_until)}
-              </span>
-            </>
-          )}
+          <DelayBadge tier={tier} />
         </div>
 
         {/* Price Data */}
-        <div
-          className={cn(
-            "space-y-1.5 text-sm",
-            !canAccess && !isCompleted && "signal-blur"
-          )}
-        >
-          <div className="flex justify-between">
-            <span className="text-[#8B95A5]">진입가</span>
-            <span className="text-white font-mono">
-              {formatPrice(entryPrice)}{" "}
-              {signal.category.startsWith("coin") ? "USDT" : ""}
-            </span>
-          </div>
-          {signal.stop_loss && (
-            <div className="flex justify-between">
-              <span className="text-[#8B95A5]">손절</span>
-              <span className="text-[#FF5252] font-mono">
-                {formatPrice(Number(signal.stop_loss))}
-                <span className="text-[10px] ml-1">
-                  (
-                  {(
-                    ((Number(signal.stop_loss) - entryPrice) / entryPrice) *
-                    100
-                  ).toFixed(1)}
-                  %)
-                </span>
-              </span>
-            </div>
-          )}
-          {signal.take_profit_1 && (
-            <div className="flex justify-between">
-              <span className="text-[#8B95A5]">1차익절</span>
-              <span className="text-[#00E676] font-mono">
-                {formatPrice(Number(signal.take_profit_1))}
-                <span className="text-[10px] ml-1">
-                  (
-                  {isLong ? "+" : "-"}
-                  {Math.abs(
-                    ((Number(signal.take_profit_1) - entryPrice) / entryPrice) *
-                      100
-                  ).toFixed(1)}
-                  %)
-                </span>
-              </span>
-            </div>
-          )}
-          {signal.take_profit_2 && (
-            <div className="flex justify-between">
-              <span className="text-[#8B95A5]">2차익절</span>
-              <span className="text-[#00E676] font-mono">
-                {formatPrice(Number(signal.take_profit_2))}
-                <span className="text-[10px] ml-1">
-                  (
-                  {isLong ? "+" : "-"}
-                  {Math.abs(
-                    ((Number(signal.take_profit_2) - entryPrice) / entryPrice) *
-                      100
-                  ).toFixed(1)}
-                  %)
-                </span>
-              </span>
-            </div>
-          )}
-          {(signal.leverage_conservative || signal.leverage_aggressive) && (
+        <div className={cn("space-y-1.5 text-sm", isBlurred && "signal-blur")}>
+          {/* Entry Price */}
+          <PriceRow label="진입가" value={signal.entry_price} locked={!signal.entry_price} />
+
+          {/* Stop Loss */}
+          <PriceRow
+            label="손절"
+            value={signal.stop_loss}
+            pnl={signal.entry_price && signal.stop_loss ? ((signal.stop_loss - signal.entry_price) / signal.entry_price) * 100 : undefined}
+            color="text-[#FF5252]"
+            locked={!signal.stop_loss}
+          />
+
+          {/* TP1 */}
+          <PriceRow
+            label="1차익절"
+            value={signal.take_profit_1}
+            pnl={signal.entry_price && signal.take_profit_1 ? ((signal.take_profit_1 - signal.entry_price) / signal.entry_price) * 100 : undefined}
+            color="text-[#00E676]"
+            locked={lockedFields.includes("take_profit_1")}
+            lockLabel="Basic 이상"
+          />
+
+          {/* TP2 */}
+          <PriceRow
+            label="2차익절"
+            value={signal.take_profit_2}
+            pnl={signal.entry_price && signal.take_profit_2 ? ((signal.take_profit_2 - signal.entry_price) / signal.entry_price) * 100 : undefined}
+            color="text-[#00E676]"
+            locked={lockedFields.includes("take_profit_2")}
+            lockLabel="Pro 이상"
+          />
+
+          {/* TP3 */}
+          <PriceRow
+            label="3차익절"
+            value={signal.take_profit_3}
+            pnl={signal.entry_price && signal.take_profit_3 ? ((signal.take_profit_3 - signal.entry_price) / signal.entry_price) * 100 : undefined}
+            color="text-[#00E676]"
+            locked={lockedFields.includes("take_profit_3")}
+            lockLabel="Premium 이상"
+          />
+
+          {/* Leverage */}
+          {(signal.leverage_conservative || lockedFields.includes("leverage_conservative")) && (
             <div className="flex justify-between">
               <span className="text-[#8B95A5]">레버리지</span>
               <span className="text-white font-mono">
-                {signal.leverage_conservative}x / {signal.leverage_aggressive}x
+                {signal.leverage_conservative ? `보수적 ${signal.leverage_conservative}x` : ""}
+                {signal.leverage_aggressive
+                  ? ` / 공격적 ${signal.leverage_aggressive}x`
+                  : lockedFields.includes("leverage_aggressive") && signal.leverage_conservative
+                    ? <span className="text-[#8B95A5]"> / <Lock className="w-3 h-3 inline" /> Premium</span>
+                    : ""}
+                {lockedFields.includes("leverage_conservative") && (
+                  <span className="text-[#8B95A5]"><Lock className="w-3 h-3 inline mr-1" />Pro 이상</span>
+                )}
               </span>
             </div>
           )}
         </div>
 
-        {/* Locked overlay */}
-        {!canAccess && !isCompleted && (
-          <div className="mt-3 flex items-center justify-center gap-2 p-2 rounded-lg bg-[#F5B800]/5 border border-[#F5B800]/20">
+        {/* Free overlay */}
+        {isBlurred && !isCompleted && (
+          <div className="mt-3 flex items-center justify-center gap-2 p-3 rounded-lg bg-[#F5B800]/5 border border-[#F5B800]/20">
             <Lock className="w-4 h-4 text-[#F5B800]" />
             <span className="text-xs text-[#F5B800] font-medium">
-              구독하고 시그널 확인하기
+              {signal._tier_info.upgradeMessage || "구독하고 시그널 확인하기"}
             </span>
           </div>
         )}
 
+        {/* AI Reasoning preview */}
+        {signal.ai_reasoning && !isBlurred && (
+          <div className="mt-3 pt-3 border-t border-[#2A2D36]">
+            <p className="text-[11px] text-[#8B95A5] leading-relaxed">
+              <span className="text-[#F5B800] font-medium">📊 AI: </span>
+              {signal.ai_reasoning.length > 120
+                ? signal.ai_reasoning.substring(0, 120) + "..."
+                : signal.ai_reasoning}
+            </p>
+            {signal._tier_info.tier === "basic" && (
+              <p className="text-[10px] text-[#8B95A5]/60 mt-1">
+                상세 분석은 Pro 이상에서 확인
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Current price & PnL */}
-        {(price || isCompleted) && (
+        {(price || isCompleted) && !isBlurred && (
           <div className="mt-3 pt-3 border-t border-[#2A2D36]">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -238,36 +218,38 @@ export default function SignalCard({
                     현재가 {formatPrice(price)}
                   </span>
                 )}
-                <span
-                  className={cn(
-                    "text-sm font-bold font-mono",
-                    pnlPercent >= 0 ? "text-[#00E676]" : "text-[#FF5252]"
-                  )}
-                >
-                  ({pnlPercent >= 0 ? "+" : ""}
-                  {pnlPercent.toFixed(2)}%)
+                <span className={cn("text-sm font-bold font-mono", pnlPercent >= 0 ? "text-[#00E676]" : "text-[#FF5252]")}>
+                  ({pnlPercent >= 0 ? "+" : ""}{pnlPercent.toFixed(2)}%)
                 </span>
               </div>
-              <Badge
-                className={cn("text-[10px] border-0", statusColor)}
-              >
-                {statusLabel}
+              <Badge className={cn("text-[10px] border-0", getStatusColor(signal.status))}>
+                {getStatusLabel(signal.status)}
               </Badge>
             </div>
 
-            {/* TP1 progress bar */}
             {signal.status === "active" && signal.take_profit_1 && price && (
               <div className="mt-2">
                 <div className="flex items-center justify-between text-[10px] text-[#8B95A5] mb-1">
                   <span>TP1까지</span>
                   <span>{Math.round(tp1Progress)}%</span>
                 </div>
-                <Progress
-                  value={tp1Progress}
-                  className="h-1.5 bg-[#2A2D36]"
-                />
+                <Progress value={tp1Progress} className="h-1.5 bg-[#2A2D36]" />
               </div>
             )}
+          </div>
+        )}
+
+        {/* Completed signal result (visible to ALL tiers) */}
+        {isCompleted && isBlurred && (
+          <div className="mt-3 pt-3 border-t border-[#2A2D36]">
+            <div className="flex items-center justify-between">
+              <span className={cn("text-sm font-bold font-mono", pnlPercent >= 0 ? "text-[#00E676]" : "text-[#FF5252]")}>
+                결과: {pnlPercent >= 0 ? "+" : ""}{pnlPercent.toFixed(2)}%
+              </span>
+              <Badge className={cn("text-[10px] border-0", getStatusColor(signal.status))}>
+                {getStatusLabel(signal.status)}
+              </Badge>
+            </div>
           </div>
         )}
       </div>
@@ -275,20 +257,54 @@ export default function SignalCard({
   );
 }
 
-function checkAccess(userTier: SubscriptionTier, requiredTier: SubscriptionTier): boolean {
-  const tierOrder: SubscriptionTier[] = ["free", "basic", "pro", "premium", "bundle"];
-  return tierOrder.indexOf(userTier) >= tierOrder.indexOf(requiredTier);
+function PriceRow({
+  label,
+  value,
+  pnl,
+  color = "text-white",
+  locked,
+  lockLabel,
+}: {
+  label: string;
+  value: number | null;
+  pnl?: number;
+  color?: string;
+  locked: boolean;
+  lockLabel?: string;
+}) {
+  if (locked) {
+    return (
+      <div className="flex justify-between items-center">
+        <span className="text-[#8B95A5]">{label}</span>
+        <span className="text-[#8B95A5]/50 text-xs flex items-center gap-1">
+          <Lock className="w-3 h-3" />
+          {lockLabel || "잠김"}
+        </span>
+      </div>
+    );
+  }
+
+  if (value === null) return null;
+
+  return (
+    <div className="flex justify-between">
+      <span className="text-[#8B95A5]">{label}</span>
+      <span className={cn("font-mono", color)}>
+        {formatPrice(value)}
+        {pnl !== undefined && (
+          <span className={cn("text-[10px] ml-1", pnl >= 0 ? "text-[#00E676]" : "text-[#FF5252]")}>
+            ({pnl >= 0 ? "+" : ""}{pnl.toFixed(1)}%)
+          </span>
+        )}
+      </span>
+    </div>
+  );
 }
 
 function getStatusLabel(status: string): string {
   const labels: Record<string, string> = {
-    active: "진행중",
-    hit_tp1: "TP1 도달",
-    hit_tp2: "TP2 도달",
-    hit_tp3: "TP3 도달",
-    hit_sl: "손절",
-    expired: "만료",
-    cancelled: "취소",
+    active: "진행중", hit_tp1: "TP1", hit_tp2: "TP2", hit_tp3: "TP3",
+    hit_sl: "손절", expired: "만료", cancelled: "취소",
   };
   return labels[status] || status;
 }
