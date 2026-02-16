@@ -5,173 +5,195 @@ export async function POST(request: NextRequest) {
   const supabase = await createClient();
   const serviceClient = await createServiceClient();
 
-  // Verify user
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "로그인이 필요합니다" }, { status: 401 });
   }
 
-  const { productId, billingCycle, paymentMethod } = await request.json();
+  const { tier, amount, referralCode, billingCycle, paymentMethod } = await request.json();
 
-  if (!productId || !billingCycle) {
-    return NextResponse.json(
-      { error: "Missing required fields" },
-      { status: 400 }
-    );
+  if (!tier || !amount) {
+    return NextResponse.json({ error: "필수 정보가 누락되었습니다" }, { status: 400 });
   }
 
-  // Fetch product
-  const { data: product, error: productError } = await supabase
-    .from("products")
-    .select("*, partners(*)")
-    .eq("id", productId)
-    .eq("is_active", true)
+  // Validate tier
+  const validTiers = ["basic", "pro", "premium", "bundle"];
+  if (!validTiers.includes(tier)) {
+    return NextResponse.json({ error: "유효하지 않은 구독 등급" }, { status: 400 });
+  }
+
+  // Get user profile
+  const { data: profile } = await serviceClient
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
     .single();
 
-  if (productError || !product) {
-    return NextResponse.json({ error: "Product not found" }, { status: 404 });
-  }
-
-  // Calculate price
-  let amount: number;
-  switch (billingCycle) {
-    case "quarterly":
-      amount = product.price_quarterly || product.price_monthly * 3;
-      break;
-    case "yearly":
-      amount = product.price_yearly || product.price_monthly * 12;
-      break;
-    default:
-      amount = product.price_monthly;
+  if (!profile) {
+    return NextResponse.json({ error: "프로필을 찾을 수 없습니다" }, { status: 404 });
   }
 
   // Calculate period
   const now = new Date();
   const periodEnd = new Date(now);
-  switch (billingCycle) {
-    case "quarterly":
-      periodEnd.setMonth(periodEnd.getMonth() + 3);
-      break;
-    case "yearly":
-      periodEnd.setFullYear(periodEnd.getFullYear() + 1);
-      break;
-    default:
-      periodEnd.setMonth(periodEnd.getMonth() + 1);
+  switch (billingCycle || "monthly") {
+    case "quarterly": periodEnd.setMonth(periodEnd.getMonth() + 3); break;
+    case "yearly": periodEnd.setFullYear(periodEnd.getFullYear() + 1); break;
+    default: periodEnd.setMonth(periodEnd.getMonth() + 1);
   }
 
-  // Calculate revenue share
-  const partner = product.partners;
-  const revenueShareRate = partner.revenue_share_rate || 0.8;
-  const partnerShare = Math.round(amount * revenueShareRate);
-  const platformShare = amount - partnerShare;
+  // Find partner via referral code or existing referred_by
+  let partnerId: string | null = null;
+  let partnerUserId: string | null = null;
+  let partnerShare = 0;
+  let platformShare = amount;
 
-  // Determine subscription tier
-  const categoryTierMap: Record<string, string> = {
-    coin_spot: "basic",
-    coin_futures: "pro",
-    overseas_futures: "premium",
-    kr_stock: "basic",
-    bundle: "bundle",
-  };
-  const newTier = categoryTierMap[product.category] || "basic";
+  if (referralCode) {
+    const { data: partner } = await serviceClient
+      .from("partners")
+      .select("id, user_id, revenue_share_rate, is_active")
+      .eq("referral_code", referralCode.toUpperCase())
+      .eq("is_active", true)
+      .single();
+
+    if (partner) {
+      partnerId = partner.id;
+      partnerUserId = partner.user_id;
+      partnerShare = Math.round(amount * partner.revenue_share_rate);
+      platformShare = amount - partnerShare;
+    }
+  } else if (profile.referred_by) {
+    const { data: partner } = await serviceClient
+      .from("partners")
+      .select("id, user_id, revenue_share_rate")
+      .eq("user_id", profile.referred_by)
+      .eq("is_active", true)
+      .single();
+
+    if (partner) {
+      partnerId = partner.id;
+      partnerUserId = partner.user_id;
+      partnerShare = Math.round(amount * partner.revenue_share_rate);
+      platformShare = amount - partnerShare;
+    }
+  }
 
   try {
     // 1. Create transaction
-    const { error: txError } = await serviceClient
-      .from("transactions")
-      .insert({
-        type: "subscription_payment",
-        user_id: user.id,
-        partner_id: partner.id,
-        amount,
-        currency: "KRW",
-        status: "completed",
-        payment_method: paymentMethod || "card",
-        description: `${product.name} ${billingCycle} 구독`,
-      });
+    await serviceClient.from("transactions").insert({
+      type: "subscription_payment",
+      user_id: user.id,
+      partner_id: partnerId,
+      amount,
+      currency: "KRW",
+      status: "completed",
+      payment_method: paymentMethod || "card",
+      description: `${tier.toUpperCase()} 구독 (${billingCycle || "monthly"})`,
+    });
 
-    if (txError) throw txError;
+    // 2. Create subscription record
+    if (partnerId) {
+      // Find or create a default product for this partner
+      let { data: product } = await serviceClient
+        .from("products")
+        .select("id")
+        .eq("partner_id", partnerId)
+        .limit(1)
+        .single();
 
-    // 2. Create subscription
-    const { error: subError } = await serviceClient
-      .from("subscriptions")
-      .insert({
-        user_id: user.id,
-        product_id: productId,
-        partner_id: partner.id,
-        status: "active",
-        billing_cycle: billingCycle,
-        amount_paid: amount,
-        partner_share: partnerShare,
-        platform_share: platformShare,
-        current_period_start: now.toISOString(),
-        current_period_end: periodEnd.toISOString(),
-        auto_renew: true,
-      });
+      if (!product) {
+        // Create a default product
+        const { data: newProduct } = await serviceClient
+          .from("products")
+          .insert({
+            partner_id: partnerId,
+            name: `${tier} 구독`,
+            slug: tier,
+            category: "bundle",
+            price_monthly: amount,
+            description: `${tier} 등급 구독`,
+            features: [],
+          })
+          .select()
+          .single();
+        product = newProduct;
+      }
 
-    if (subError) throw subError;
-
-    // 3. Update user profile tier
-    const { data: currentProfile } = await serviceClient
-      .from("profiles")
-      .select("subscription_tier")
-      .eq("id", user.id)
-      .single();
-
-    const tierOrder = ["free", "basic", "pro", "premium", "bundle"];
-    const currentTierIdx = tierOrder.indexOf(
-      currentProfile?.subscription_tier || "free"
-    );
-    const newTierIdx = tierOrder.indexOf(newTier);
-
-    if (newTierIdx > currentTierIdx) {
-      await serviceClient
-        .from("profiles")
-        .update({
-          subscription_tier: newTier,
-          subscription_expires_at: periodEnd.toISOString(),
-        })
-        .eq("id", user.id);
+      if (product) {
+        await serviceClient.from("subscriptions").insert({
+          user_id: user.id,
+          product_id: product.id,
+          partner_id: partnerId,
+          status: "active",
+          billing_cycle: billingCycle || "monthly",
+          amount_paid: amount,
+          partner_share: partnerShare,
+          platform_share: platformShare,
+          current_period_start: now.toISOString(),
+          current_period_end: periodEnd.toISOString(),
+          auto_renew: true,
+        });
+      }
     }
 
-    // 4. Update partner revenue
+    // 3. Update user profile tier
     await serviceClient
-      .from("partners")
+      .from("profiles")
       .update({
-        total_revenue: partner.total_revenue + amount,
-        available_balance: partner.available_balance + partnerShare,
-        subscriber_count: partner.subscriber_count + 1,
+        subscription_tier: tier,
+        subscription_expires_at: periodEnd.toISOString(),
+        referred_by: partnerUserId || profile.referred_by,
       })
-      .eq("id", partner.id);
+      .eq("id", user.id);
 
-    // 5. Create notifications
-    await serviceClient.from("notifications").insert([
-      {
-        user_id: user.id,
-        type: "subscription",
-        title: "구독 완료",
-        body: `${product.name} 구독이 시작되었습니다. ${periodEnd.toLocaleDateString("ko-KR")}까지 이용 가능합니다.`,
-      },
-      {
-        user_id: partner.user_id,
-        type: "subscription",
-        title: "새 구독자",
-        body: `새로운 구독자가 ${product.name}을 구독했습니다. (+${partnerShare.toLocaleString()}원)`,
-      },
-    ]);
+    // 4. Update partner revenue if applicable
+    if (partnerId) {
+      // Increment partner revenue
+      const { data: partner } = await serviceClient
+        .from("partners")
+        .select("total_revenue, available_balance, subscriber_count")
+        .eq("id", partnerId)
+        .single();
+
+      if (partner) {
+        await serviceClient
+          .from("partners")
+          .update({
+            total_revenue: Number(partner.total_revenue) + amount,
+            available_balance: Number(partner.available_balance) + partnerShare,
+            subscriber_count: partner.subscriber_count + 1,
+          })
+          .eq("id", partnerId);
+      }
+
+      // Notify partner
+      if (partnerUserId) {
+        await serviceClient.from("notifications").insert({
+          user_id: partnerUserId,
+          type: "subscription",
+          title: "새 구독자!",
+          body: `새 구독자가 ${tier.toUpperCase()}을 구독했습니다. (+${partnerShare.toLocaleString()}원)`,
+        });
+      }
+    }
+
+    // 5. Notify user
+    await serviceClient.from("notifications").insert({
+      user_id: user.id,
+      type: "subscription",
+      title: "구독 완료!",
+      body: `${tier.toUpperCase()} 구독이 시작되었습니다. ${periodEnd.toLocaleDateString("ko-KR")}까지 이용 가능합니다.`,
+    });
 
     return NextResponse.json({
       success: true,
-      subscription: {
-        tier: newTier,
-        expiresAt: periodEnd.toISOString(),
-      },
+      tier,
+      expiresAt: periodEnd.toISOString(),
+      partnerShare,
+      platformShare,
     });
   } catch (error) {
-    console.error("Subscription error:", error);
-    return NextResponse.json(
-      { error: "구독 처리 중 오류가 발생했습니다" },
-      { status: 500 }
-    );
+    console.error("Subscribe error:", error);
+    return NextResponse.json({ error: "구독 처리 중 오류 발생" }, { status: 500 });
   }
 }

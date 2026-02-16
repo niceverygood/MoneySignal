@@ -149,22 +149,44 @@ export default function MyPage() {
       </Card>
 
       {/* Subscription upgrade */}
-      {profile?.subscription_tier === "free" && (
-        <Card className="bg-gradient-to-r from-[#F5B800]/10 to-[#FFD54F]/5 border-[#F5B800]/20 p-4">
-          <div className="flex items-center gap-3">
-            <Star className="w-8 h-8 text-[#F5B800]" />
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-white">
-                프리미엄으로 업그레이드
-              </p>
-              <p className="text-xs text-[#8B95A5]">
-                모든 AI 시그널을 실시간으로 확인하세요
-              </p>
-            </div>
-            <ChevronRight className="w-5 h-5 text-[#F5B800]" />
+      <Card
+        className="bg-gradient-to-r from-[#F5B800]/10 to-[#FFD54F]/5 border-[#F5B800]/20 p-4 cursor-pointer hover:border-[#F5B800]/40 transition-all"
+        onClick={() => router.push("/app/subscribe")}
+      >
+        <div className="flex items-center gap-3">
+          <Star className="w-8 h-8 text-[#F5B800]" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-white">
+              {profile?.subscription_tier === "free"
+                ? "구독 시작하기"
+                : "구독 업그레이드"}
+            </p>
+            <p className="text-xs text-[#8B95A5]">
+              {profile?.subscription_tier === "free"
+                ? "AI 시그널을 확인하려면 구독하세요"
+                : "더 많은 혜택을 받아보세요"}
+            </p>
           </div>
-        </Card>
-      )}
+          <ChevronRight className="w-5 h-5 text-[#F5B800]" />
+        </div>
+      </Card>
+
+      {/* Become Partner */}
+      <Card
+        className="bg-[#1A1D26] border-[#2A2D36] p-4 cursor-pointer hover:border-[#E040FB]/30 transition-all"
+        onClick={() => router.push("/app/become-partner")}
+      >
+        <div className="flex items-center gap-3">
+          <Crown className="w-8 h-8 text-[#E040FB]" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-white">운영자 신청하기</p>
+            <p className="text-xs text-[#8B95A5]">
+              유저를 모집하고 매출의 80%를 수익으로
+            </p>
+          </div>
+          <ChevronRight className="w-5 h-5 text-[#8B95A5]" />
+        </div>
+      </Card>
 
       {/* Performance Card */}
       <Card
