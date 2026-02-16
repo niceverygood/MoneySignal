@@ -194,17 +194,23 @@ export default function SignalCard({
         {/* AI Reasoning preview */}
         {signal.ai_reasoning && !isBlurred && (
           <div className="mt-3 pt-3 border-t border-[#2A2D36]">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className="text-[#F5B800] font-medium text-[11px]">🤖 AI 분석</span>
+              <Badge variant="outline" className="text-[8px] border-[#2A2D36] text-[#8B95A5] px-1 py-0">
+                Claude Opus 4.6
+              </Badge>
+            </div>
             <p className="text-[11px] text-[#8B95A5] leading-relaxed">
-              <span className="text-[#F5B800] font-medium">📊 AI: </span>
-              {signal.ai_reasoning.length > 120
-                ? signal.ai_reasoning.substring(0, 120) + "..."
-                : signal.ai_reasoning}
+              {signal.ai_reasoning
+                .replace(/##?\s/g, "")
+                .replace(/\*\*/g, "")
+                .replace(/###?\s/g, "")
+                .replace(/\n/g, " ")
+                .substring(0, 200) + (signal.ai_reasoning.length > 200 ? "..." : "")}
             </p>
-            {signal._tier_info.tier === "basic" && (
-              <p className="text-[10px] text-[#8B95A5]/60 mt-1">
-                상세 분석은 Pro 이상에서 확인
-              </p>
-            )}
+            <p className="text-[10px] text-[#F5B800]/70 mt-1.5 cursor-pointer hover:text-[#F5B800]">
+              상세 분석 보기 →
+            </p>
           </div>
         )}
 

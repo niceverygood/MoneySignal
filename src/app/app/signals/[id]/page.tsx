@@ -197,25 +197,71 @@ export default function SignalDetailPage() {
 
       {/* AI Reasoning */}
       <Card className="bg-[#1A1D26] border-[#2A2D36] p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Brain className="w-4 h-4 text-[#F5B800]" />
-          <h2 className="text-sm font-semibold text-[#8B95A5] uppercase tracking-wider">
+        <div className="flex items-center gap-2 mb-4">
+          <Brain className="w-5 h-5 text-[#F5B800]" />
+          <h2 className="text-sm font-semibold text-white">
             AI 분석 근거
           </h2>
+          <Badge className="bg-[#F5B800]/10 text-[#F5B800] border-0 text-[10px] ml-auto">
+            Claude Opus 4.6
+          </Badge>
         </div>
-        <p className="text-sm text-[#8B95A5] leading-relaxed whitespace-pre-wrap">
-          {signal.ai_reasoning}
-        </p>
-        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[#2A2D36]">
+        <div className="ai-reasoning text-sm text-[#8B95A5] leading-relaxed space-y-2">
+          {signal.ai_reasoning.split("\n").map((line, i) => {
+            if (!line.trim()) return null;
+            // H2 headers
+            if (line.startsWith("## ")) {
+              return <h3 key={i} className="text-white font-bold mt-3 mb-1 text-base">{line.replace("## ", "")}</h3>;
+            }
+            // H3 headers
+            if (line.startsWith("### ")) {
+              return <h4 key={i} className="text-[#F5B800] font-semibold mt-2 mb-1 text-sm">{line.replace("### ", "")}</h4>;
+            }
+            // Bold text
+            if (line.startsWith("**") && line.endsWith("**")) {
+              return <p key={i} className="text-white font-semibold">{line.replace(/\*\*/g, "")}</p>;
+            }
+            // List items
+            if (line.startsWith("- ")) {
+              const text = line.substring(2);
+              // Parse inline bold
+              const parts = text.split(/\*\*(.*?)\*\*/);
+              return (
+                <div key={i} className="flex gap-2 pl-2">
+                  <span className="text-[#F5B800] mt-0.5">•</span>
+                  <span>
+                    {parts.map((part, j) =>
+                      j % 2 === 1 ? <strong key={j} className="text-white">{part}</strong> : part
+                    )}
+                  </span>
+                </div>
+              );
+            }
+            // Regular paragraph with bold parsing
+            const parts = line.split(/\*\*(.*?)\*\*/);
+            return (
+              <p key={i}>
+                {parts.map((part, j) =>
+                  j % 2 === 1 ? <strong key={j} className="text-white">{part}</strong> : part
+                )}
+              </p>
+            );
+          })}
+        </div>
+        <div className="flex items-center gap-2 mt-4 pt-3 border-t border-[#2A2D36]">
+          <span className="text-[10px] text-[#8B95A5]">분석 모델:</span>
           {signal.ai_models_used.map((model) => (
             <Badge
               key={model}
               variant="outline"
-              className="text-[10px] border-[#2A2D36] text-[#8B95A5]"
+              className="text-[10px] border-[#F5B800]/20 text-[#F5B800]"
             >
               {model}
             </Badge>
           ))}
+          <span className="text-[10px] text-[#8B95A5] ml-auto">
+            {dayjs(signal.created_at).format("YYYY.MM.DD HH:mm")} 분석
+          </span>
         </div>
       </Card>
 
