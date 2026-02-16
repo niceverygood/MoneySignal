@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Loader2 } from "lucide-react";
+import { Loader2, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 
 export default function SignupPage() {
@@ -31,6 +31,7 @@ function SignupForm() {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [kakaoLoading, setKakaoLoading] = useState(false);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,42 +45,76 @@ function SignupForm() {
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          display_name: displayName || email.split("@")[0],
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            display_name: displayName || email.split("@")[0],
+          },
+          emailRedirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
         },
-        emailRedirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
-      },
-    });
+      });
 
-    if (error) {
-      toast.error(error.message);
+      if (error) {
+        if (error.message.includes("already registered")) {
+          toast.error("이미 가입된 이메일입니다. 로그인해주세요.");
+        } else {
+          toast.error(error.message);
+        }
+        setLoading(false);
+        return;
+      }
+
+      // If referred_by, store for later
+      if (referredBy) {
+        localStorage.setItem("moneysignal_referred_by", referredBy);
+      }
+
+      // Check if email confirmation is required
+      if (data.session) {
+        // Auto-confirmed (email confirmation disabled in Supabase)
+        toast.success("가입 완료! 환영합니다 🎉");
+        router.push(redirectTo);
+      } else if (data.user && !data.session) {
+        // Email confirmation required
+        toast.success("가입 완료! 이메일에서 확인 링크를 클릭해주세요.", {
+          duration: 8000,
+        });
+        router.push(`/auth/login?message=confirm_email&email=${encodeURIComponent(email)}`);
+      }
+    } catch (err) {
+      console.error("Signup error:", err);
+      toast.error("회원가입 중 오류가 발생했습니다. 다시 시도해주세요.");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    // If referred_by, update profile after creation
-    if (referredBy) {
-      // This will be handled after email confirmation
-      localStorage.setItem("moneysignal_referred_by", referredBy);
-    }
-
-    toast.success("가입 완료! 이메일을 확인해주세요.");
-    router.push(redirectTo);
   };
 
-  const handleKakaoSignup = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "kakao",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
-      },
-    });
+  const handleKakaoLogin = async () => {
+    setKakaoLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "kakao",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
+        },
+      });
 
-    if (error) toast.error(error.message);
+      if (error) {
+        if (error.message.includes("not enabled") || error.message.includes("unsupported")) {
+          toast.error("카카오 로그인 준비 중입니다. 이메일로 가입해주세요.");
+        } else {
+          toast.error(error.message);
+        }
+        setKakaoLoading(false);
+      }
+      // If no error, browser will redirect to Kakao
+    } catch {
+      toast.error("카카오 로그인 연결에 실패했습니다.");
+      setKakaoLoading(false);
+    }
   };
 
   return (
@@ -95,6 +130,26 @@ function SignupForm() {
         </div>
 
         <Card className="bg-[#1A1D26] border-[#2A2D36] p-6">
+          {/* Kakao Login First (primary) */}
+          <Button
+            onClick={handleKakaoLogin}
+            disabled={kakaoLoading}
+            className="w-full bg-[#FEE500] text-[#191919] hover:bg-[#FEE500]/90 font-semibold h-11"
+          >
+            {kakaoLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            ) : (
+              <MessageCircle className="w-5 h-5 mr-2" />
+            )}
+            카카오로 3초만에 시작하기
+          </Button>
+
+          <div className="my-5 flex items-center gap-3">
+            <Separator className="flex-1 bg-[#2A2D36]" />
+            <span className="text-xs text-[#8B95A5]">또는 이메일로 가입</span>
+            <Separator className="flex-1 bg-[#2A2D36]" />
+          </div>
+
           <form onSubmit={handleSignup} className="space-y-4">
             <div>
               <Label className="text-[#8B95A5]">닉네임</Label>
@@ -134,22 +189,9 @@ function SignupForm() {
               className="w-full bg-[#F5B800] text-[#0D0F14] hover:bg-[#FFD54F] font-semibold"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-              회원가입
+              이메일로 회원가입
             </Button>
           </form>
-
-          <div className="my-4 flex items-center gap-3">
-            <Separator className="flex-1 bg-[#2A2D36]" />
-            <span className="text-xs text-[#8B95A5]">또는</span>
-            <Separator className="flex-1 bg-[#2A2D36]" />
-          </div>
-
-          <Button
-            onClick={handleKakaoSignup}
-            className="w-full bg-[#FEE500] text-[#191919] hover:bg-[#FEE500]/90 font-semibold"
-          >
-            카카오로 시작하기
-          </Button>
         </Card>
 
         <p className="text-center text-sm text-[#8B95A5] mt-4">
