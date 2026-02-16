@@ -13,6 +13,7 @@ import {
   parseSignalsFromAI,
   callOpenRouter,
 } from "@/lib/openrouter";
+import { scanTopStocks } from "@/lib/kis";
 import type { SignalCategory } from "@/types";
 
 // Verify cron secret
@@ -187,38 +188,46 @@ ${instrumentInfo}
 }
 
 // ============================================
-// KR STOCK Signal Generation (AI 3대장 토론)
+// KR STOCK Signal Generation (KIS 실제 데이터 + AI 3대장 토론)
 // ============================================
 async function generateKrStockSignals(): Promise<Record<string, unknown>[]> {
-  console.log("[Signal Engine] Generating Korean stock signals...");
+  console.log("[Signal Engine] Generating Korean stock signals with KIS data...");
 
-  // Step 1: Ask GPT to suggest 40 candidate stocks
-  const candidateResponse = await callOpenRouter("gpt", [
-    {
-      role: "user",
-      content: `한국 주식 시장에서 현재 매수 관심 종목 40개를 추천해주세요.
+  // Step 1: KIS API로 실제 주가 데이터 수집 (상위 40종목)
+  let marketData: string;
+  try {
+    const { formatted } = await scanTopStocks();
+    marketData = formatted;
+    console.log("[Signal Engine] KIS data fetched successfully");
+  } catch (error) {
+    console.error("[Signal Engine] KIS API failed, falling back to AI-only:", error);
+    // Fallback: AI에게 직접 추천 요청
+    const candidateResponse = await callOpenRouter("gpt", [
+      {
+        role: "user",
+        content: `한국 주식 시장에서 현재 매수 관심 종목 40개를 추천해주세요.
 대형주, 중형주, 성장주, 가치주를 고루 포함해주세요.
 각 종목의 종목코드, 종목명, 현재 관심 포인트를 간단히 설명해주세요.
+JSON 형식으로 응답해주세요.`,
+      },
+    ]);
+    marketData = candidateResponse;
+  }
 
-JSON 형식으로 응답:
-{
-  "candidates": [
-    { "symbol": "005930", "name": "삼성전자", "reason": "AI 반도체 수요 증가" },
-    ...
-  ]
-}`,
-    },
-  ]);
-
-  // Step 2: Conduct 3-round debate on candidates
+  // Step 2: AI 3대장이 실제 데이터 기반으로 3라운드 토론
   const { consensus } = await conductAIDebate(
-    "국내주식 Top 5 매수 추천 - AI 3대장 토론",
-    `후보 종목 목록:
-${candidateResponse}
+    "국내주식 Top 5 매수 추천 - AI 3대장 토론 (실시간 데이터 기반)",
+    `## 한국투자증권 API에서 가져온 실시간 주가 데이터입니다.
 
-위 40개 후보 중에서 3라운드 토론을 통해 Top 5 매수 추천을 도출해주세요.
-3명 중 2명 이상이 동의한 종목만 최종 추천에 포함하세요.
-각 종목의 진입가, 손절가(-3~5%), 목표가를 구체적으로 제시하세요.`,
+${marketData}
+
+## 요청사항
+위 실제 시장 데이터를 분석하여 Top 5 매수 추천을 도출해주세요.
+- 기술적 분석: 이동평균선, RSI, MACD, 볼린저밴드 관점
+- 펀더멘털: PER, PBR, EPS 기반 가치 평가
+- 거래량/거래대금 분석: 수급 동향
+- 3명 중 2명 이상 동의한 종목만 최종 추천
+- 진입가는 현재가 기준, 손절가(-3~5%), 1차/2차/3차 목표가를 구체적으로 제시`,
     3
   );
 
