@@ -4,6 +4,9 @@ import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import SignalCard from "@/components/signals/SignalCard";
 import TierUpgradeBanner from "@/components/signals/TierUpgradeBanner";
+import MissedProfitBanner from "@/components/signals/MissedProfitBanner";
+import LiveResultsFeed from "@/components/signals/LiveResultsFeed";
+import FreeSampleSignal from "@/components/signals/FreeSampleSignal";
 import { cn } from "@/lib/utils";
 import { Lock, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -115,6 +118,37 @@ export default function SignalFeedPage() {
 
   return (
     <div className="py-4 space-y-4">
+      {/* Live results ticker */}
+      <LiveResultsFeed
+        results={signals
+          .filter((s) => s.status !== "active" && s.result_pnl_percent !== null)
+          .map((s) => ({
+            symbol_name: s.symbol_name,
+            direction: s.direction,
+            result_pnl_percent: Number(s.result_pnl_percent),
+            status: s.status,
+          }))}
+      />
+
+      {/* Missed profit banner (free/basic only) */}
+      <MissedProfitBanner
+        tier={userTier}
+        completedSignals={signals
+          .filter((s) => s.status !== "active")
+          .map((s) => ({
+            symbol_name: s.symbol_name,
+            result_pnl_percent: s.result_pnl_percent,
+            status: s.status,
+            direction: s.direction,
+          }))}
+      />
+
+      {/* Free sample signal (free only) */}
+      <FreeSampleSignal
+        tier={userTier}
+        signal={signals.find((s) => s.status !== "active" && Number(s.result_pnl_percent || 0) > 3) || null}
+      />
+
       {/* Upgrade banner */}
       <TierUpgradeBanner tier={userTier} />
 
