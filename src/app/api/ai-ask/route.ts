@@ -39,10 +39,10 @@ export async function POST(request: NextRequest) {
     const userTier = (profile?.subscription_tier || "free") as TierKey;
     const tierConfig = TIER_CONFIG[userTier];
 
-    // 3. Tier check — free/basic get 403
+    // 3. Tier check — aiAskLimit === 0 means no access
     if (tierConfig.aiAskLimit === 0) {
       return NextResponse.json(
-        { error: "Pro 이상 구독에서 이용 가능합니다" },
+        { error: "이 등급에서는 AI 질문을 이용할 수 없습니다. 업그레이드해주세요." },
         { status: 403 }
       );
     }

@@ -34,15 +34,15 @@ export const TIER_CONFIG = {
     monthlyReport: false,
     csvExport: false,
     // AI 종목 질문
-    aiAskLimit: 0,
+    aiAskLimit: 3,                  // 무료 체험 3회 (맛보기)
     aiAskHistory: false,
     // 알림
     pushNotification: false,
     telegramEnabled: false,
     kakaoNotification: false,
-    tpAlertLevels: 0,              // TP 도달 알림 범위
-    slAlert: false,                 // SL 도달 알림
-    cancelExpireAlert: false,       // 취소/만료 알림
+    tpAlertLevels: 0,
+    slAlert: false,
+    cancelExpireAlert: false,
     // VIP
     vipChannel: false,
     premiumChat: false,

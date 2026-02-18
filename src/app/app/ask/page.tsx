@@ -166,71 +166,11 @@ export default function AskPage() {
     );
   }
 
-  // Tier blocked: show teaser with sample then lock
+  // tierBlocked is no longer used for free (free gets 3 questions now)
+  // Only truly blocked tiers (aiAskLimit === 0, e.g. basic) show this
   if (tierBlocked) {
-    return (
-      <div className="flex flex-col h-[calc(100vh-8rem)]">
-        <div className="flex items-center justify-between py-4">
-          <div className="flex items-center gap-2">
-            <Bot className="w-6 h-6 text-[#F5B800]" />
-            <h1 className="text-lg font-bold text-white">AI 종목 분석</h1>
-          </div>
-          <div className="px-3 py-1 rounded-full text-xs font-medium bg-[#FF5252]/10 text-[#FF5252] border border-[#FF5252]/20">
-            무료 체험 소진
-          </div>
-        </div>
-
-        {/* Sample conversation to show what they're missing */}
-        <div className="flex-1 overflow-y-auto space-y-4 pb-4">
-          <div className="flex justify-end">
-            <div className="bg-[#F5B800] text-[#0D0F14] rounded-2xl rounded-br-sm px-3 py-2 max-w-[75%]">
-              <p className="text-sm font-medium">BTC 지금 롱 잡아도 될까?</p>
-            </div>
-          </div>
-
-          <div className="flex gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-[#F5B800]/20 flex items-center justify-center shrink-0">
-              <Bot className="w-4 h-4 text-[#F5B800]" />
-            </div>
-            <div className="bg-[#1A1D26] border border-[#2A2D36] rounded-2xl rounded-bl-sm px-3 py-2 max-w-[75%]">
-              <p className="text-sm text-white font-bold mb-1">BTC/USDT 분석</p>
-              <p className="text-sm text-[#8B95A5]">현재가: $97,450</p>
-              <p className="text-sm text-[#00E676] font-bold mt-1">방향: 매수(롱) 추천 ⭐4/5</p>
-              <div className="mt-2 space-y-1">
-                <p className="text-xs text-[#8B95A5]">• RSI 55 상승 전환 중</p>
-                <p className="text-xs text-[#8B95A5]">• 97K 지지선 강하게 지지</p>
-                <p className="text-xs text-[#8B95A5] signal-blur">• MACD 골든크로스 임박...</p>
-                <p className="text-xs text-[#8B95A5] signal-blur">• 진입: $97,400~97,600</p>
-                <p className="text-xs text-[#8B95A5] signal-blur">• 손절: $95,200 (-2.3%)</p>
-                <p className="text-xs text-[#8B95A5] signal-blur">• 목표: $100,500 (+3.1%)</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Lock overlay */}
-          <div className="flex flex-col items-center gap-4 p-6 mt-4 rounded-xl bg-[#1A1D26] border border-[#F5B800]/20">
-            <Lock className="w-8 h-8 text-[#F5B800]" />
-            <div className="text-center">
-              <p className="text-white font-bold">무료 체험이 끝났습니다</p>
-              <p className="text-xs text-[#8B95A5] mt-1">
-                Pro 구독 시 하루 3회, Premium은 10회, Bundle은 무제한!
-              </p>
-            </div>
-            <div className="flex gap-2 w-full">
-              <a
-                href="/app/subscribe"
-                className="flex-1 text-center px-4 py-2.5 bg-[#F5B800] text-[#0D0F14] font-bold rounded-lg hover:bg-[#FFD54F] transition-colors text-sm"
-              >
-                Pro 시작 — 월 5.9만원
-              </a>
-            </div>
-            <p className="text-[10px] text-[#8B95A5]">
-              AI가 실시간 데이터로 분석 · 구체적 진입가/손절/목표가 제시
-            </p>
-          </div>
-        </div>
-      </div>
-    );
+    setTierBlocked(false);
+    setLimitReached(true);
   }
 
   return (
@@ -376,13 +316,38 @@ export default function AskPage() {
         </div>
       )}
 
+      {/* Limit reached upgrade CTA */}
+      {limitReached && (
+        <div className="flex flex-col items-center gap-3 p-4 rounded-xl bg-[#1A1D26] border border-[#F5B800]/20 mb-2">
+          <Lock className="w-6 h-6 text-[#F5B800]" />
+          <div className="text-center">
+            <p className="text-sm text-white font-bold">오늘 무료 질문을 모두 사용했습니다</p>
+            <p className="text-[11px] text-[#8B95A5] mt-1">
+              Pro 구독 시 매일 3회, Premium 10회, Bundle 무제한!
+            </p>
+          </div>
+          <a
+            href="/app/subscribe"
+            className="w-full text-center px-4 py-2.5 bg-[#F5B800] text-[#0D0F14] font-bold rounded-lg hover:bg-[#FFD54F] transition-colors text-sm"
+          >
+            🎁 Pro 첫 달 무료로 시작하기
+          </a>
+        </div>
+      )}
+
       {/* Input area */}
       <div className="pt-2 pb-1">
         {limitReached ? (
-          <div className="flex items-center justify-center py-3 px-4 rounded-2xl bg-[#1A1D26] border border-[#2A2D36]">
-            <p className="text-[#8B95A5] text-sm">
-              오늘 질문 횟수를 모두 사용했습니다
-            </p>
+          <div className="flex items-end gap-2 bg-[#1A1D26] border border-[#2A2D36] rounded-2xl px-4 py-2 opacity-50">
+            <input
+              type="text"
+              placeholder="구독하면 계속 질문할 수 있어요..."
+              disabled
+              className="flex-1 bg-transparent text-[#555] text-sm placeholder:text-[#555] outline-none"
+            />
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[#2A2D36] flex items-center justify-center">
+              <Lock className="w-4 h-4 text-[#555]" />
+            </div>
           </div>
         ) : (
           <div className="flex items-end gap-2 bg-[#1A1D26] border border-[#2A2D36] rounded-2xl px-4 py-2 focus-within:border-[#F5B800]/40 transition-colors">
