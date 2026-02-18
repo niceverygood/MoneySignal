@@ -73,12 +73,12 @@ export default function SignalCard({
     <Link href={tier === "free" && !isCompleted ? "#" : `/app/signals/${signal.id}`}>
       <div
         className={cn(
-          "relative rounded-xl border border-[#2A2D36] bg-[#1A1D26] p-4 transition-all hover:border-[#3A3D46]",
+          "relative rounded-xl border border-[#2A2D36] bg-[#1A1D26] p-5 transition-all hover:border-[#3A3D46]",
           tier === "bundle" && signal.status === "active" && "border-[#F5B800]/20 shadow-[0_0_15px_rgba(245,184,0,0.05)]"
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <div
               className={cn(
@@ -111,7 +111,7 @@ export default function SignalCard({
         </div>
 
         {/* Category + Time + Delay Badge */}
-        <div className="flex items-center gap-2 text-[11px] text-[#8B95A5] mb-3 flex-wrap">
+        <div className="flex items-center gap-2 text-[11px] text-[#8B95A5] mb-4 flex-wrap">
           <span>{CATEGORY_LABELS[signal.category] || signal.category}</span>
           <span>·</span>
           <span>{dayjs(signal.created_at).fromNow()}</span>
@@ -119,7 +119,7 @@ export default function SignalCard({
         </div>
 
         {/* Price Data */}
-        <div className={cn("space-y-1.5 text-sm", isBlurred && "signal-blur")}>
+        <div className={cn("space-y-2.5 text-sm", isBlurred && "signal-blur")}>
           {/* Entry Price */}
           <PriceRow label="진입가" value={signal.entry_price} locked={!signal.entry_price} />
 
