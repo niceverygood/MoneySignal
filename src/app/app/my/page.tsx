@@ -124,6 +124,44 @@ export default function MyPage() {
         if (profile) setProfile({ ...profile, display_name: name });
       }} />
 
+      {/* 관리자 전용 바로가기 */}
+      {profile?.role === "admin" && (
+        <Card
+          className="bg-gradient-to-r from-[#FF5252]/10 to-[#FF5252]/5 border-[#FF5252]/30 p-4 cursor-pointer hover:border-[#FF5252]/50 transition-all"
+          onClick={() => router.push("/admin")}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-[#FF5252]/20 flex items-center justify-center">
+              <Shield className="w-5 h-5 text-[#FF5252]" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-white">관리자 패널</p>
+              <p className="text-xs text-[#8B95A5]">매출, 유저, 운영자, 시그널 전체 관리</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-[#FF5252]" />
+          </div>
+        </Card>
+      )}
+
+      {/* 운영자 전용 바로가기 */}
+      {profile?.role === "partner" && (
+        <Card
+          className="bg-gradient-to-r from-[#F5B800]/10 to-[#FFD54F]/5 border-[#F5B800]/30 p-4 cursor-pointer hover:border-[#F5B800]/50 transition-all"
+          onClick={() => router.push("/partner/dashboard")}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-[#F5B800]/20 flex items-center justify-center">
+              <Crown className="w-5 h-5 text-[#F5B800]" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-white">운영자 관리</p>
+              <p className="text-xs text-[#8B95A5]">상품, 구독자, 수익, 출금 관리</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-[#F5B800]" />
+          </div>
+        </Card>
+      )}
+
       {/* 정산 대시보드 (관리자/운영자만) */}
       {profile?.role === "admin" && <AdminSettlementDashboard supabase={supabase} />}
       {profile?.role === "partner" && <PartnerSettlementDashboard supabase={supabase} userId={profile.id} />}
