@@ -4,86 +4,157 @@
 
 import type { Signal } from "@/types";
 
+// ============================================
+// PDF 기준 — moneysignal_tier_comparison.pdf
+// ============================================
+export const TIER_PRICES = {
+  free: 0,
+  basic: 29900,
+  pro: 59900,
+  premium: 99900,
+  bundle: 149900,
+} as const;
+
 export const TIER_CONFIG = {
   free: {
-    delayMinutes: 60, // 1시간 딜레이 (맛보기)
-    categories: ["coin_spot"] as string[], // 코인 현물만 (맛보기)
-    dailyLimit: 1, // 하루 1개만 (맛보기)
-    tpLevels: 0, // TP 없음
-    showLeverage: false as const,
+    // 시그널 접근
+    delayMinutes: Infinity,         // 시그널 딜레이 없음 (접근 불가)
+    categories: [] as string[],     // 카테고리 블러 처리
+    dailyLimit: 0,                  // 0개/일
+    tpLevels: 0,                    // TP 없음
+    showLeverage: false as const,   // 레버리지 없음
     showAiReasoning: false,
-    aiReasoningDetail: "none" as const,
-    backtestPeriodDays: 7,
-    showCompletedResults: true,
-    aiAskLimit: 1, // AI 질문 1회 (맛보기)
-    telegramEnabled: false,
+    aiReasoningDetail: "none" as const, // AI 분석 없음
+    showCompletedResults: true,     // 완료 시그널 결과 공개 ✓
+    // 분석 & 리포트
+    backtestPeriodDays: 7,          // 최근 7일
+    dashboardLevel: "none" as const,
     weeklyReport: false,
     dailyBriefing: false,
+    monthlyReport: false,
     csvExport: false,
+    // AI 종목 질문
+    aiAskLimit: 0,
+    aiAskHistory: false,
+    // 알림
+    pushNotification: false,
+    telegramEnabled: false,
+    kakaoNotification: false,
+    tpAlertLevels: 0,              // TP 도달 알림 범위
+    slAlert: false,                 // SL 도달 알림
+    cancelExpireAlert: false,       // 취소/만료 알림
+    // VIP
+    vipChannel: false,
+    premiumChat: false,
+    partnerConsulting: 0,           // 1:1 상담 횟수
   },
   basic: {
-    delayMinutes: 30,
-    categories: ["coin_spot"],
-    dailyLimit: 3,
-    tpLevels: 1,
+    delayMinutes: 30,               // 30분 지연
+    categories: ["coin_spot"],      // 코인 현물
+    dailyLimit: 3,                  // 3개/일
+    tpLevels: 1,                    // TP1만
     showLeverage: false as const,
     showAiReasoning: true,
-    aiReasoningDetail: "summary" as const,
-    backtestPeriodDays: 30,
+    aiReasoningDetail: "summary" as const, // 요약 (100자)
     showCompletedResults: true,
-    aiAskLimit: 0,
-    telegramEnabled: false,
+    backtestPeriodDays: 30,         // 최근 30일
+    dashboardLevel: "basic" as const, // 기본 (숫자)
     weeklyReport: false,
     dailyBriefing: false,
+    monthlyReport: false,
     csvExport: false,
+    aiAskLimit: 0,
+    aiAskHistory: false,
+    pushNotification: true,         // 앱 푸시 ✓
+    telegramEnabled: false,
+    kakaoNotification: false,
+    tpAlertLevels: 1,              // TP1만 알림
+    slAlert: false,
+    cancelExpireAlert: false,
+    vipChannel: false,
+    premiumChat: false,
+    partnerConsulting: 0,
   },
   pro: {
-    delayMinutes: 10,
-    categories: ["coin_spot", "coin_futures"],
-    dailyLimit: 10,
-    tpLevels: 2,
-    showLeverage: "conservative" as const,
+    delayMinutes: 10,               // 10분 지연
+    categories: ["coin_spot", "coin_futures"], // 현물+선물
+    dailyLimit: 10,                 // 10개/일
+    tpLevels: 2,                    // TP1~TP2
+    showLeverage: "conservative" as const, // 보수적만
     showAiReasoning: true,
-    aiReasoningDetail: "detailed" as const,
-    backtestPeriodDays: 180,
+    aiReasoningDetail: "detailed" as const, // 상세 분석
     showCompletedResults: true,
-    aiAskLimit: 3,
-    telegramEnabled: true,
-    weeklyReport: true,
+    backtestPeriodDays: 180,        // 최근 180일
+    dashboardLevel: "detailed" as const, // 상세 (차트)
+    weeklyReport: true,             // 주간 리포트 ✓
     dailyBriefing: false,
+    monthlyReport: false,
     csvExport: false,
+    aiAskLimit: 3,                  // 3회/일
+    aiAskHistory: true,             // 이력 저장 ✓
+    pushNotification: true,
+    telegramEnabled: true,          // 텔레그램 ✓
+    kakaoNotification: false,
+    tpAlertLevels: 2,              // TP1~TP2 알림
+    slAlert: true,                  // SL 알림 ✓
+    cancelExpireAlert: false,
+    vipChannel: false,
+    premiumChat: false,
+    partnerConsulting: 0,
   },
   premium: {
-    delayMinutes: 0,
-    categories: ["coin_spot", "coin_futures", "overseas_futures", "kr_stock"],
-    dailyLimit: Infinity,
-    tpLevels: 3,
-    showLeverage: "all" as const,
+    delayMinutes: 0,                // 실시간
+    categories: ["coin_spot", "coin_futures", "overseas_futures", "kr_stock"], // 전체
+    dailyLimit: Infinity,           // 무제한
+    tpLevels: 3,                    // TP1~TP3
+    showLeverage: "all" as const,   // 보수적+공격적
     showAiReasoning: true,
-    aiReasoningDetail: "full" as const,
-    backtestPeriodDays: Infinity,
+    aiReasoningDetail: "full" as const, // 전체+모델정보
     showCompletedResults: true,
-    aiAskLimit: 10,
-    telegramEnabled: true,
+    backtestPeriodDays: Infinity,   // 전체 이력
+    dashboardLevel: "advanced" as const, // 고급 (히트맵)
     weeklyReport: true,
-    dailyBriefing: true,
-    csvExport: true,
+    dailyBriefing: true,            // 일일 브리핑 ✓
+    monthlyReport: false,
+    csvExport: true,                // CSV ✓
+    aiAskLimit: 10,                 // 10회/일
+    aiAskHistory: true,
+    pushNotification: true,
+    telegramEnabled: true,
+    kakaoNotification: false,       // coming soon
+    tpAlertLevels: 3,              // TP1~TP3 알림
+    slAlert: true,
+    cancelExpireAlert: true,        // 취소/만료 알림 ✓
+    vipChannel: false,
+    premiumChat: false,
+    partnerConsulting: 0,
   },
   bundle: {
-    delayMinutes: -60,
+    delayMinutes: -60,              // 1시간 선공개
     categories: ["coin_spot", "coin_futures", "overseas_futures", "kr_stock"],
     dailyLimit: Infinity,
     tpLevels: 3,
     showLeverage: "all" as const,
     showAiReasoning: true,
     aiReasoningDetail: "full" as const,
-    backtestPeriodDays: Infinity,
     showCompletedResults: true,
-    aiAskLimit: Infinity,
-    telegramEnabled: true,
+    backtestPeriodDays: Infinity,
+    dashboardLevel: "advanced" as const,
     weeklyReport: true,
     dailyBriefing: true,
+    monthlyReport: true,            // 월간 종합 리포트 ✓
     csvExport: true,
+    aiAskLimit: Infinity,           // 무제한
+    aiAskHistory: true,
+    pushNotification: true,
+    telegramEnabled: true,
+    kakaoNotification: false,       // coming soon
+    tpAlertLevels: 3,
+    slAlert: true,
+    cancelExpireAlert: true,
+    vipChannel: true,               // VIP 텔레그램 채널 ✓
+    premiumChat: true,              // 프리미엄 채팅방 ✓
+    partnerConsulting: 2,           // 1:1 상담 월 2회 (30분)
   },
 } as const;
 

@@ -25,6 +25,7 @@ import {
   MessageSquare,
   Send,
   Download,
+  Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Profile, Subscription } from "@/types";
@@ -407,6 +408,48 @@ function TierServicesCard({ tier }: { tier: TierKey }) {
       value: config.csvExport ? "사용 가능" : "없음",
       available: config.csvExport,
       unlockAt: "premium",
+    },
+    {
+      icon: Bell,
+      label: "앱 푸시 알림",
+      value: config.pushNotification ? "사용 가능" : "없음",
+      available: config.pushNotification,
+      unlockAt: "basic",
+    },
+    {
+      icon: Send,
+      label: "SL(손절) 알림",
+      value: config.slAlert ? "사용 가능" : "없음",
+      available: config.slAlert,
+      unlockAt: "pro",
+    },
+    {
+      icon: FileText,
+      label: "월간 종합 리포트",
+      value: config.monthlyReport ? "사용 가능" : "없음",
+      available: config.monthlyReport,
+      unlockAt: "bundle",
+    },
+    {
+      icon: Crown,
+      label: "VIP 텔레그램 채널",
+      value: config.vipChannel ? "사용 가능" : "없음",
+      available: config.vipChannel,
+      unlockAt: "bundle",
+    },
+    {
+      icon: MessageSquare,
+      label: "프리미엄 채팅방",
+      value: config.premiumChat ? "사용 가능" : "없음",
+      available: config.premiumChat,
+      unlockAt: "bundle",
+    },
+    {
+      icon: User,
+      label: "1:1 파트너 상담",
+      value: config.partnerConsulting > 0 ? `월 ${config.partnerConsulting}회 (30분)` : "없음",
+      available: config.partnerConsulting > 0,
+      unlockAt: "bundle",
     },
   ];
 

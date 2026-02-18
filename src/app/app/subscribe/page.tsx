@@ -23,8 +23,8 @@ const plans = [
   {
     tier: "basic" as const,
     name: "Basic",
-    price: 29000,
-    priceLabel: "2.9만원",
+    price: 29900,
+    priceLabel: "29,900원",
     freeTrial: true,
     freeTrialLabel: "첫 달 무료",
     features: [
@@ -42,8 +42,8 @@ const plans = [
   {
     tier: "pro" as const,
     name: "Pro",
-    price: 59000,
-    priceLabel: "5.9만원",
+    price: 59900,
+    priceLabel: "59,900원",
     popular: true,
     freeTrial: true,
     freeTrialLabel: "첫 달 무료",
@@ -66,8 +66,8 @@ const plans = [
   {
     tier: "premium" as const,
     name: "Premium",
-    price: 99000,
-    priceLabel: "9.9만원",
+    price: 99900,
+    priceLabel: "99,900원",
     features: [
       "전체 카테고리 시그널 (코인+선물+주식)",
       "무제한 시그널",
@@ -89,8 +89,8 @@ const plans = [
   {
     tier: "bundle" as const,
     name: "VIP Bundle",
-    price: 199000,
-    priceLabel: "19.9만원",
+    price: 149900,
+    priceLabel: "149,900원",
     features: [
       "Premium 전체 기능 포함",
       "시그널 1시간 선공개",
