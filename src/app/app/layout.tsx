@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, TrendingUp, Bell, User, BrainCircuit } from "lucide-react";
+import { BarChart3, TrendingUp, Bell, User, BrainCircuit, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const tabs = [
   { href: "/app", label: "시그널", icon: TrendingUp },
   { href: "/app/ask", label: "AI질문", icon: BrainCircuit },
   { href: "/app/backtest", label: "백테스트", icon: BarChart3 },
-  { href: "/app/notifications", label: "알림", icon: Bell },
+  { href: "/app/community", label: "커뮤니티", icon: MessageSquare },
   { href: "/app/my", label: "내정보", icon: User },
 ];
 
