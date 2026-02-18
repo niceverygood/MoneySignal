@@ -25,6 +25,8 @@ const plans = [
     name: "Basic",
     price: 29000,
     priceLabel: "2.9만원",
+    freeTrial: true,
+    freeTrialLabel: "첫 달 무료",
     features: [
       "코인 현물 시그널",
       "1일 3개 시그널",
@@ -43,6 +45,8 @@ const plans = [
     price: 59000,
     priceLabel: "5.9만원",
     popular: true,
+    freeTrial: true,
+    freeTrialLabel: "첫 달 무료",
     features: [
       "코인 현물 + 선물 시그널",
       "1일 10개 시그널",
@@ -240,10 +244,24 @@ export default function SubscribePage() {
                 plan.popular && "relative"
               )}
             >
-              {plan.popular && (
+              {plan.popular && !("freeTrial" in plan && plan.freeTrial) && (
                 <Badge className="absolute -top-2 left-4 bg-[#F5B800] text-[#0D0F14] border-0 text-xs">
                   <Star className="w-3 h-3 mr-1" /> 인기
                 </Badge>
+              )}
+
+              {/* Free trial + popular badges */}
+              {"freeTrial" in plan && plan.freeTrial && (
+                <div className="flex gap-2 mb-3">
+                  <Badge className="bg-[#00E676] text-[#0D0F14] border-0 text-xs font-bold animate-pulse">
+                    🎁 {("freeTrialLabel" in plan && plan.freeTrialLabel) || "첫 달 무료"}
+                  </Badge>
+                  {plan.popular && (
+                    <Badge className="bg-[#F5B800] text-[#0D0F14] border-0 text-xs">
+                      <Star className="w-3 h-3 mr-1" /> 인기
+                    </Badge>
+                  )}
+                </div>
               )}
 
               <div className="flex items-center justify-between mb-3">
@@ -251,10 +269,23 @@ export default function SubscribePage() {
                   <h3 className="text-lg font-bold text-white">{plan.name}</h3>
                 </div>
                 <div className="text-right">
-                  <span className="text-2xl font-bold text-white">
-                    {plan.priceLabel}
-                  </span>
-                  <span className="text-xs text-[#8B95A5]">/월</span>
+                  {"freeTrial" in plan && plan.freeTrial && currentTier === "free" ? (
+                    <>
+                      <span className="text-2xl font-bold text-[#00E676]">0원</span>
+                      <span className="text-xs text-[#8B95A5] ml-1">/첫 달</span>
+                      <p className="text-[10px] text-[#8B95A5]">
+                        <span className="line-through">{plan.priceLabel}/월</span>
+                        <span className="text-[#F5B800] ml-1">→ 다음 달부터 결제</span>
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-2xl font-bold text-white">
+                        {plan.priceLabel}
+                      </span>
+                      <span className="text-xs text-[#8B95A5]">/월</span>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -274,21 +305,29 @@ export default function SubscribePage() {
               </div>
 
               <Button
-                onClick={() => handleSubscribe(plan.tier, plan.price)}
+                onClick={() => handleSubscribe(plan.tier, "freeTrial" in plan && plan.freeTrial && currentTier === "free" ? 0 : plan.price)}
                 disabled={isCurrent || isDowngrade || subscribing === plan.tier}
                 className={cn(
-                  "w-full font-semibold",
+                  "w-full font-semibold h-11",
                   isCurrent
                     ? "bg-[#22262F] text-[#8B95A5] cursor-default"
-                    : plan.popular
-                      ? "bg-[#F5B800] text-[#0D0F14] hover:bg-[#FFD54F]"
-                      : "bg-[#22262F] text-white hover:bg-[#2A2D36]"
+                    : "freeTrial" in plan && plan.freeTrial && currentTier === "free"
+                      ? "bg-[#00E676] text-[#0D0F14] hover:bg-[#00E676]/90"
+                      : plan.popular
+                        ? "bg-[#F5B800] text-[#0D0F14] hover:bg-[#FFD54F]"
+                        : "bg-[#22262F] text-white hover:bg-[#2A2D36]"
                 )}
               >
                 {subscribing === plan.tier ? (
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
                 ) : null}
-                {isCurrent ? "현재 구독중" : isDowngrade ? "다운그레이드 불가" : `${plan.name} 구독하기`}
+                {isCurrent
+                  ? "현재 구독중"
+                  : isDowngrade
+                    ? "다운그레이드 불가"
+                    : "freeTrial" in plan && plan.freeTrial && currentTier === "free"
+                      ? `🎁 ${plan.name} 무료로 시작하기`
+                      : `${plan.name} 구독하기`}
               </Button>
             </Card>
           );
