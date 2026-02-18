@@ -12,6 +12,25 @@ import { Separator } from "@/components/ui/separator";
 import { Loader2, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 
+function generateKoreanNickname(): string {
+  const adjectives = [
+    "빛나는", "용감한", "현명한", "행운의", "날렵한", "든든한",
+    "재빠른", "슬기로운", "당당한", "활기찬", "꾸준한", "씩씩한",
+    "영리한", "담대한", "부지런한", "신중한", "멋진", "빠른",
+    "똑똑한", "차분한", "대담한", "지혜로운", "열정의", "냉철한",
+  ];
+  const animals = [
+    "호랑이", "독수리", "돌고래", "사자", "늑대", "매",
+    "용", "표범", "불사조", "고래", "곰", "여우",
+    "판다", "코끼리", "올빼미", "치타", "수달", "펭귄",
+    "해달", "기린", "코브라", "상어", "까마귀", "학",
+  ];
+  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const animal = animals[Math.floor(Math.random() * animals.length)];
+  const num = Math.floor(Math.random() * 100);
+  return `${adj}${animal}${num}`;
+}
+
 export default function SignupPage() {
   return (
     <Suspense fallback={<div className="min-h-screen bg-[#0D0F14]" />}>
@@ -51,7 +70,7 @@ function SignupForm() {
         password,
         options: {
           data: {
-            display_name: displayName || email.split("@")[0],
+            display_name: displayName || generateKoreanNickname(),
           },
           emailRedirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
         },

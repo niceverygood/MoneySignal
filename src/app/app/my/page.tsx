@@ -26,7 +26,12 @@ import {
   Send,
   Download,
   Bell,
+  Pencil,
+  Loader2,
+  X as XIcon,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { Profile, Subscription } from "@/types";
 import { TIER_LABELS } from "@/types";
@@ -115,43 +120,9 @@ export default function MyPage() {
       <h1 className="text-lg font-bold text-white">내 정보</h1>
 
       {/* Profile Card */}
-      <Card className="bg-[#1A1D26] border-[#2A2D36] p-4">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-[#2A2D36] flex items-center justify-center">
-            {profile?.avatar_url ? (
-              <img
-                src={profile.avatar_url}
-                alt=""
-                className="w-14 h-14 rounded-full object-cover"
-              />
-            ) : (
-              <User className="w-6 h-6 text-[#8B95A5]" />
-            )}
-          </div>
-          <div className="flex-1">
-            <p className="text-white font-semibold">
-              {profile?.display_name || "사용자"}
-            </p>
-            <p className="text-sm text-[#8B95A5]">{profile?.email}</p>
-            <Badge
-              className={cn(
-                "mt-1 text-[10px] border-0",
-                tierColor[profile?.subscription_tier || "free"]
-              )}
-            >
-              <Crown className="w-3 h-3 mr-1" />
-              {TIER_LABELS[profile?.subscription_tier || "free"]}
-            </Badge>
-          </div>
-        </div>
-
-        {profile?.subscription_expires_at && (
-          <p className="text-xs text-[#8B95A5] mt-3 pt-3 border-t border-[#2A2D36]">
-            구독 만료:{" "}
-            {dayjs(profile.subscription_expires_at).format("YYYY.MM.DD")}
-          </p>
-        )}
-      </Card>
+      <ProfileCard profile={profile} supabase={supabase} onUpdate={(name) => {
+        if (profile) setProfile({ ...profile, display_name: name });
+      }} />
 
       {/* Subscription upgrade */}
       <Card
@@ -297,6 +268,88 @@ export default function MyPage() {
         />
       </div>
     </div>
+  );
+}
+
+function ProfileCard({
+  profile,
+  supabase,
+  onUpdate,
+}: {
+  profile: Profile | null;
+  supabase: ReturnType<typeof createClient>;
+  onUpdate: (name: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [newName, setNewName] = useState(profile?.display_name || "");
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!newName.trim() || !profile) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ display_name: newName.trim() })
+      .eq("id", profile.id);
+    setSaving(false);
+    if (!error) {
+      onUpdate(newName.trim());
+      setEditing(false);
+      toast.success("닉네임이 변경되었습니다");
+    } else {
+      toast.error("변경에 실패했습니다");
+    }
+  };
+
+  return (
+    <Card className="bg-[#1A1D26] border-[#2A2D36] p-4">
+      <div className="flex items-center gap-4">
+        <div className="w-14 h-14 rounded-full bg-[#2A2D36] flex items-center justify-center">
+          {profile?.avatar_url ? (
+            <img src={profile.avatar_url} alt="" className="w-14 h-14 rounded-full object-cover" />
+          ) : (
+            <User className="w-6 h-6 text-[#8B95A5]" />
+          )}
+        </div>
+        <div className="flex-1">
+          {editing ? (
+            <div className="flex items-center gap-2">
+              <Input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                maxLength={20}
+                className="bg-[#22262F] border-[#2A2D36] text-white h-8 text-sm"
+                autoFocus
+                onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") setEditing(false); }}
+              />
+              <Button size="sm" onClick={handleSave} disabled={saving} className="bg-[#F5B800] text-[#0D0F14] h-8 px-2">
+                {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : "저장"}
+              </Button>
+              <button onClick={() => setEditing(false)} className="text-[#8B95A5]">
+                <XIcon className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <p className="text-white font-semibold">{profile?.display_name || "사용자"}</p>
+              <button onClick={() => { setNewName(profile?.display_name || ""); setEditing(true); }} className="text-[#8B95A5] hover:text-[#F5B800]">
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+          <p className="text-sm text-[#8B95A5]">{profile?.email}</p>
+          <Badge className={cn("mt-1 text-[10px] border-0", tierColor[profile?.subscription_tier || "free"])}>
+            <Crown className="w-3 h-3 mr-1" />
+            {TIER_LABELS[profile?.subscription_tier || "free"]}
+          </Badge>
+        </div>
+      </div>
+      {profile?.subscription_expires_at && (
+        <p className="text-xs text-[#8B95A5] mt-3 pt-3 border-t border-[#2A2D36]">
+          구독 만료: {dayjs(profile.subscription_expires_at).format("YYYY.MM.DD")}
+        </p>
+      )}
+    </Card>
   );
 }
 

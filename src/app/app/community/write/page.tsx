@@ -104,6 +104,21 @@ export default function CommunityWritePage() {
         <h1 className="text-lg font-bold text-white">글쓰기</h1>
       </div>
 
+      {/* Author info */}
+      {profile && (
+        <div className="flex items-center gap-2.5 px-1">
+          <div className="w-8 h-8 rounded-full bg-[#F5B800] flex items-center justify-center text-[#0D0F14] text-xs font-bold">
+            {(profile.display_name || "?")[0]}
+          </div>
+          <div>
+            <p className="text-sm text-white font-medium">{profile.display_name}</p>
+            <p className="text-[10px] text-[#8B95A5]">
+              {profile.role === "admin" ? "관리자" : profile.role === "partner" ? "운영자" : profile.subscription_tier.toUpperCase()} 등급으로 작성
+            </p>
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit}>
         <Card className="bg-[#1A1D26] border-[#2A2D36] p-5 space-y-4">
           <div>
