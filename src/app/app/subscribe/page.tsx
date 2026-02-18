@@ -149,8 +149,71 @@ export default function SubscribePage() {
 
   const handleSubscribe = async (tier: string, price: number) => {
     setSubscribing(tier);
+
+    // 무료 체험 (첫 달 무료)
+    if (price === 0) {
+      try {
+        if (referralCode && referralPartner) {
+          await fetch("/api/partner/referral", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ referralCode }),
+          });
+        }
+        const res = await fetch("/api/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tier,
+            amount: 0,
+            referralCode: referralCode || null,
+            billingCycle: "monthly",
+            paymentMethod: "free_trial",
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) { toast.error(data.error); return; }
+        toast.success(`${tier.toUpperCase()} 무료 체험이 시작되었습니다! 🎉`);
+        router.push("/app");
+        return;
+      } catch { toast.error("처리 중 오류"); } finally { setSubscribing(null); }
+      return;
+    }
+
+    // 유료 결제: PortOne SDK
     try {
-      // Apply referral code first if present
+      const { default: PortOne } = await import("@portone/browser-sdk/v2");
+
+      const orderId = `MS-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+      const tierNames: Record<string, string> = { basic: "Basic", pro: "Pro", premium: "Premium", bundle: "VIP Bundle" };
+
+      const response = await PortOne.requestPayment({
+        storeId: process.env.NEXT_PUBLIC_PORTONE_STORE_ID || "",
+        channelKey: process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY || "",
+        paymentId: orderId,
+        orderName: `머니시그널 ${tierNames[tier] || tier} 월간 구독`,
+        totalAmount: price,
+        currency: "CURRENCY_KRW",
+        payMethod: "CARD",
+        customer: {
+          customerId: currentTier,
+        },
+      });
+
+      if (response?.code) {
+        // 결제 실패 또는 취소
+        if (response.code === "FAILURE_TYPE_PG") {
+          toast.error("결제가 실패했습니다. 다시 시도해주세요.");
+        } else {
+          toast.error(response.message || "결제가 취소되었습니다.");
+        }
+        setSubscribing(null);
+        return;
+      }
+
+      // 결제 성공 → 서버에서 검증
+      toast.loading("결제 확인 중...");
+
       if (referralCode && referralPartner) {
         await fetch("/api/partner/referral", {
           method: "POST",
@@ -159,29 +222,32 @@ export default function SubscribePage() {
         });
       }
 
-      // Process subscription (MVP: direct tier update)
-      const res = await fetch("/api/subscribe", {
+      const verifyRes = await fetch("/api/payment/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          paymentId: orderId,
+          orderId,
           tier,
           amount: price,
-          referralCode: referralCode || null,
           billingCycle: "monthly",
-          paymentMethod: "card",
+          referralCode: referralCode || null,
         }),
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error || "구독 처리 실패");
+      const verifyData = await verifyRes.json();
+      toast.dismiss();
+
+      if (!verifyRes.ok) {
+        toast.error(verifyData.error || "결제 검증 실패");
         return;
       }
 
-      toast.success(`${tier.toUpperCase()} 구독이 시작되었습니다! 🎉`);
+      toast.success(`${tierNames[tier] || tier} 구독이 시작되었습니다! 🎉`);
       router.push("/app");
-    } catch {
-      toast.error("구독 처리 중 오류 발생");
+    } catch (err) {
+      console.error("Payment error:", err);
+      toast.error("결제 처리 중 오류가 발생했습니다");
     } finally {
       setSubscribing(null);
     }
