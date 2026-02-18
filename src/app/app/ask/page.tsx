@@ -166,43 +166,67 @@ export default function AskPage() {
     );
   }
 
-  // Tier blocked overlay for free/basic users
+  // Tier blocked: show teaser with sample then lock
   if (tierBlocked) {
     return (
-      <div className="relative min-h-[80vh] flex flex-col">
-        {/* Blurred background */}
-        <div className="absolute inset-0 flex flex-col items-center gap-4 p-6 opacity-20 blur-sm pointer-events-none">
-          <div className="w-full max-w-md space-y-4">
-            <div className="bg-[#1A1D26] rounded-2xl p-4 ml-auto max-w-[80%]">
-              <p className="text-white text-sm">BTC 분석해줘</p>
-            </div>
-            <div className="bg-[#1A1D26] rounded-2xl p-4 mr-auto max-w-[80%]">
-              <p className="text-white text-sm">
-                비트코인 현재 기술적 분석 결과입니다...
-              </p>
-            </div>
+      <div className="flex flex-col h-[calc(100vh-8rem)]">
+        <div className="flex items-center justify-between py-4">
+          <div className="flex items-center gap-2">
+            <Bot className="w-6 h-6 text-[#F5B800]" />
+            <h1 className="text-lg font-bold text-white">AI 종목 분석</h1>
+          </div>
+          <div className="px-3 py-1 rounded-full text-xs font-medium bg-[#FF5252]/10 text-[#FF5252] border border-[#FF5252]/20">
+            무료 체험 소진
           </div>
         </div>
 
-        {/* Lock overlay */}
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#0D0F14]/80 backdrop-blur-sm">
-          <div className="flex flex-col items-center gap-4 p-8 text-center">
-            <div className="w-16 h-16 rounded-full bg-[#1A1D26] flex items-center justify-center border border-[#2A2D36]">
-              <Lock className="w-8 h-8 text-[#F5B800]" />
+        {/* Sample conversation to show what they're missing */}
+        <div className="flex-1 overflow-y-auto space-y-4 pb-4">
+          <div className="flex justify-end">
+            <div className="bg-[#F5B800] text-[#0D0F14] rounded-2xl rounded-br-sm px-3 py-2 max-w-[75%]">
+              <p className="text-sm font-medium">BTC 지금 롱 잡아도 될까?</p>
             </div>
-            <h2 className="text-xl font-bold text-white">
-              Pro 이상 구독에서 이용 가능
-            </h2>
-            <p className="text-[#8B95A5] text-sm max-w-xs">
-              AI 종목 분석은 Pro, Premium, Bundle 구독자만 이용할 수 있습니다.
-              업그레이드하고 AI 분석가에게 물어보세요.
+          </div>
+
+          <div className="flex gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-[#F5B800]/20 flex items-center justify-center shrink-0">
+              <Bot className="w-4 h-4 text-[#F5B800]" />
+            </div>
+            <div className="bg-[#1A1D26] border border-[#2A2D36] rounded-2xl rounded-bl-sm px-3 py-2 max-w-[75%]">
+              <p className="text-sm text-white font-bold mb-1">BTC/USDT 분석</p>
+              <p className="text-sm text-[#8B95A5]">현재가: $97,450</p>
+              <p className="text-sm text-[#00E676] font-bold mt-1">방향: 매수(롱) 추천 ⭐4/5</p>
+              <div className="mt-2 space-y-1">
+                <p className="text-xs text-[#8B95A5]">• RSI 55 상승 전환 중</p>
+                <p className="text-xs text-[#8B95A5]">• 97K 지지선 강하게 지지</p>
+                <p className="text-xs text-[#8B95A5] signal-blur">• MACD 골든크로스 임박...</p>
+                <p className="text-xs text-[#8B95A5] signal-blur">• 진입: $97,400~97,600</p>
+                <p className="text-xs text-[#8B95A5] signal-blur">• 손절: $95,200 (-2.3%)</p>
+                <p className="text-xs text-[#8B95A5] signal-blur">• 목표: $100,500 (+3.1%)</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Lock overlay */}
+          <div className="flex flex-col items-center gap-4 p-6 mt-4 rounded-xl bg-[#1A1D26] border border-[#F5B800]/20">
+            <Lock className="w-8 h-8 text-[#F5B800]" />
+            <div className="text-center">
+              <p className="text-white font-bold">무료 체험이 끝났습니다</p>
+              <p className="text-xs text-[#8B95A5] mt-1">
+                Pro 구독 시 하루 3회, Premium은 10회, Bundle은 무제한!
+              </p>
+            </div>
+            <div className="flex gap-2 w-full">
+              <a
+                href="/app/subscribe"
+                className="flex-1 text-center px-4 py-2.5 bg-[#F5B800] text-[#0D0F14] font-bold rounded-lg hover:bg-[#FFD54F] transition-colors text-sm"
+              >
+                Pro 시작 — 월 5.9만원
+              </a>
+            </div>
+            <p className="text-[10px] text-[#8B95A5]">
+              AI가 실시간 데이터로 분석 · 구체적 진입가/손절/목표가 제시
             </p>
-            <a
-              href="/app/my"
-              className="mt-2 px-6 py-3 bg-[#F5B800] text-black font-semibold rounded-xl hover:bg-[#FFD000] transition-colors"
-            >
-              구독 업그레이드
-            </a>
           </div>
         </div>
       </div>

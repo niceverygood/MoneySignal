@@ -6,16 +6,16 @@ import type { Signal } from "@/types";
 
 export const TIER_CONFIG = {
   free: {
-    delayMinutes: Infinity,
-    categories: [] as string[],
-    dailyLimit: 0,
-    tpLevels: 0,
+    delayMinutes: 60, // 1시간 딜레이 (맛보기)
+    categories: ["coin_spot"] as string[], // 코인 현물만 (맛보기)
+    dailyLimit: 1, // 하루 1개만 (맛보기)
+    tpLevels: 0, // TP 없음
     showLeverage: false as const,
     showAiReasoning: false,
     aiReasoningDetail: "none" as const,
     backtestPeriodDays: 7,
     showCompletedResults: true,
-    aiAskLimit: 0,
+    aiAskLimit: 1, // AI 질문 1회 (맛보기)
     telegramEnabled: false,
     weeklyReport: false,
     dailyBriefing: false,
@@ -107,10 +107,7 @@ export function isSignalVisibleForTier(
     return { visible: true };
   }
 
-  // free는 활성 시그널 접근 불가
-  if (tier === "free") {
-    return { visible: false, reason: "구독이 필요합니다" };
-  }
+  // free: 카테고리/딜레이 체크 후 통과하면 맛보기 허용 (dailyLimit=1로 제한)
 
   // 카테고리 체크
   if (!(config.categories as readonly string[]).includes(signal.category)) {
@@ -221,13 +218,14 @@ export function filterSignalByTier(
     },
   };
 
-  // free: everything blurred except completed results
+  // free: 진입가만 보여주고 나머지 블러 (맛보기)
   if (tier === "free") {
-    filtered._tier_info.isBlurred = true;
-    filtered._tier_info.upgradeMessage = "구독하고 시그널 확인하기";
+    filtered.entry_price = Number(signal.entry_price); // 진입가는 공개!
+    filtered.stop_loss = signal.stop_loss ? Number(signal.stop_loss) : null; // 손절가도 공개
+    filtered._tier_info.isBlurred = false; // 카드 자체는 보임
+    filtered._tier_info.upgradeMessage = "구독하면 목표가·레버리지·AI 분석까지";
     filtered._tier_info.lockedFields = [
-      "entry_price", "stop_loss", "take_profit_1",
-      "take_profit_2", "take_profit_3",
+      "take_profit_1", "take_profit_2", "take_profit_3",
       "leverage_conservative", "leverage_aggressive", "ai_reasoning",
     ];
     return filtered;
