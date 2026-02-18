@@ -215,7 +215,7 @@ export default function SignalFeedPage() {
           <p className="text-sm text-[#8B95A5]/60 mt-1">매 4시간마다 새 시그널이 발행됩니다</p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="flex flex-col gap-5">
           {signals.map((signal) => (
             <SignalCard
               key={signal.id}
