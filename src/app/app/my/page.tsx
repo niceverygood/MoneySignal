@@ -58,16 +58,15 @@ export default function MyPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-
-      if (profileData) {
-        setProfile(profileData as Profile);
-      } else if (profileError) {
-        console.error("Profile fetch error:", profileError);
+      // Fetch profile via API (avoids RLS issues)
+      try {
+        const profileRes = await fetch("/api/me");
+        if (profileRes.ok) {
+          const profileData = await profileRes.json();
+          setProfile(profileData as Profile);
+        }
+      } catch (e) {
+        console.error("Profile fetch error:", e);
       }
 
       const { data: subsData } = await supabase
