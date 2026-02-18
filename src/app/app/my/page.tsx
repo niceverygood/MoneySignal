@@ -15,10 +15,22 @@ import {
   Shield,
   Star,
   TrendingUp,
+  Check,
+  Lock,
+  Clock,
+  Zap,
+  BrainCircuit,
+  BarChart3,
+  FileText,
+  MessageSquare,
+  Send,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Profile, Subscription } from "@/types";
 import { TIER_LABELS } from "@/types";
+import { TIER_CONFIG } from "@/lib/tier-access";
+import type { TierKey } from "@/lib/tier-access";
 import dayjs from "dayjs";
 import "dayjs/locale/ko";
 dayjs.locale("ko");
@@ -96,14 +108,6 @@ export default function MyPage() {
       </div>
     );
   }
-
-  const tierColor = {
-    free: "bg-[#8B95A5]/10 text-[#8B95A5]",
-    basic: "bg-[#448AFF]/10 text-[#448AFF]",
-    pro: "bg-[#F5B800]/10 text-[#F5B800]",
-    premium: "bg-[#E040FB]/10 text-[#E040FB]",
-    bundle: "bg-[#00E676]/10 text-[#00E676]",
-  };
 
   return (
     <div className="py-4 space-y-4">
@@ -224,6 +228,9 @@ export default function MyPage() {
         </div>
       </Card>
 
+      {/* Current Tier Services */}
+      <TierServicesCard tier={(profile?.subscription_tier || "free") as TierKey} />
+
       {/* Active Subscriptions */}
       <div>
         <h2 className="text-sm font-semibold text-[#8B95A5] mb-2 uppercase tracking-wider">
@@ -291,6 +298,185 @@ export default function MyPage() {
     </div>
   );
 }
+
+function TierServicesCard({ tier }: { tier: TierKey }) {
+  const config = TIER_CONFIG[tier];
+  const allTiers: TierKey[] = ["free", "basic", "pro", "premium", "bundle"];
+  const currentIdx = allTiers.indexOf(tier);
+
+  const services = [
+    {
+      icon: TrendingUp,
+      label: "시그널 카테고리",
+      value: config.categories.length === 0
+        ? "없음 (결과만 공개)"
+        : config.categories.length === 4
+          ? "전체 (코인+선물+주식)"
+          : config.categories.map((c: string) =>
+              c === "coin_spot" ? "코인현물" :
+              c === "coin_futures" ? "코인선물" :
+              c === "overseas_futures" ? "해외선물" : "국내주식"
+            ).join(", "),
+      available: config.categories.length > 0,
+      unlockAt: "basic",
+    },
+    {
+      icon: Clock,
+      label: "시그널 딜레이",
+      value: config.delayMinutes === Infinity ? "-" :
+             config.delayMinutes < 0 ? "1시간 선공개" :
+             config.delayMinutes === 0 ? "실시간" :
+             `${config.delayMinutes}분`,
+      available: config.delayMinutes !== Infinity,
+      unlockAt: "basic",
+    },
+    {
+      icon: Zap,
+      label: "일일 시그널 수",
+      value: config.dailyLimit === 0 ? "0개" :
+             config.dailyLimit === Infinity ? "무제한" :
+             `${config.dailyLimit}개`,
+      available: config.dailyLimit > 0,
+      unlockAt: "basic",
+    },
+    {
+      icon: BarChart3,
+      label: "TP(익절) 공개",
+      value: config.tpLevels === 0 ? "없음" : `TP1~${config.tpLevels}`,
+      available: config.tpLevels > 0,
+      unlockAt: "basic",
+    },
+    {
+      icon: Shield,
+      label: "레버리지 가이드",
+      value: config.showLeverage === false ? "없음" :
+             config.showLeverage === "conservative" ? "보수적만" : "보수적+공격적",
+      available: config.showLeverage !== false,
+      unlockAt: "pro",
+    },
+    {
+      icon: BrainCircuit,
+      label: "AI 분석 근거",
+      value: config.aiReasoningDetail === "none" ? "없음" :
+             config.aiReasoningDetail === "summary" ? "요약" :
+             config.aiReasoningDetail === "detailed" ? "상세" : "전체",
+      available: config.aiReasoningDetail !== "none",
+      unlockAt: "basic",
+    },
+    {
+      icon: MessageSquare,
+      label: "AI 종목 질문",
+      value: config.aiAskLimit === 0 ? "없음" :
+             config.aiAskLimit === Infinity ? "무제한" :
+             `${config.aiAskLimit}회/일`,
+      available: config.aiAskLimit > 0,
+      unlockAt: "pro",
+    },
+    {
+      icon: Send,
+      label: "텔레그램 알림",
+      value: config.telegramEnabled ? "사용 가능" : "없음",
+      available: config.telegramEnabled,
+      unlockAt: "pro",
+    },
+    {
+      icon: FileText,
+      label: "주간 리포트",
+      value: config.weeklyReport ? "사용 가능" : "없음",
+      available: config.weeklyReport,
+      unlockAt: "pro",
+    },
+    {
+      icon: FileText,
+      label: "일일 브리핑",
+      value: config.dailyBriefing ? "사용 가능" : "없음",
+      available: config.dailyBriefing,
+      unlockAt: "premium",
+    },
+    {
+      icon: BarChart3,
+      label: "백테스트 기간",
+      value: config.backtestPeriodDays === Infinity ? "전체 이력" :
+             `최근 ${config.backtestPeriodDays}일`,
+      available: true,
+      unlockAt: "free",
+    },
+    {
+      icon: Download,
+      label: "CSV 다운로드",
+      value: config.csvExport ? "사용 가능" : "없음",
+      available: config.csvExport,
+      unlockAt: "premium",
+    },
+  ];
+
+  return (
+    <Card className="bg-[#1A1D26] border-[#2A2D36] p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-semibold text-white">내 서비스 현황</h2>
+        <Badge className={cn("border-0 text-[10px]", tierColor[tier])}>
+          {TIER_LABELS[tier]}
+        </Badge>
+      </div>
+
+      <div className="space-y-2">
+        {services.map((svc, i) => {
+          const Icon = svc.icon;
+          return (
+            <div
+              key={i}
+              className="flex items-center gap-2.5 py-1.5"
+            >
+              <div className={cn(
+                "w-6 h-6 rounded flex items-center justify-center shrink-0",
+                svc.available
+                  ? "bg-[#00E676]/10"
+                  : "bg-[#2A2D36]"
+              )}>
+                {svc.available ? (
+                  <Check className="w-3.5 h-3.5 text-[#00E676]" />
+                ) : (
+                  <Lock className="w-3 h-3 text-[#8B95A5]/40" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <Icon className={cn("w-3.5 h-3.5 shrink-0", svc.available ? "text-[#8B95A5]" : "text-[#8B95A5]/30")} />
+                  <span className={cn("text-xs", svc.available ? "text-[#8B95A5]" : "text-[#8B95A5]/30")}>
+                    {svc.label}
+                  </span>
+                </div>
+              </div>
+              <span className={cn(
+                "text-xs font-medium shrink-0",
+                svc.available ? "text-white" : "text-[#8B95A5]/30"
+              )}>
+                {svc.available ? svc.value : `${svc.unlockAt.charAt(0).toUpperCase() + svc.unlockAt.slice(1)}부터`}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {currentIdx < allTiers.length - 1 && (
+        <Button
+          onClick={() => window.location.href = "/app/subscribe"}
+          className="w-full mt-3 bg-[#F5B800] text-[#0D0F14] hover:bg-[#FFD54F] font-semibold text-xs h-9"
+        >
+          더 많은 서비스 이용하기 →
+        </Button>
+      )}
+    </Card>
+  );
+}
+
+const tierColor: Record<string, string> = {
+  free: "bg-[#8B95A5]/10 text-[#8B95A5]",
+  basic: "bg-[#448AFF]/10 text-[#448AFF]",
+  pro: "bg-[#F5B800]/10 text-[#F5B800]",
+  premium: "bg-[#E040FB]/10 text-[#E040FB]",
+  bundle: "bg-[#00E676]/10 text-[#00E676]",
+};
 
 function MenuItem({
   icon: Icon,
