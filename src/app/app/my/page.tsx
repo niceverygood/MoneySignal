@@ -58,13 +58,17 @@ export default function MyPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: profileData } = await supabase
+      const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", user.id)
         .single();
 
-      if (profileData) setProfile(profileData as Profile);
+      if (profileData) {
+        setProfile(profileData as Profile);
+      } else if (profileError) {
+        console.error("Profile fetch error:", profileError);
+      }
 
       const { data: subsData } = await supabase
         .from("subscriptions")
