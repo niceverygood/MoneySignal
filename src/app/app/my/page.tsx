@@ -58,15 +58,60 @@ export default function MyPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch profile via API (avoids RLS issues)
-      try {
-        const profileRes = await fetch("/api/me");
-        if (profileRes.ok) {
-          const profileData = await profileRes.json();
-          setProfile(profileData as Profile);
-        }
-      } catch (e) {
-        console.error("Profile fetch error:", e);
+      // Fetch profile - try Supabase client first, then direct REST API
+      let profileLoaded = false;
+
+      // Method 1: Supabase client
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      if (profileData?.role) {
+        setProfile(profileData as Profile);
+        profileLoaded = true;
+      }
+
+      // Method 2: Direct REST API with session token
+      if (!profileLoaded) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.access_token) {
+            const restRes = await fetch(
+              `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/profiles?select=*&id=eq.${user.id}`,
+              {
+                headers: {
+                  "apikey": process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
+                  "Authorization": `Bearer ${session.access_token}`,
+                },
+              }
+            );
+            if (restRes.ok) {
+              const restData = await restRes.json();
+              if (restData[0]?.role) {
+                setProfile(restData[0] as Profile);
+                profileLoaded = true;
+              }
+            }
+          }
+        } catch { /* ignore */ }
+      }
+
+      // Method 3: Fallback
+      if (!profileLoaded) {
+        setProfile({
+          id: user.id,
+          email: user.email || "",
+          display_name: user.user_metadata?.display_name || "사용자",
+          avatar_url: null,
+          role: "user",
+          subscription_tier: "free",
+          subscription_expires_at: null,
+          referred_by: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        } as Profile);
       }
 
       const { data: subsData } = await supabase
