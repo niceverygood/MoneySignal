@@ -3,13 +3,15 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { ArrowLeft, Star, Clock, Brain, Shield } from "lucide-react";
+import { ArrowLeft, Star, Clock, Brain, Shield, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { Signal, SignalTracking } from "@/types";
 import { CATEGORY_LABELS } from "@/types";
+import { filterSignalByTier, TIER_CONFIG } from "@/lib/tier-access";
+import type { TierKey, FilteredSignal } from "@/lib/tier-access";
 import dayjs from "dayjs";
 import "dayjs/locale/ko";
 dayjs.locale("ko");
@@ -17,21 +19,40 @@ dayjs.locale("ko");
 export default function SignalDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const [signal, setSignal] = useState<Signal | null>(null);
+  const [signal, setSignal] = useState<FilteredSignal | null>(null);
+  const [rawSignal, setRawSignal] = useState<Signal | null>(null);
   const [tracking, setTracking] = useState<SignalTracking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userTier, setUserTier] = useState<TierKey>("free");
 
   const supabase = createClient();
 
   useEffect(() => {
     async function fetchSignal() {
+      // Get user tier
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("subscription_tier")
+          .eq("id", user.id)
+          .single();
+        if (profile) setUserTier((profile.subscription_tier || "free") as TierKey);
+      }
+
       const { data } = await supabase
         .from("signals")
         .select("*")
         .eq("id", params.id)
         .single();
 
-      if (data) setSignal(data as Signal);
+      if (data) {
+        const raw = data as Signal;
+        setRawSignal(raw);
+        // Apply tier filter
+        const tier = userTier;
+        setSignal(filterSignalByTier(raw, tier));
+      }
 
       // Fetch tracking data
       const { data: trackingData } = await supabase
@@ -47,7 +68,7 @@ export default function SignalDetailPage() {
     }
 
     fetchSignal();
-  }, [params.id, supabase]);
+  }, [params.id, supabase, userTier]);
 
   if (loading) {
     return (
@@ -113,7 +134,7 @@ export default function SignalDetailPage() {
         </div>
 
         <div className="flex items-center gap-4 text-sm text-[#8B95A5]">
-          <span>{CATEGORY_LABELS[signal.category]}</span>
+          <span>{(CATEGORY_LABELS as Record<string, string>)[signal.category] || signal.category}</span>
           <span className="flex items-center gap-1">
             <Clock className="w-3.5 h-3.5" />
             {signal.timeframe}
@@ -134,68 +155,83 @@ export default function SignalDetailPage() {
         </div>
       </Card>
 
-      {/* Price Levels */}
+      {/* Price Levels (tier-filtered) */}
       <Card className="bg-[#1A1D26] border-[#2A2D36] p-4 space-y-3">
         <h2 className="text-sm font-semibold text-[#8B95A5] uppercase tracking-wider">
           가격 레벨
         </h2>
 
         <div className="space-y-2">
-          <PriceRow label="진입가" value={entryPrice} color="text-white" />
-          {signal.stop_loss && (
+          {signal.entry_price ? (
+            <PriceRow label="진입가" value={signal.entry_price} color="text-white" />
+          ) : (
+            <LockedRow label="진입가" unlockTier="Basic" />
+          )}
+
+          {signal.stop_loss ? (
             <PriceRow
               label="손절"
-              value={Number(signal.stop_loss)}
-              pnl={((Number(signal.stop_loss) - entryPrice) / entryPrice) * 100}
+              value={signal.stop_loss}
+              pnl={signal.entry_price ? ((signal.stop_loss - signal.entry_price) / signal.entry_price) * 100 : undefined}
               color="text-[#FF5252]"
             />
-          )}
-          {signal.take_profit_1 && (
+          ) : signal._tier_info.lockedFields.includes("stop_loss") ? (
+            <LockedRow label="손절" unlockTier="Basic" />
+          ) : null}
+
+          {signal.take_profit_1 ? (
             <PriceRow
               label="1차 익절"
-              value={Number(signal.take_profit_1)}
-              pnl={
-                ((Number(signal.take_profit_1) - entryPrice) / entryPrice) * 100
-              }
+              value={signal.take_profit_1}
+              pnl={signal.entry_price ? ((signal.take_profit_1 - signal.entry_price) / signal.entry_price) * 100 : undefined}
               color="text-[#00E676]"
             />
+          ) : (
+            <LockedRow label="1차 익절" unlockTier="Basic" />
           )}
-          {signal.take_profit_2 && (
+
+          {signal.take_profit_2 ? (
             <PriceRow
               label="2차 익절"
-              value={Number(signal.take_profit_2)}
-              pnl={
-                ((Number(signal.take_profit_2) - entryPrice) / entryPrice) * 100
-              }
+              value={signal.take_profit_2}
+              pnl={signal.entry_price ? ((signal.take_profit_2 - signal.entry_price) / signal.entry_price) * 100 : undefined}
               color="text-[#00E676]"
             />
+          ) : (
+            <LockedRow label="2차 익절" unlockTier="Pro" />
           )}
-          {signal.take_profit_3 && (
+
+          {signal.take_profit_3 ? (
             <PriceRow
               label="3차 익절"
-              value={Number(signal.take_profit_3)}
-              pnl={
-                ((Number(signal.take_profit_3) - entryPrice) / entryPrice) * 100
-              }
+              value={signal.take_profit_3}
+              pnl={signal.entry_price ? ((signal.take_profit_3 - signal.entry_price) / signal.entry_price) * 100 : undefined}
               color="text-[#00E676]"
             />
+          ) : (
+            <LockedRow label="3차 익절" unlockTier="Premium" />
           )}
         </div>
 
-        {(signal.leverage_conservative || signal.leverage_aggressive) && (
+        {/* Leverage */}
+        {signal.leverage_conservative || signal.leverage_aggressive ? (
           <div className="pt-2 border-t border-[#2A2D36]">
             <div className="flex justify-between text-sm">
               <span className="text-[#8B95A5]">레버리지</span>
               <span className="text-white font-mono">
-                보수적 {signal.leverage_conservative}x · 공격적{" "}
-                {signal.leverage_aggressive}x
+                {signal.leverage_conservative ? `보수적 ${signal.leverage_conservative}x` : ""}
+                {signal.leverage_aggressive ? ` · 공격적 ${signal.leverage_aggressive}x` : ""}
               </span>
             </div>
           </div>
-        )}
+        ) : signal._tier_info.lockedFields.includes("leverage_conservative") ? (
+          <div className="pt-2 border-t border-[#2A2D36]">
+            <LockedRow label="레버리지" unlockTier="Pro" />
+          </div>
+        ) : null}
       </Card>
 
-      {/* AI Reasoning */}
+      {/* AI Reasoning (tier-filtered) */}
       <Card className="bg-[#1A1D26] border-[#2A2D36] p-4">
         <div className="flex items-center gap-2 mb-4">
           <Brain className="w-5 h-5 text-[#F5B800]" />
@@ -206,6 +242,19 @@ export default function SignalDetailPage() {
             Claude Opus 4.6
           </Badge>
         </div>
+
+        {!signal.ai_reasoning ? (
+          <div className="flex flex-col items-center gap-3 py-6">
+            <Lock className="w-8 h-8 text-[#F5B800]/50" />
+            <p className="text-sm text-[#8B95A5] text-center">
+              AI 분석 근거는 <span className="text-[#F5B800] font-bold">Basic</span> 이상에서 확인 가능합니다
+            </p>
+            <a href="/app/subscribe" className="px-4 py-2 bg-[#F5B800] text-[#0D0F14] rounded-lg text-xs font-bold hover:bg-[#FFD54F]">
+              구독하고 AI 분석 보기
+            </a>
+          </div>
+        ) : (
+        <>
         <div className="ai-reasoning text-sm text-[#8B95A5] leading-relaxed space-y-2">
           {signal.ai_reasoning.split("\n").map((line, i) => {
             if (!line.trim()) return null;
@@ -263,6 +312,8 @@ export default function SignalDetailPage() {
             {dayjs(signal.created_at).format("YYYY.MM.DD HH:mm")} 분석
           </span>
         </div>
+        </>
+        )}
       </Card>
 
       {/* Result (if closed) */}
@@ -387,6 +438,18 @@ function PriceRow({
           </span>
         )}
       </div>
+    </div>
+  );
+}
+
+function LockedRow({ label, unlockTier }: { label: string; unlockTier: string }) {
+  return (
+    <div className="flex items-center justify-between text-sm">
+      <span className="text-[#8B95A5]">{label}</span>
+      <span className="text-[#8B95A5]/40 text-xs flex items-center gap-1">
+        <Lock className="w-3 h-3" />
+        {unlockTier} 이상
+      </span>
     </div>
   );
 }
