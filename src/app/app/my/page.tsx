@@ -124,6 +124,10 @@ export default function MyPage() {
         if (profile) setProfile({ ...profile, display_name: name });
       }} />
 
+      {/* 정산 대시보드 (관리자/운영자만) */}
+      {profile?.role === "admin" && <AdminSettlementDashboard supabase={supabase} />}
+      {profile?.role === "partner" && <PartnerSettlementDashboard supabase={supabase} userId={profile.id} />}
+
       {/* Subscription upgrade */}
       <Card
         className="bg-gradient-to-r from-[#F5B800]/10 to-[#FFD54F]/5 border-[#F5B800]/20 p-4 cursor-pointer hover:border-[#F5B800]/40 transition-all"
@@ -147,7 +151,8 @@ export default function MyPage() {
         </div>
       </Card>
 
-      {/* Become Partner */}
+      {/* Become Partner (일반 유저만) */}
+      {profile?.role === "user" && (
       <Card
         className="bg-[#1A1D26] border-[#2A2D36] p-4 cursor-pointer hover:border-[#E040FB]/30 transition-all"
         onClick={() => router.push("/app/become-partner")}
@@ -163,6 +168,7 @@ export default function MyPage() {
           <ChevronRight className="w-5 h-5 text-[#8B95A5]" />
         </div>
       </Card>
+      )}
 
       {/* Performance Card */}
       <Card
@@ -268,6 +274,256 @@ export default function MyPage() {
         />
       </div>
     </div>
+  );
+}
+
+// ============================================
+// 총괄관리자 정산 대시보드
+// ============================================
+function AdminSettlementDashboard({ supabase }: { supabase: ReturnType<typeof createClient> }) {
+  const [stats, setStats] = useState({
+    totalRevenue: 0, platformRevenue: 0, partnerPayout: 0,
+    pendingWithdrawals: 0, totalUsers: 0, paidUsers: 0,
+    totalPartners: 0, monthlyRevenue: 0,
+  });
+  const [recentTx, setRecentTx] = useState<Array<{
+    id: string; type: string; amount: number; description: string | null; created_at: string; status: string;
+  }>>([]);
+  const router = useRouter();
+
+  useEffect(() => {
+    async function fetch() {
+      const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+
+      const [txRes, wdRes, usersRes, paidRes, partnersRes] = await Promise.all([
+        supabase.from("transactions").select("*").eq("status", "completed").order("created_at", { ascending: false }).limit(50),
+        supabase.from("withdrawal_requests").select("amount").eq("status", "pending"),
+        supabase.from("profiles").select("id", { count: "exact", head: true }),
+        supabase.from("profiles").select("id", { count: "exact", head: true }).neq("subscription_tier", "free"),
+        supabase.from("partners").select("id", { count: "exact", head: true }).eq("is_active", true),
+      ]);
+
+      const allTx = txRes.data || [];
+      const payments = allTx.filter((t) => t.type === "subscription_payment");
+      const payouts = allTx.filter((t) => t.type === "partner_payout");
+      const totalRev = payments.reduce((s, t) => s + t.amount, 0);
+      const totalPayout = payouts.reduce((s, t) => s + t.amount, 0);
+      const monthlyPayments = payments.filter((t) => new Date(t.created_at) >= monthStart);
+      const monthlyRev = monthlyPayments.reduce((s, t) => s + t.amount, 0);
+      const pendingWd = (wdRes.data || []).reduce((s, w) => s + w.amount, 0);
+
+      setStats({
+        totalRevenue: totalRev,
+        platformRevenue: Math.round(totalRev * 0.2),
+        partnerPayout: totalPayout,
+        pendingWithdrawals: pendingWd,
+        totalUsers: usersRes.count || 0,
+        paidUsers: paidRes.count || 0,
+        totalPartners: partnersRes.count || 0,
+        monthlyRevenue: monthlyRev,
+      });
+
+      setRecentTx(allTx.slice(0, 5).map((t) => ({
+        id: t.id, type: t.type, amount: t.amount,
+        description: t.description, created_at: t.created_at, status: t.status,
+      })));
+    }
+    fetch();
+  }, [supabase]);
+
+  const fmt = (n: number) => n >= 10000 ? `${Math.round(n / 10000).toLocaleString()}만원` : `${n.toLocaleString()}원`;
+
+  return (
+    <Card className="bg-[#1A1D26] border-[#FF5252]/20 p-4">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-[#FF5252]/10 flex items-center justify-center">
+            <Shield className="w-4 h-4 text-[#FF5252]" />
+          </div>
+          <div>
+            <h2 className="text-sm font-bold text-white">총괄관리자 정산</h2>
+            <p className="text-[10px] text-[#8B95A5]">플랫폼 전체 수익 현황</p>
+          </div>
+        </div>
+        <Button size="sm" onClick={() => router.push("/admin")} className="bg-[#FF5252] text-white hover:bg-[#FF5252]/80 text-[10px] h-7 px-2">
+          관리자 패널 →
+        </Button>
+      </div>
+
+      {/* KPI Grid */}
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        <div className="bg-[#22262F] rounded-lg p-2.5 text-center">
+          <p className="text-[9px] text-[#8B95A5] uppercase">총 매출</p>
+          <p className="text-sm font-bold text-white font-mono">{fmt(stats.totalRevenue)}</p>
+        </div>
+        <div className="bg-[#22262F] rounded-lg p-2.5 text-center">
+          <p className="text-[9px] text-[#00E676] uppercase">플랫폼 수익 (20%)</p>
+          <p className="text-sm font-bold text-[#00E676] font-mono">{fmt(stats.platformRevenue)}</p>
+        </div>
+        <div className="bg-[#22262F] rounded-lg p-2.5 text-center">
+          <p className="text-[9px] text-[#8B95A5] uppercase">이번달 매출</p>
+          <p className="text-sm font-bold text-[#F5B800] font-mono">{fmt(stats.monthlyRevenue)}</p>
+        </div>
+        <div className="bg-[#22262F] rounded-lg p-2.5 text-center">
+          <p className="text-[9px] text-[#8B95A5] uppercase">출금 대기</p>
+          <p className="text-sm font-bold text-[#FF5252] font-mono">{fmt(stats.pendingWithdrawals)}</p>
+        </div>
+      </div>
+
+      {/* User Stats */}
+      <div className="flex justify-between text-xs text-[#8B95A5] py-2 border-t border-[#2A2D36]">
+        <span>전체 유저 <strong className="text-white">{stats.totalUsers}</strong></span>
+        <span>유료 <strong className="text-[#00E676]">{stats.paidUsers}</strong></span>
+        <span>전환율 <strong className="text-[#F5B800]">{stats.totalUsers > 0 ? ((stats.paidUsers / stats.totalUsers) * 100).toFixed(1) : 0}%</strong></span>
+        <span>운영자 <strong className="text-[#E040FB]">{stats.totalPartners}</strong></span>
+      </div>
+
+      {/* Recent Transactions */}
+      {recentTx.length > 0 && (
+        <div className="mt-2 pt-2 border-t border-[#2A2D36]">
+          <p className="text-[10px] text-[#8B95A5] mb-1.5">최근 거래</p>
+          {recentTx.map((tx) => (
+            <div key={tx.id} className="flex items-center justify-between text-[11px] py-1">
+              <span className="text-[#8B95A5]">{dayjs(tx.created_at).format("MM.DD HH:mm")}</span>
+              <span className="text-white truncate max-w-[120px]">{tx.description || tx.type}</span>
+              <span className={tx.type === "partner_payout" ? "text-[#FF5252] font-mono" : "text-[#00E676] font-mono"}>
+                {tx.type === "partner_payout" ? "-" : "+"}{tx.amount.toLocaleString()}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+// ============================================
+// 운영자 정산 대시보드
+// ============================================
+function PartnerSettlementDashboard({ supabase, userId }: { supabase: ReturnType<typeof createClient>; userId: string }) {
+  const [partner, setPartner] = useState<{
+    brand_name: string; referral_code: string | null; tier: string;
+    revenue_share_rate: number; total_revenue: number; total_withdrawn: number;
+    available_balance: number; subscriber_count: number;
+  } | null>(null);
+  const [recentTx, setRecentTx] = useState<Array<{
+    id: string; amount: number; description: string | null; created_at: string;
+  }>>([]);
+  const router = useRouter();
+
+  useEffect(() => {
+    async function fetch() {
+      const { data: p } = await supabase
+        .from("partners")
+        .select("*")
+        .eq("user_id", userId)
+        .single();
+
+      if (p) {
+        setPartner(p);
+
+        const { data: txData } = await supabase
+          .from("transactions")
+          .select("id, amount, description, created_at")
+          .eq("partner_id", p.id)
+          .eq("status", "completed")
+          .order("created_at", { ascending: false })
+          .limit(5);
+
+        if (txData) setRecentTx(txData);
+      }
+    }
+    fetch();
+  }, [supabase, userId]);
+
+  if (!partner) return null;
+
+  const fmt = (n: number) => n >= 10000 ? `${Math.round(n / 10000).toLocaleString()}만원` : `${n.toLocaleString()}원`;
+  const sharePercent = Math.round(partner.revenue_share_rate * 100);
+
+  return (
+    <Card className="bg-[#1A1D26] border-[#F5B800]/20 p-4">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-[#F5B800]/10 flex items-center justify-center">
+            <Crown className="w-4 h-4 text-[#F5B800]" />
+          </div>
+          <div>
+            <h2 className="text-sm font-bold text-white">{partner.brand_name} 정산</h2>
+            <p className="text-[10px] text-[#8B95A5]">{partner.tier.toUpperCase()} · 수수료 {sharePercent}%</p>
+          </div>
+        </div>
+        <Button size="sm" onClick={() => router.push("/partner/dashboard")} className="bg-[#F5B800] text-[#0D0F14] hover:bg-[#FFD54F] text-[10px] h-7 px-2">
+          대시보드 →
+        </Button>
+      </div>
+
+      {/* Referral Code */}
+      {partner.referral_code && (
+        <div className="flex items-center justify-between p-2.5 bg-[#22262F] rounded-lg mb-3">
+          <div>
+            <p className="text-[9px] text-[#8B95A5]">내 추천코드</p>
+            <p className="text-lg font-bold text-[#F5B800] font-mono tracking-widest">{partner.referral_code}</p>
+          </div>
+          <Button size="sm" variant="ghost" onClick={() => {
+            navigator.clipboard.writeText(partner.referral_code || "");
+            toast.success("복사됨!");
+          }} className="text-[#8B95A5] hover:text-white text-xs">
+            복사
+          </Button>
+        </div>
+      )}
+
+      {/* KPI Grid */}
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        <div className="bg-[#22262F] rounded-lg p-2.5 text-center">
+          <p className="text-[9px] text-[#8B95A5] uppercase">총 매출</p>
+          <p className="text-sm font-bold text-white font-mono">{fmt(Number(partner.total_revenue))}</p>
+        </div>
+        <div className="bg-[#22262F] rounded-lg p-2.5 text-center">
+          <p className="text-[9px] text-[#00E676] uppercase">내 수익 ({sharePercent}%)</p>
+          <p className="text-sm font-bold text-[#00E676] font-mono">{fmt(Math.round(Number(partner.total_revenue) * partner.revenue_share_rate))}</p>
+        </div>
+        <div className="bg-[#22262F] rounded-lg p-2.5 text-center">
+          <p className="text-[9px] text-[#8B95A5] uppercase">출금 완료</p>
+          <p className="text-sm font-bold text-[#8B95A5] font-mono">{fmt(Number(partner.total_withdrawn))}</p>
+        </div>
+        <div className="bg-[#22262F] rounded-lg p-2.5 text-center">
+          <p className="text-[9px] text-[#F5B800] uppercase">출금 가능</p>
+          <p className="text-sm font-bold text-[#F5B800] font-mono">{fmt(Number(partner.available_balance))}</p>
+        </div>
+      </div>
+
+      {/* Subscriber Count */}
+      <div className="flex items-center justify-between text-xs py-2 border-t border-[#2A2D36]">
+        <span className="text-[#8B95A5]">내 구독자</span>
+        <span className="text-white font-bold">{partner.subscriber_count}명</span>
+      </div>
+
+      {/* Recent Transactions */}
+      {recentTx.length > 0 && (
+        <div className="pt-2 border-t border-[#2A2D36]">
+          <p className="text-[10px] text-[#8B95A5] mb-1.5">최근 정산</p>
+          {recentTx.map((tx) => (
+            <div key={tx.id} className="flex items-center justify-between text-[11px] py-1">
+              <span className="text-[#8B95A5]">{dayjs(tx.created_at).format("MM.DD")}</span>
+              <span className="text-white truncate max-w-[150px]">{tx.description || "-"}</span>
+              <span className="text-[#00E676] font-mono">+{tx.amount.toLocaleString()}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Quick Actions */}
+      <div className="flex gap-2 mt-3 pt-3 border-t border-[#2A2D36]">
+        <Button size="sm" onClick={() => router.push("/partner/withdraw")} variant="outline" className="flex-1 border-[#2A2D36] text-[#8B95A5] text-[10px] h-8">
+          출금 신청
+        </Button>
+        <Button size="sm" onClick={() => router.push("/partner/subscribers")} variant="outline" className="flex-1 border-[#2A2D36] text-[#8B95A5] text-[10px] h-8">
+          구독자 관리
+        </Button>
+      </div>
+    </Card>
   );
 }
 
