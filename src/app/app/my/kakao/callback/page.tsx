@@ -41,7 +41,8 @@ export default function KakaoCallbackPage() {
           // Auto-redirect after 2 seconds
           setTimeout(() => router.push("/app/my"), 2000);
         } else {
-          setErrorMsg(data.error || "연동에 실패했습니다.");
+          const detail = data.detail ? JSON.stringify(data.detail) : "";
+          setErrorMsg(`${data.error || "연동에 실패했습니다."} ${detail}`);
           setStatus("error");
         }
       })

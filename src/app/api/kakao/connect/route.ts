@@ -38,11 +38,13 @@ export async function POST(request: NextRequest) {
       client_id: process.env.KAKAO_REST_API_KEY || "",
       redirect_uri: kakaoRedirectUri,
       code,
+      ...(process.env.KAKAO_CLIENT_SECRET ? { client_secret: process.env.KAKAO_CLIENT_SECRET } : {}),
     }).toString(),
   });
 
   if (!tokenRes.ok) {
     const err = await tokenRes.json();
+    console.error("[Kakao] 토큰 발급 실패:", JSON.stringify(err), "redirect_uri:", kakaoRedirectUri);
     return NextResponse.json({ error: "카카오 토큰 발급 실패", detail: err }, { status: 400 });
   }
 
