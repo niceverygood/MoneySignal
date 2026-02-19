@@ -29,8 +29,13 @@ import {
   Pencil,
   Loader2,
   X as XIcon,
+  MessageCircle,
+  BellRing,
+  Smartphone,
+  Send as SendIcon,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { Profile, Subscription } from "@/types";
@@ -340,6 +345,9 @@ export default function MyPage() {
         )}
       </div>
 
+      {/* 알림 설정 */}
+      <NotificationSettings tier={(profile?.subscription_tier || "free") as TierKey} supabase={supabase} userId={profile?.id || ""} />
+
       {/* Menu items */}
       <div className="space-y-1">
         <MenuItem
@@ -360,6 +368,143 @@ export default function MyPage() {
         />
       </div>
     </div>
+  );
+}
+
+// ============================================
+// 알림 설정
+// ============================================
+function NotificationSettings({
+  tier,
+  supabase,
+  userId,
+}: {
+  tier: TierKey;
+  supabase: ReturnType<typeof createClient>;
+  userId: string;
+}) {
+  const [settings, setSettings] = useState({
+    push_new_signal: true,
+    push_tp_hit: true,
+    push_sl_hit: true,
+    kakao_new_signal: false,
+    kakao_tp_hit: false,
+    kakao_summary: false,
+    telegram_enabled: false,
+  });
+  const router = useRouter();
+
+  // Tier requirements
+  // Push: Basic+, Kakao: Pro+, Telegram: Pro+
+  const canPush = tier !== "free";
+  const canKakao = tier === "pro" || tier === "premium" || tier === "bundle";
+  const canTelegram = tier === "pro" || tier === "premium" || tier === "bundle";
+
+  const toggleSetting = (key: string, value: boolean) => {
+    setSettings((prev) => ({ ...prev, [key]: value }));
+    toast.success(value ? "알림 켜짐" : "알림 꺼짐");
+  };
+
+  const notifications = [
+    {
+      section: "푸시 알림",
+      icon: Smartphone,
+      minTier: "basic" as const,
+      enabled: canPush,
+      items: [
+        { key: "push_new_signal", label: "새 시그널 알림", desc: "AI 시그널 발행 시 즉시 알림" },
+        { key: "push_tp_hit", label: "익절 도달 알림", desc: "TP1~TP3 도달 시 알림" },
+        { key: "push_sl_hit", label: "손절 도달 알림", desc: "SL 도달 시 알림" },
+      ],
+    },
+    {
+      section: "카카오톡 알림",
+      icon: MessageCircle,
+      minTier: "pro" as const,
+      enabled: canKakao,
+      items: [
+        { key: "kakao_new_signal", label: "새 시그널", desc: "카카오톡으로 시그널 수신" },
+        { key: "kakao_tp_hit", label: "TP/SL 도달", desc: "익절·손절 도달 시 카카오 알림" },
+        { key: "kakao_summary", label: "일일 요약", desc: "매일 22시 오늘의 성과 요약" },
+      ],
+    },
+    {
+      section: "텔레그램 알림",
+      icon: SendIcon,
+      minTier: "pro" as const,
+      enabled: canTelegram,
+      items: [
+        { key: "telegram_enabled", label: "텔레그램 봇 연동", desc: "텔레그램으로 실시간 시그널 수신" },
+      ],
+    },
+  ];
+
+  return (
+    <Card className="bg-[#1A1D26] border-[#2A2D36] p-4">
+      <div className="flex items-center gap-2 mb-4">
+        <BellRing className="w-4 h-4 text-[#F5B800]" />
+        <h2 className="text-sm font-semibold text-white">알림 설정</h2>
+      </div>
+
+      <div className="space-y-5">
+        {notifications.map((section) => {
+          const SectionIcon = section.icon;
+          const isLocked = !section.enabled;
+
+          return (
+            <div key={section.section}>
+              <div className="flex items-center gap-2 mb-2">
+                <SectionIcon className={cn("w-4 h-4", isLocked ? "text-[#8B95A5]/30" : "text-[#8B95A5]")} />
+                <span className={cn("text-xs font-medium", isLocked ? "text-[#8B95A5]/30" : "text-[#8B95A5]")}>
+                  {section.section}
+                </span>
+                {isLocked && (
+                  <Badge className="bg-[#22262F] text-[#8B95A5]/50 border-0 text-[8px] px-1.5 py-0">
+                    <Lock className="w-2.5 h-2.5 mr-0.5" />
+                    {section.minTier.charAt(0).toUpperCase() + section.minTier.slice(1)}부터
+                  </Badge>
+                )}
+              </div>
+
+              {isLocked ? (
+                <div className="p-3 rounded-lg bg-[#22262F]/50 flex items-center justify-between">
+                  <p className="text-[11px] text-[#8B95A5]/40">
+                    {section.section}은 {section.minTier.charAt(0).toUpperCase() + section.minTier.slice(1)} 이상에서 이용 가능
+                  </p>
+                  <Button size="sm" onClick={() => router.push("/app/subscribe")}
+                    className="bg-[#F5B800] text-[#0D0F14] text-[9px] h-6 px-2 hover:bg-[#FFD54F]">
+                    업그레이드
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {section.items.map((item) => (
+                    <div key={item.key} className="flex items-center justify-between py-1.5">
+                      <div>
+                        <p className="text-sm text-white">{item.label}</p>
+                        <p className="text-[10px] text-[#8B95A5]">{item.desc}</p>
+                      </div>
+                      {item.key === "telegram_enabled" ? (
+                        <Button size="sm" variant="outline"
+                          onClick={() => router.push("/app/my/telegram")}
+                          className="border-[#2A2D36] text-[#8B95A5] text-[10px] h-7 px-2">
+                          {settings.telegram_enabled ? "설정" : "연동하기"}
+                        </Button>
+                      ) : (
+                        <Switch
+                          checked={settings[item.key as keyof typeof settings] as boolean}
+                          onCheckedChange={(checked) => toggleSetting(item.key, checked)}
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </Card>
   );
 }
 
