@@ -13,7 +13,75 @@ import {
   parseSignalsFromClaude,
 } from "@/lib/claude";
 import { scanTopStocks } from "@/lib/kis";
-import type { SignalCategory } from "@/types";
+import { sendTelegramMessage, formatSignalMessage } from "@/lib/telegram";
+import { sendKakaoSignalAlert } from "@/lib/kakao";
+import type { SignalCategory, Signal } from "@/types";
+
+// ============================================
+// 알림 발송 (텔레그램 + 카카오)
+// ============================================
+const TIER_ORDER: Record<string, number> = { free: 0, basic: 1, pro: 2, premium: 3, bundle: 4 };
+
+async function sendSignalAlerts(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  signals: Signal[]
+): Promise<void> {
+  try {
+    // 텔레그램 연결된 pro+ 유저 조회 (new_signal 알림 ON)
+    const { data: telegramUsers } = await supabase
+      .from("telegram_connections")
+      .select("telegram_chat_id, user_id, notification_settings, profiles!inner(subscription_tier, subscription_expires_at)")
+      .eq("is_active", true);
+
+    // 카카오 연결된 유저 조회
+    const { data: kakaoUsers } = await supabase
+      .from("kakao_connections")
+      .select("kakao_user_id, user_id, profiles!inner(subscription_tier, subscription_expires_at)")
+      .eq("is_active", true);
+
+    for (const signal of signals) {
+      const minTier = signal.min_tier_required || "basic";
+      const minTierOrder = TIER_ORDER[minTier] || 1;
+      const message = formatSignalMessage(signal);
+
+      // 텔레그램 발송
+      if (telegramUsers && process.env.TELEGRAM_BOT_TOKEN) {
+        for (const u of telegramUsers) {
+          const tier = u.profiles?.subscription_tier || "free";
+          const expires = u.profiles?.subscription_expires_at;
+          const isExpired = expires && new Date(expires) < new Date();
+          const settings = u.notification_settings || {};
+
+          // pro 이상 + new_signal ON + 구독 유효 + 티어 충족
+          if (
+            TIER_ORDER[tier] >= 2 &&
+            !isExpired &&
+            settings.new_signal !== false &&
+            TIER_ORDER[tier] >= minTierOrder
+          ) {
+            await sendTelegramMessage(u.telegram_chat_id, message).catch(() => null);
+          }
+        }
+      }
+
+      // 카카오 발송
+      if (kakaoUsers && process.env.KAKAO_ACCESS_TOKEN) {
+        for (const u of kakaoUsers) {
+          const tier = u.profiles?.subscription_tier || "free";
+          const expires = u.profiles?.subscription_expires_at;
+          const isExpired = expires && new Date(expires) < new Date();
+
+          if (TIER_ORDER[tier] >= 1 && !isExpired && TIER_ORDER[tier] >= minTierOrder) {
+            await sendKakaoSignalAlert(u.kakao_user_id, signal).catch(() => null);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error("[Signal Engine] Alert sending error:", err);
+  }
+}
 
 // Verify cron secret
 function verifyCronSecret(request: Request): boolean {
@@ -291,6 +359,11 @@ export async function GET(request: Request) {
         } else {
           results[key] = { count: data?.length || 0, signals: data };
           console.log(`[Signal Engine] Saved ${data?.length} ${key} signals`);
+
+          // 텔레그램 & 카카오 알림 발송
+          if (data && data.length > 0) {
+            await sendSignalAlerts(supabase, data as Signal[]);
+          }
         }
       } else {
         results[key] = { count: 0, message: "No signals generated" };

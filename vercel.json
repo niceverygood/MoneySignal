@@ -19,6 +19,14 @@
     {
       "path": "/api/cron/daily-briefing",
       "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/subscription-check",
+      "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/cron/monthly-settlement",
+      "schedule": "0 16 L * *"
     }
   ]
 }
