@@ -1,6 +1,61 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getMultipleSpotPrices } from "@/lib/binance";
+import { sendTelegramMessage, formatTPHitMessage, formatSLHitMessage } from "@/lib/telegram";
+import type { Signal } from "@/types";
+
+const TIER_ORDER: Record<string, number> = { free: 0, basic: 1, pro: 2, premium: 3, bundle: 4 };
+
+async function sendTPSLAlerts(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  signal: Signal,
+  newStatus: string,
+  pnl: number
+): Promise<void> {
+  try {
+    const { data: telegramUsers } = await supabase
+      .from("telegram_connections")
+      .select("telegram_chat_id, user_id, notification_settings, profiles!inner(subscription_tier, subscription_expires_at)")
+      .eq("is_active", true);
+
+    if (!telegramUsers) return;
+
+    const isTP = newStatus.startsWith("hit_tp");
+    const tpLevel = isTP ? parseInt(newStatus.replace("hit_tp", "")) : 0;
+    const isSL = newStatus === "hit_sl";
+
+    // TP 단계별 최소 티어: TP1=basic, TP2=pro, TP3=premium
+    const tpMinTierOrder = isTP ? (tpLevel === 1 ? 1 : tpLevel === 2 ? 2 : 3) : 2;
+
+    let message = "";
+    if (isTP) {
+      message = formatTPHitMessage(signal, tpLevel, pnl);
+    } else if (isSL) {
+      message = formatSLHitMessage(signal, pnl);
+    } else {
+      return;
+    }
+
+    for (const u of telegramUsers) {
+      const tier = u.profiles?.subscription_tier || "free";
+      const expires = u.profiles?.subscription_expires_at;
+      const isExpired = expires && new Date(expires) < new Date();
+      const settings = u.notification_settings || {};
+
+      const checkKey = isTP ? "tp_hit" : "sl_hit";
+      if (
+        TIER_ORDER[tier] >= tpMinTierOrder &&
+        !isExpired &&
+        settings[checkKey] !== false
+      ) {
+        await sendTelegramMessage(u.telegram_chat_id, message).catch(() => null);
+      }
+    }
+  } catch (err) {
+    console.error("[Track Signals] Alert error:", err);
+  }
+}
 
 function verifyCronSecret(request: Request): boolean {
   const authHeader = request.headers.get("authorization");
@@ -172,6 +227,15 @@ export async function GET(request: Request) {
 
     if (updateError) {
       console.error(`Error updating signal ${update.id}:`, updateError);
+      continue;
+    }
+
+    // TP/SL 도달 시 텔레그램 알림 발송
+    if (update.status !== "expired" && process.env.TELEGRAM_BOT_TOKEN) {
+      const signal = activeSignals.find((s) => s.id === update.id);
+      if (signal) {
+        await sendTPSLAlerts(supabase, signal as Signal, update.status, update.result_pnl_percent);
+      }
     }
   }
 
