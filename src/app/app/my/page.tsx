@@ -490,6 +490,12 @@ function NotificationSettings({
                           className="border-[#2A2D36] text-[#8B95A5] text-[10px] h-7 px-2">
                           {settings.telegram_enabled ? "설정" : "연동하기"}
                         </Button>
+                      ) : item.key === "kakao_new_signal" ? (
+                        <Button size="sm" variant="outline"
+                          onClick={() => router.push("/app/my/kakao")}
+                          className="border-[#FEE500]/30 text-[#FEE500] text-[10px] h-7 px-2 hover:bg-[#FEE500]/10">
+                          연동하기
+                        </Button>
                       ) : (
                         <Switch
                           checked={settings[item.key as keyof typeof settings] as boolean}
