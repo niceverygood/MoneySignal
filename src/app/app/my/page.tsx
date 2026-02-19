@@ -387,17 +387,25 @@ function NotificationSettings({
     push_new_signal: true,
     push_tp_hit: true,
     push_sl_hit: true,
-    kakao_new_signal: false,
-    kakao_tp_hit: false,
-    kakao_summary: false,
     telegram_enabled: false,
   });
+  const [kakaoConnected, setKakaoConnected] = useState(false);
+  const [telegramConnected, setTelegramConnected] = useState(false);
   const router = useRouter();
 
+  useEffect(() => {
+    if (!userId) return;
+    // 카카오 연동 상태
+    supabase.from("kakao_connections").select("id, is_active").eq("user_id", userId).maybeSingle()
+      .then(({ data }) => setKakaoConnected(!!data?.is_active));
+    // 텔레그램 연동 상태
+    supabase.from("telegram_connections").select("id, is_active").eq("user_id", userId).maybeSingle()
+      .then(({ data }) => setTelegramConnected(!!data?.is_active));
+  }, [userId, supabase]);
+
   // Tier requirements
-  // Push: Basic+, Kakao: Pro+, Telegram: Pro+
   const canPush = tier !== "free";
-  const canKakao = tier === "pro" || tier === "premium" || tier === "bundle";
+  const canKakao = ["basic", "pro", "premium", "bundle"].includes(tier);
   const canTelegram = tier === "pro" || tier === "premium" || tier === "bundle";
 
   const toggleSetting = (key: string, value: boolean) => {
@@ -420,12 +428,10 @@ function NotificationSettings({
     {
       section: "카카오톡 알림",
       icon: MessageCircle,
-      minTier: "pro" as const,
+      minTier: "basic" as const,
       enabled: canKakao,
       items: [
-        { key: "kakao_new_signal", label: "새 시그널", desc: "카카오톡으로 시그널 수신" },
-        { key: "kakao_tp_hit", label: "TP/SL 도달", desc: "익절·손절 도달 시 카카오 알림" },
-        { key: "kakao_summary", label: "일일 요약", desc: "매일 22시 오늘의 성과 요약" },
+        { key: "kakao_connect", label: "카카오톡 연동", desc: kakaoConnected ? "연동됨 — 시그널 알림 수신 중" : "카카오톡으로 시그널 수신" },
       ],
     },
     {
@@ -484,17 +490,28 @@ function NotificationSettings({
                         <p className="text-sm text-white">{item.label}</p>
                         <p className="text-[10px] text-[#8B95A5]">{item.desc}</p>
                       </div>
-                      {item.key === "telegram_enabled" ? (
+                      {item.key === "kakao_connect" ? (
+                        kakaoConnected ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] text-[#00E676] font-medium">연동됨</span>
+                            <Button size="sm" variant="outline"
+                              onClick={() => router.push("/app/my/kakao")}
+                              className="border-[#FEE500]/30 text-[#FEE500] text-[10px] h-7 px-2 hover:bg-[#FEE500]/10">
+                              설정
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button size="sm" variant="outline"
+                            onClick={() => router.push("/app/my/kakao")}
+                            className="border-[#FEE500]/30 text-[#FEE500] text-[10px] h-7 px-2 hover:bg-[#FEE500]/10">
+                            연동하기
+                          </Button>
+                        )
+                      ) : item.key === "telegram_enabled" ? (
                         <Button size="sm" variant="outline"
                           onClick={() => router.push("/app/my/telegram")}
                           className="border-[#2A2D36] text-[#8B95A5] text-[10px] h-7 px-2">
-                          {settings.telegram_enabled ? "설정" : "연동하기"}
-                        </Button>
-                      ) : item.key === "kakao_new_signal" ? (
-                        <Button size="sm" variant="outline"
-                          onClick={() => router.push("/app/my/kakao")}
-                          className="border-[#FEE500]/30 text-[#FEE500] text-[10px] h-7 px-2 hover:bg-[#FEE500]/10">
-                          연동하기
+                          {telegramConnected ? "설정" : "연동하기"}
                         </Button>
                       ) : (
                         <Switch
