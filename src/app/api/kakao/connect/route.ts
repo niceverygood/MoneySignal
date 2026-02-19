@@ -23,8 +23,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Basic 이상 구독에서 이용 가능합니다" }, { status: 403 });
   }
 
-  const { code } = await request.json();
+  const { code, redirectUri } = await request.json();
   if (!code) return NextResponse.json({ error: "인증 코드가 없습니다" }, { status: 400 });
+
+  // redirect_uri: 클라이언트에서 전달받거나 환경변수 사용
+  const kakaoRedirectUri = redirectUri || `${process.env.NEXT_PUBLIC_SITE_URL}/app/my/kakao/callback`;
 
   // 카카오 토큰 발급
   const tokenRes = await fetch("https://kauth.kakao.com/oauth/token", {
@@ -33,7 +36,7 @@ export async function POST(request: NextRequest) {
     body: new URLSearchParams({
       grant_type: "authorization_code",
       client_id: process.env.KAKAO_REST_API_KEY || "",
-      redirect_uri: `${process.env.NEXT_PUBLIC_SITE_URL}/app/my/kakao/callback`,
+      redirect_uri: kakaoRedirectUri,
       code,
     }).toString(),
   });
