@@ -27,11 +27,12 @@ export default function KakaoCallbackPage() {
       return;
     }
 
-    // Call our connect API
+    // Call our connect API (redirect_uri must match exactly what was used in OAuth request)
+    const redirectUri = `${window.location.origin}/app/my/kakao/callback`;
     fetch("/api/kakao/connect", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code }),
+      body: JSON.stringify({ code, redirectUri }),
     })
       .then(async (res) => {
         const data = await res.json();

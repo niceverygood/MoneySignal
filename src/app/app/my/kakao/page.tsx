@@ -76,7 +76,7 @@ export default function KakaoPage() {
   }, [fetchConnection]);
 
   const handleKakaoConnect = () => {
-    const redirectUri = `${process.env.NEXT_PUBLIC_SITE_URL}/app/my/kakao/callback`;
+    const redirectUri = `${window.location.origin}/app/my/kakao/callback`;
     const kakaoAuthUrl =
       `https://kauth.kakao.com/oauth/authorize` +
       `?client_id=${process.env.NEXT_PUBLIC_KAKAO_REST_API_KEY}` +
