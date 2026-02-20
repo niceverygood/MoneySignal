@@ -32,6 +32,19 @@ export async function GET(request: Request) {
 
   if (expiredUsers && expiredUsers.length > 0) {
     for (const user of expiredUsers) {
+      // 빌링키 재시도 중인 구독은 만료 처리 건너뜀
+      const { data: activeSub } = await supabase
+        .from("subscriptions")
+        .select("auto_renew, billing_retry_count")
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .single();
+
+      if (activeSub?.auto_renew && (activeSub.billing_retry_count || 0) < 3) {
+        // 자동결제 재시도 중 → skip
+        continue;
+      }
+
       // 구독 상태를 free로 전환
       await supabase
         .from("profiles")

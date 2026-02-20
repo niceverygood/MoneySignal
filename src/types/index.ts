@@ -66,8 +66,8 @@ export interface Product {
 export interface Subscription {
   id: string;
   user_id: string;
-  product_id: string;
-  partner_id: string;
+  product_id: string | null;
+  partner_id: string | null;
   status: SubscriptionStatus;
   billing_cycle: BillingCycle;
   amount_paid: number;
@@ -76,7 +76,24 @@ export interface Subscription {
   current_period_start: string;
   current_period_end: string;
   auto_renew: boolean;
+  tier: string | null;
+  billing_key_id: string | null;
+  next_billing_at: string | null;
+  last_billing_at: string | null;
+  billing_retry_count: number;
+  billing_failed_at: string | null;
   created_at: string;
+}
+
+export interface BillingKey {
+  id: string;
+  user_id: string;
+  billing_key: string;
+  card_name: string | null;
+  card_number_masked: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Signal {
