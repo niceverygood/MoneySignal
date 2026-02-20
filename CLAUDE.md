@@ -142,7 +142,7 @@ src/
 ## 남은 작업 (TODO)
 - [ ] 텔레그램 봇 토큰 발급 + 연동
 - [ ] 카카오 알림톡 시그널 푸시 (카카오 비즈니스 채널)
-- [ ] PortOne STORE_ID + API_SECRET 설정
-- [ ] Supabase schema.sql 추가 테이블 실행 (signal_views, user_signal_follows, telegram_connections 등)
-- [ ] 구독 만료 자동 갱신/해지 Cron
-- [ ] 정산 주기 자동화 (월별 정산 처리)
+- [x] PortOne STORE_ID + API_SECRET 설정 (02-19 완료)
+- [x] Supabase schema.sql 추가 테이블 실행 (02-20 완료 — signal_views, user_signal_follows, telegram_connections 등)
+- [x] 구독 만료 자동 갱신/해지 Cron (02-20 완료 — auto-billing + subscription-check)
+- [x] 정산 주기 자동화 (02-19 완료 — monthly-settlement Cron)
