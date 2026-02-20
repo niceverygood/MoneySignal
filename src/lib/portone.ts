@@ -38,3 +38,97 @@ export function getCycleLabel(cycle: string): string {
   };
   return labels[cycle] || cycle;
 }
+
+// ============================================
+// 구독 플랜 가격표
+// ============================================
+export const PLAN_PRICES: Record<string, Record<string, number>> = {
+  basic: { monthly: 29900, quarterly: 79900, yearly: 299000 },
+  pro: { monthly: 59900, quarterly: 159900, yearly: 599000 },
+  premium: { monthly: 99900, quarterly: 269900, yearly: 999000 },
+  bundle: { monthly: 149900, quarterly: 399900, yearly: 1499000 },
+};
+
+// ============================================
+// 빌링키 결제 (PortOne V2 API)
+// ============================================
+export async function chargeBillingKey(params: {
+  billingKey: string;
+  paymentId: string;
+  orderName: string;
+  amount: number;
+  currency?: string;
+}): Promise<{
+  success: boolean;
+  pgTransactionId?: string;
+  failureReason?: string;
+}> {
+  const apiSecret = process.env.PORTONE_API_SECRET;
+  if (!apiSecret) {
+    // 개발 환경 fallback
+    if (process.env.NODE_ENV !== "production") {
+      return { success: true, pgTransactionId: `dev-${params.paymentId}` };
+    }
+    return { success: false, failureReason: "PORTONE_API_SECRET not configured" };
+  }
+
+  try {
+    const res = await fetch(
+      `https://api.portone.io/payments/${encodeURIComponent(params.paymentId)}/billing-key`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `PortOne ${apiSecret}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          billingKey: params.billingKey,
+          orderName: params.orderName,
+          amount: {
+            total: params.amount,
+          },
+          currency: params.currency || "KRW",
+        }),
+      }
+    );
+
+    if (res.ok) {
+      const data = await res.json();
+      return {
+        success: true,
+        pgTransactionId: data.pgTxId || params.paymentId,
+      };
+    }
+
+    const errData = await res.json().catch(() => ({}));
+    console.error("[chargeBillingKey] PortOne error:", res.status, errData);
+    return {
+      success: false,
+      failureReason: errData.message || `PortOne API error: ${res.status}`,
+    };
+  } catch (err) {
+    console.error("[chargeBillingKey] Network error:", err);
+    return {
+      success: false,
+      failureReason: err instanceof Error ? err.message : "Network error",
+    };
+  }
+}
+
+// ============================================
+// 구독 기간 계산 유틸
+// ============================================
+export function calculatePeriodEnd(billingCycle: string, from?: Date): Date {
+  const periodEnd = new Date(from || new Date());
+  switch (billingCycle) {
+    case "quarterly":
+      periodEnd.setMonth(periodEnd.getMonth() + 3);
+      break;
+    case "yearly":
+      periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+      break;
+    default:
+      periodEnd.setMonth(periodEnd.getMonth() + 1);
+  }
+  return periodEnd;
+}
