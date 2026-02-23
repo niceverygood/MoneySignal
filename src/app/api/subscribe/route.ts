@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
 
   const { tier, amount, referralCode, billingCycle, paymentMethod } = await request.json();
 
-  if (!tier || !amount) {
+  if (!tier || amount === undefined || amount === null) {
     return NextResponse.json({ error: "필수 정보가 누락되었습니다" }, { status: 400 });
   }
 
