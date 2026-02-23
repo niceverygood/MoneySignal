@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, TrendingUp, PiggyBank } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { DollarSign, TrendingUp, PiggyBank, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import type { Transaction } from "@/types";
 import dayjs from "dayjs";
 
@@ -13,6 +15,7 @@ export default function AdminRevenuePage() {
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [platformRevenue, setPlatformRevenue] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [refundingId, setRefundingId] = useState<string | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -37,6 +40,33 @@ export default function AdminRevenuePage() {
 
     fetchData();
   }, []);
+
+  const handleRefund = async (tx: Transaction) => {
+    const reason = window.prompt(`환불 사유를 입력하세요\n\n거래: ${tx.description || tx.id}\n금액: ${tx.amount.toLocaleString()}원`);
+    if (!reason) return;
+
+    setRefundingId(tx.id);
+    try {
+      const res = await fetch("/api/billing/refund", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transactionId: tx.id, reason }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTransactions((prev) =>
+          prev.map((t) => t.id === tx.id ? { ...t, status: "cancelled" as const } : t)
+        );
+        toast.success(`${tx.amount.toLocaleString()}원 환불 완료`);
+      } else {
+        toast.error(data.error || "환불 실패");
+      }
+    } catch {
+      toast.error("네트워크 오류");
+    } finally {
+      setRefundingId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -93,6 +123,7 @@ export default function AdminRevenuePage() {
                 <th className="text-left text-[10px] text-[#8B95A5] uppercase p-3">설명</th>
                 <th className="text-right text-[10px] text-[#8B95A5] uppercase p-3">금액</th>
                 <th className="text-left text-[10px] text-[#8B95A5] uppercase p-3">상태</th>
+                <th className="text-right text-[10px] text-[#8B95A5] uppercase p-3">처리</th>
               </tr>
             </thead>
             <tbody>
@@ -115,11 +146,26 @@ export default function AdminRevenuePage() {
                       className={
                         tx.status === "completed"
                           ? "bg-[#00E676]/10 text-[#00E676] border-0 text-[10px]"
-                          : "bg-[#F5B800]/10 text-[#F5B800] border-0 text-[10px]"
+                          : tx.status === "cancelled"
+                            ? "bg-[#FF5252]/10 text-[#FF5252] border-0 text-[10px]"
+                            : "bg-[#F5B800]/10 text-[#F5B800] border-0 text-[10px]"
                       }
                     >
-                      {tx.status}
+                      {tx.status === "cancelled" ? "취소됨" : tx.status}
                     </Badge>
+                  </td>
+                  <td className="p-3 text-right">
+                    {tx.type === "subscription_payment" && tx.status === "completed" && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleRefund(tx)}
+                        disabled={refundingId === tx.id}
+                        className="text-[#FF5252] hover:bg-[#FF5252]/10 text-[10px] h-7 px-2"
+                      >
+                        {refundingId === tx.id ? <Loader2 className="w-3 h-3 animate-spin" /> : "환불"}
+                      </Button>
+                    )}
                   </td>
                 </tr>
               ))}

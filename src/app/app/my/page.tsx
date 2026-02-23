@@ -56,6 +56,8 @@ export default function MyPage() {
     avgPnl: number;
   } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [cancelling, setCancelling] = useState(false);
+  const [deletingCard, setDeletingCard] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
@@ -158,6 +160,53 @@ export default function MyPage() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/");
+  };
+
+  const handleCancelSubscription = async () => {
+    const activeSub = subscriptions.find((s) => s.status === "active" && s.auto_renew);
+    if (!activeSub) return;
+    const endDate = dayjs(activeSub.current_period_end).format("YYYY.MM.DD");
+    if (!window.confirm(`구독을 해지 예약하시겠습니까?\n\n${endDate}까지 서비스를 이용할 수 있으며, 이후 자동 결제가 중단됩니다.`)) return;
+
+    setCancelling(true);
+    try {
+      const res = await fetch("/api/billing/cancel", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        setSubscriptions((prev) =>
+          prev.map((s) => s.id === activeSub.id ? { ...s, auto_renew: false, next_billing_at: null } : s)
+        );
+        toast.success(`${endDate}에 구독이 종료됩니다`);
+      } else {
+        toast.error(data.error || "해지 실패");
+      }
+    } catch {
+      toast.error("네트워크 오류");
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const handleDeleteCard = async () => {
+    if (!window.confirm("등록된 카드를 삭제하시겠습니까?\n\n카드 삭제 시 자동 결제가 중단됩니다.")) return;
+
+    setDeletingCard(true);
+    try {
+      const res = await fetch("/api/billing/delete-card", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        setSubscriptions((prev) =>
+          prev.map((s) => s.status === "active" ? { ...s, auto_renew: false, next_billing_at: null } : s)
+        );
+        toast.success("카드가 삭제되었습니다");
+      } else {
+        toast.error(data.error || "카드 삭제 실패");
+      }
+    } catch {
+      toast.error("네트워크 오류");
+    } finally {
+      setDeletingCard(false);
+    }
   };
 
   if (loading) {
@@ -335,10 +384,30 @@ export default function MyPage() {
                         까지
                       </p>
                     </div>
-                    <Badge className="bg-[#00E676]/10 text-[#00E676] border-0 text-xs">
-                      활성
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      {sub.auto_renew ? (
+                        <Badge className="bg-[#00E676]/10 text-[#00E676] border-0 text-xs">
+                          활성
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-[#F5B800]/10 text-[#F5B800] border-0 text-xs">
+                          {dayjs(sub.current_period_end).format("MM.DD")} 종료
+                        </Badge>
+                      )}
+                    </div>
                   </div>
+                  {sub.auto_renew && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleCancelSubscription}
+                      disabled={cancelling}
+                      className="w-full mt-2 text-[#FF5252] hover:bg-[#FF5252]/10 text-xs h-8"
+                    >
+                      {cancelling ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
+                      해지 예약
+                    </Button>
+                  )}
                 </Card>
               ))}
           </div>
@@ -354,6 +423,11 @@ export default function MyPage() {
           icon={CreditCard}
           label="결제 내역"
           onClick={() => {}}
+        />
+        <MenuItem
+          icon={CreditCard}
+          label={deletingCard ? "카드 삭제 중..." : "등록 카드 삭제"}
+          onClick={handleDeleteCard}
         />
         <MenuItem
           icon={Shield}
