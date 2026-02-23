@@ -116,6 +116,63 @@ export async function chargeBillingKey(params: {
 }
 
 // ============================================
+// 결제 취소 (PortOne V2 API)
+// ============================================
+export async function cancelPayment(params: {
+  paymentId: string;
+  reason: string;
+}): Promise<{
+  success: boolean;
+  cancelledAmount?: number;
+  failureReason?: string;
+}> {
+  const apiSecret = process.env.PORTONE_API_SECRET;
+  if (!apiSecret) {
+    if (process.env.NODE_ENV !== "production") {
+      return { success: true, cancelledAmount: 0 };
+    }
+    return { success: false, failureReason: "PORTONE_API_SECRET not configured" };
+  }
+
+  try {
+    const res = await fetch(
+      `https://api.portone.io/payments/${encodeURIComponent(params.paymentId)}/cancel`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `PortOne ${apiSecret}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          reason: params.reason,
+        }),
+      }
+    );
+
+    if (res.ok) {
+      const data = await res.json();
+      return {
+        success: true,
+        cancelledAmount: data.cancellation?.totalAmount ?? 0,
+      };
+    }
+
+    const errData = await res.json().catch(() => ({}));
+    console.error("[cancelPayment] PortOne error:", res.status, errData);
+    return {
+      success: false,
+      failureReason: errData.message || `PortOne API error: ${res.status}`,
+    };
+  } catch (err) {
+    console.error("[cancelPayment] Network error:", err);
+    return {
+      success: false,
+      failureReason: err instanceof Error ? err.message : "Network error",
+    };
+  }
+}
+
+// ============================================
 // 구독 기간 계산 유틸
 // ============================================
 export function calculatePeriodEnd(billingCycle: string, from?: Date): Date {
