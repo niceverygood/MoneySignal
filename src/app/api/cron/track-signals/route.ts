@@ -82,7 +82,7 @@ async function sendTPSLAlerts(
           }));
 
         if (recipients.length > 0) {
-          const tplCode = isTP ? "TM_TP_HIT" : "TM_SL_HIT";
+          const tplCode = isTP ? "UF_6820" : "UF_6821";
           await sendBulkAlimtalk(tplCode, recipients).catch((err) =>
             console.error("[Track Signals] Alimtalk error:", err)
           );
