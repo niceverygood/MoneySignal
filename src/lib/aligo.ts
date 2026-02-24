@@ -192,7 +192,7 @@ export function formatSignalAlimtalk(signal: Signal): {
     message += `목표가: ${Number(signal.take_profit_1).toLocaleString("en-US")}\n`;
   }
 
-  message += `\n앱에서 상세 분석을 확인하세요.\n\n본 메시지는 고객님께서 요청하신 매매 시그널 알림 수신 동의에 따라 발송됩니다.`;
+  message += `\n앱에서 상세 분석을 확인하세요.\n\n해당 메시지는 고객님께서 요청하신 매매 시그널 알림이 있을 경우 발송됩니다.`;
 
   return {
     subject: `[머니시그널] ${signal.symbol_name || signal.symbol} ${dir}`,
@@ -210,7 +210,7 @@ export function formatTPHitAlimtalk(
 
   return {
     subject: `[머니시그널] ${signal.symbol_name || signal.symbol} TP${tpLevel} 도달`,
-    message: `[머니시그널] 목표가 도달\n\n${signal.symbol_name || signal.symbol} TP${tpLevel} 도달!\n수익률: ${pnlStr}%\n\n앱에서 확인하세요.\n\n본 메시지는 고객님께서 요청하신 매매 시그널 알림 수신 동의에 따라 발송됩니다.`,
+    message: `[머니시그널] 목표가 도달\n\n${signal.symbol_name || signal.symbol} TP${tpLevel} 도달!\n수익률: ${pnlStr}%\n\n앱에서 확인하세요.\n\n해당 메시지는 고객님께서 요청하신 목표가 도달 알림이 있을 경우 발송됩니다.`,
     buttonUrl: `${SITE_URL}/app/signals/${signal.id}`,
   };
 }
@@ -223,7 +223,7 @@ export function formatSLHitAlimtalk(
 
   return {
     subject: `[머니시그널] ${signal.symbol_name || signal.symbol} 손절가 도달`,
-    message: `[머니시그널] 손절가 도달\n\n${signal.symbol_name || signal.symbol} 손절가에 도달했습니다.\n손실률: ${pnlStr}%\n\n앱에서 포지션을 확인하세요.\n\n본 메시지는 고객님께서 요청하신 매매 시그널 알림 수신 동의에 따라 발송됩니다.`,
+    message: `[머니시그널] 손절가 도달\n\n${signal.symbol_name || signal.symbol} 손절가에 도달했습니다.\n손실률: ${pnlStr}%\n\n앱에서 포지션을 확인하세요.\n\n해당 메시지는 고객님께서 요청하신 손절가 도달 알림이 있을 경우 발송됩니다.`,
     buttonUrl: `${SITE_URL}/app/signals/${signal.id}`,
   };
 }
