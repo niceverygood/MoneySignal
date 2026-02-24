@@ -62,17 +62,20 @@ export async function POST(request: NextRequest) {
         console.error("PortOne verify error:", errText);
         // Fallback: 개발 환경에서는 검증 없이 통과
         if (process.env.NODE_ENV !== "production") {
+          console.warn("[SECURITY] Payment verification bypassed in dev (PortOne verify error)");
           verified = true;
         }
       }
     } catch (err) {
       console.error("Payment verification error:", err);
       if (process.env.NODE_ENV !== "production") {
+        console.warn("[SECURITY] Payment verification bypassed in dev (exception)");
         verified = true;
       }
     }
   } else {
     // API Secret 없으면 개발 모드로 통과
+    console.warn("[SECURITY] Payment verification bypassed: no PORTONE_API_SECRET configured");
     verified = true;
   }
 

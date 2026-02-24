@@ -116,6 +116,11 @@ export default function TelegramPage() {
   useEffect(() => {
     if (!linkCode || connection) return;
 
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+
     pollRef.current = setInterval(async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;

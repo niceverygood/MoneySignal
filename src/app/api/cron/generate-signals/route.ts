@@ -381,10 +381,9 @@ export async function GET(request: Request) {
         results[key] = { count: 0, message: "No signals generated" };
       }
     } catch (error) {
-      const msg = error instanceof Error ? error.message : "Unknown error";
-      console.error(`[Signal Engine] Error generating ${key}:`, msg);
-      errors.push(`${key}: ${msg}`);
-      results[key] = { error: msg };
+      console.error(`[Signal Engine] Error generating ${key}:`, error);
+      errors.push(`${key}: signal generation failed`);
+      results[key] = { error: "signal generation failed" };
     }
   }
 

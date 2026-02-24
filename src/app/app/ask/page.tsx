@@ -166,12 +166,13 @@ export default function AskPage() {
     );
   }
 
-  // tierBlocked is no longer used for free (free gets 3 questions now)
-  // Only truly blocked tiers (aiAskLimit === 0, e.g. basic) show this
-  if (tierBlocked) {
-    setTierBlocked(false);
-    setLimitReached(true);
-  }
+  // tierBlocked → limitReached 전환 (render 중 setState 방지)
+  useEffect(() => {
+    if (tierBlocked) {
+      setTierBlocked(false);
+      setLimitReached(true);
+    }
+  }, [tierBlocked]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">

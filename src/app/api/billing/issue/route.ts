@@ -34,6 +34,9 @@ export async function POST(request: NextRequest) {
   }
 
   const amount = prices[cycle];
+  if (amount > 999999) {
+    return NextResponse.json({ error: "결제 금액이 허용 범위를 초과합니다" }, { status: 400 });
+  }
 
   // 3. 즉시 1회 결제 실행
   const paymentId = generateOrderId();
@@ -102,8 +105,8 @@ export async function POST(request: NextRequest) {
     const now = new Date();
     const periodEnd = calculatePeriodEnd(cycle, now);
 
-    // 5. billing_keys upsert
-    await serviceClient.from("billing_keys").upsert(
+    // 5. billing_keys upsert + id 직접 받기
+    const { data: bkRow } = await serviceClient.from("billing_keys").upsert(
       {
         user_id: user.id,
         billing_key: billingKey,
@@ -113,14 +116,7 @@ export async function POST(request: NextRequest) {
         updated_at: now.toISOString(),
       },
       { onConflict: "user_id" }
-    );
-
-    // billing_key id 조회
-    const { data: bkRow } = await serviceClient
-      .from("billing_keys")
-      .select("id")
-      .eq("user_id", user.id)
-      .single();
+    ).select("id").single();
 
     const billingKeyId = bkRow?.id || null;
 

@@ -115,8 +115,9 @@ export async function GET(request: Request) {
     .eq("status", "active");
 
   if (fetchError || !activeSignals) {
+    console.error("[Track Signals] Fetch error:", fetchError);
     return NextResponse.json(
-      { error: fetchError?.message || "No active signals" },
+      { error: "Failed to fetch active signals" },
       { status: 500 }
     );
   }

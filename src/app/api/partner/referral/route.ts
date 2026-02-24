@@ -12,8 +12,8 @@ export async function POST(request: NextRequest) {
 
   const { referralCode } = await request.json();
 
-  if (!referralCode) {
-    return NextResponse.json({ error: "추천코드를 입력해주세요" }, { status: 400 });
+  if (!referralCode || typeof referralCode !== "string" || referralCode.length > 50) {
+    return NextResponse.json({ error: "유효하지 않은 추천코드입니다" }, { status: 400 });
   }
 
   const serviceClient = await createServiceClient();

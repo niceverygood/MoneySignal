@@ -63,7 +63,10 @@ export default function MyPage() {
   useEffect(() => {
     async function fetchData() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        router.push("/auth/login");
+        return;
+      }
 
       // Fetch profile - try Supabase client first, then direct REST API
       let profileLoaded = false;
