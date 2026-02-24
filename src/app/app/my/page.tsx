@@ -430,7 +430,7 @@ export default function MyPage() {
         <MenuItem
           icon={CreditCard}
           label="결제 내역"
-          onClick={() => {}}
+          onClick={() => router.push("/app/my/payments")}
         />
         <MenuItem
           icon={CreditCard}
