@@ -116,6 +116,8 @@ export default function MyPage() {
           subscription_tier: "free",
           subscription_expires_at: null,
           referred_by: null,
+          phone: null,
+          kakao_alimtalk_enabled: false,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         } as Profile);
@@ -415,7 +417,13 @@ export default function MyPage() {
       </div>
 
       {/* 알림 설정 */}
-      <NotificationSettings tier={(profile?.subscription_tier || "free") as TierKey} supabase={supabase} userId={profile?.id || ""} />
+      <NotificationSettings
+        tier={(profile?.subscription_tier || "free") as TierKey}
+        supabase={supabase}
+        userId={profile?.id || ""}
+        phone={profile?.phone || null}
+        alimtalkEnabled={profile?.kakao_alimtalk_enabled || false}
+      />
 
       {/* Menu items */}
       <div className="space-y-1">
@@ -452,39 +460,77 @@ function NotificationSettings({
   tier,
   supabase,
   userId,
+  phone: initialPhone,
+  alimtalkEnabled: initialAlimtalk,
 }: {
   tier: TierKey;
   supabase: ReturnType<typeof createClient>;
   userId: string;
+  phone: string | null;
+  alimtalkEnabled: boolean;
 }) {
   const [settings, setSettings] = useState({
     push_new_signal: true,
     push_tp_hit: true,
     push_sl_hit: true,
-    telegram_enabled: false,
   });
-  const [kakaoConnected, setKakaoConnected] = useState(false);
   const [telegramConnected, setTelegramConnected] = useState(false);
+  const [phone, setPhone] = useState(initialPhone || "");
+  const [alimtalkEnabled, setAlimtalkEnabled] = useState(initialAlimtalk);
+  const [savingPhone, setSavingPhone] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     if (!userId) return;
-    // 카카오 연동 상태
-    supabase.from("kakao_connections").select("id, is_active").eq("user_id", userId).maybeSingle()
-      .then(({ data }) => setKakaoConnected(!!data?.is_active));
-    // 텔레그램 연동 상태
     supabase.from("telegram_connections").select("id, is_active").eq("user_id", userId).maybeSingle()
       .then(({ data }) => setTelegramConnected(!!data?.is_active));
   }, [userId, supabase]);
 
-  // Tier requirements
   const canPush = tier !== "free";
-  const canKakao = ["basic", "pro", "premium", "bundle"].includes(tier);
+  const canAlimtalk = ["basic", "pro", "premium", "bundle"].includes(tier);
   const canTelegram = tier === "pro" || tier === "premium" || tier === "bundle";
 
   const toggleSetting = (key: string, value: boolean) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
     toast.success(value ? "알림 켜짐" : "알림 꺼짐");
+  };
+
+  const handleSavePhone = async () => {
+    const cleaned = phone.replace(/[^0-9]/g, "");
+    if (!cleaned || cleaned.length < 10) {
+      toast.error("올바른 전화번호를 입력하세요");
+      return;
+    }
+    setSavingPhone(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ phone: cleaned })
+      .eq("id", userId);
+    setSavingPhone(false);
+    if (error) {
+      toast.error("저장 실패");
+    } else {
+      setPhone(cleaned);
+      toast.success("전화번호가 저장되었습니다");
+    }
+  };
+
+  const handleToggleAlimtalk = async (enabled: boolean) => {
+    const cleaned = phone.replace(/[^0-9]/g, "");
+    if (enabled && (!cleaned || cleaned.length < 10)) {
+      toast.error("전화번호를 먼저 입력하세요");
+      return;
+    }
+    const { error } = await supabase
+      .from("profiles")
+      .update({ kakao_alimtalk_enabled: enabled })
+      .eq("id", userId);
+    if (error) {
+      toast.error("설정 변경 실패");
+    } else {
+      setAlimtalkEnabled(enabled);
+      toast.success(enabled ? "알림톡 수신 켜짐" : "알림톡 수신 꺼짐");
+    }
   };
 
   const notifications = [
@@ -500,13 +546,11 @@ function NotificationSettings({
       ],
     },
     {
-      section: "카카오톡 알림",
+      section: "카카오 알림톡",
       icon: MessageCircle,
       minTier: "basic" as const,
-      enabled: canKakao,
-      items: [
-        { key: "kakao_connect", label: "카카오톡 연동", desc: kakaoConnected ? "연동됨 — 시그널 알림 수신 중" : "카카오톡으로 시그널 수신" },
-      ],
+      enabled: canAlimtalk,
+      items: [],
     },
     {
       section: "텔레그램 알림",
@@ -556,6 +600,43 @@ function NotificationSettings({
                     업그레이드
                   </Button>
                 </div>
+              ) : section.section === "카카오 알림톡" ? (
+                <div className="space-y-3">
+                  {/* 전화번호 입력 */}
+                  <div className="space-y-1.5">
+                    <p className="text-sm text-white">전화번호</p>
+                    <p className="text-[10px] text-[#8B95A5]">카카오 알림톡을 받을 전화번호를 입력하세요</p>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="tel"
+                        placeholder="01012345678"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        maxLength={13}
+                        className="bg-[#22262F] border-[#2A2D36] text-white h-8 text-sm flex-1"
+                      />
+                      <Button size="sm" onClick={handleSavePhone} disabled={savingPhone}
+                        className="bg-[#F5B800] text-[#0D0F14] hover:bg-[#FFD54F] text-[10px] h-8 px-3 shrink-0">
+                        {savingPhone ? <Loader2 className="w-3 h-3 animate-spin" /> : "저장"}
+                      </Button>
+                    </div>
+                  </div>
+                  {/* 알림톡 수신 토글 */}
+                  <div className="flex items-center justify-between py-1.5">
+                    <div>
+                      <p className="text-sm text-white">알림톡 수신</p>
+                      <p className="text-[10px] text-[#8B95A5]">
+                        {alimtalkEnabled
+                          ? "시그널/TP/SL 알림톡 수신 중"
+                          : phone ? "알림톡을 켜면 카카오톡으로 시그널 알림을 받습니다" : "전화번호를 먼저 입력하세요"}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={alimtalkEnabled}
+                      onCheckedChange={handleToggleAlimtalk}
+                    />
+                  </div>
+                </div>
               ) : (
                 <div className="space-y-2">
                   {section.items.map((item) => (
@@ -564,24 +645,7 @@ function NotificationSettings({
                         <p className="text-sm text-white">{item.label}</p>
                         <p className="text-[10px] text-[#8B95A5]">{item.desc}</p>
                       </div>
-                      {item.key === "kakao_connect" ? (
-                        kakaoConnected ? (
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] text-[#00E676] font-medium">연동됨</span>
-                            <Button size="sm" variant="outline"
-                              onClick={() => router.push("/app/my/kakao")}
-                              className="border-[#FEE500]/30 text-[#FEE500] text-[10px] h-7 px-2 hover:bg-[#FEE500]/10">
-                              설정
-                            </Button>
-                          </div>
-                        ) : (
-                          <Button size="sm" variant="outline"
-                            onClick={() => router.push("/app/my/kakao")}
-                            className="border-[#FEE500]/30 text-[#FEE500] text-[10px] h-7 px-2 hover:bg-[#FEE500]/10">
-                            연동하기
-                          </Button>
-                        )
-                      ) : item.key === "telegram_enabled" ? (
+                      {item.key === "telegram_enabled" ? (
                         <Button size="sm" variant="outline"
                           onClick={() => router.push("/app/my/telegram")}
                           className="border-[#2A2D36] text-[#8B95A5] text-[10px] h-7 px-2">

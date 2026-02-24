@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getMultipleSpotPrices } from "@/lib/binance";
 import { sendTelegramMessage, formatTPHitMessage, formatSLHitMessage } from "@/lib/telegram";
+import { sendBulkAlimtalk, formatTPHitAlimtalk, formatSLHitAlimtalk } from "@/lib/aligo";
 import type { Signal } from "@/types";
 
 const TIER_ORDER: Record<string, number> = { free: 0, basic: 1, pro: 2, premium: 3, bundle: 4 };
@@ -50,6 +51,42 @@ async function sendTPSLAlerts(
         settings[checkKey] !== false
       ) {
         await sendTelegramMessage(u.telegram_chat_id, message).catch(() => null);
+      }
+    }
+
+    // 알리고 알림톡 발송
+    if (process.env.ALIGO_API_KEY) {
+      const { data: alimtalkUsers } = await supabase
+        .from("profiles")
+        .select("id, phone, subscription_tier, subscription_expires_at")
+        .eq("kakao_alimtalk_enabled", true)
+        .not("phone", "is", null) as { data: Array<{ id: string; phone: string; subscription_tier: string; subscription_expires_at: string | null }> | null };
+
+      if (alimtalkUsers && alimtalkUsers.length > 0) {
+        const alimFmt = isTP
+          ? formatTPHitAlimtalk(signal, tpLevel, pnl)
+          : formatSLHitAlimtalk(signal, pnl);
+
+        const recipients = alimtalkUsers
+          .filter((u) => {
+            const tier = u.subscription_tier || "free";
+            const expires = u.subscription_expires_at;
+            const isExpired = expires && new Date(expires) < new Date();
+            return TIER_ORDER[tier] >= tpMinTierOrder && !isExpired;
+          })
+          .map((u) => ({
+            phone: u.phone as string,
+            subject: alimFmt.subject,
+            message: alimFmt.message,
+            buttonUrl: alimFmt.buttonUrl,
+          }));
+
+        if (recipients.length > 0) {
+          const tplCode = isTP ? "TM_TP_HIT" : "TM_SL_HIT";
+          await sendBulkAlimtalk(tplCode, recipients).catch((err) =>
+            console.error("[Track Signals] Alimtalk error:", err)
+          );
+        }
       }
     }
   } catch (err) {
