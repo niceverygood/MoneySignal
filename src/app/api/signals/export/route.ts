@@ -40,6 +40,14 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!dateRegex.test(from) || !dateRegex.test(to) || isNaN(new Date(from).getTime()) || isNaN(new Date(to).getTime())) {
+    return NextResponse.json(
+      { error: "날짜 형식이 올바르지 않습니다. (YYYY-MM-DD)" },
+      { status: 400 }
+    );
+  }
+
   // Query signals in date range
   const { data: signals, error } = await supabase
     .from("signals")

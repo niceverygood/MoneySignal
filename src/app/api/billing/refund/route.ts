@@ -41,12 +41,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "거래를 찾을 수 없습니다" }, { status: 404 });
   }
 
+  if (transaction.status === "cancelled") {
+    return NextResponse.json(
+      { error: "이미 환불 처리된 거래입니다" },
+      { status: 409 }
+    );
+  }
+
   if (transaction.type !== "subscription_payment" || transaction.status !== "completed") {
     return NextResponse.json(
       { error: "환불 가능한 거래가 아닙니다 (completed 상태의 구독 결제만 환불 가능)" },
       { status: 400 }
     );
   }
+
+  console.log(`[AUDIT] Admin ${user.id} initiated refund for transaction ${transactionId}, reason: ${reason}`);
 
   try {
     // 4. PortOne 결제 취소
