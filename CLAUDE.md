@@ -141,7 +141,9 @@ src/
 
 ## 남은 작업 (TODO)
 - [ ] 텔레그램 봇 토큰 발급 + 연동
-- [ ] 카카오 알림톡 시그널 푸시 (카카오 비즈니스 채널)
+- [ ] 알림톡 템플릿 심사 대기
+- [x] 카카오톡 채널 개설 + 알리고 senderkey 발급 + 알림톡 연동 (02-24 완료)
+- [x] 코드 보안 강화 11건 (02-24 완료 — API 입력검증 + 에러노출방지 + FE 버그)
 - [x] PortOne STORE_ID + API_SECRET 설정 (02-19 완료)
 - [x] Supabase schema.sql 추가 테이블 실행 (02-20 완료 — signal_views, user_signal_follows, telegram_connections 등)
 - [x] 구독 만료 자동 갱신/해지 Cron (02-20 완료 — auto-billing + subscription-check)
