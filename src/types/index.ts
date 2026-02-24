@@ -25,6 +25,8 @@ export interface Profile {
   subscription_tier: SubscriptionTier;
   subscription_expires_at: string | null;
   referred_by: string | null;
+  phone: string | null;
+  kakao_alimtalk_enabled: boolean;
   created_at: string;
   updated_at: string;
 }

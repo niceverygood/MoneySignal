@@ -14,7 +14,7 @@ import {
 } from "@/lib/claude";
 import { scanTopStocks } from "@/lib/kis";
 import { sendTelegramMessage, formatSignalMessage } from "@/lib/telegram";
-import { sendKakaoSignalAlert } from "@/lib/kakao";
+import { sendBulkAlimtalk, formatSignalAlimtalk } from "@/lib/aligo";
 import type { SignalCategory, Signal } from "@/types";
 
 // ============================================
@@ -34,11 +34,12 @@ async function sendSignalAlerts(
       .select("telegram_chat_id, user_id, notification_settings, profiles!inner(subscription_tier, subscription_expires_at)")
       .eq("is_active", true);
 
-    // 카카오 연결된 유저 조회
-    const { data: kakaoUsers } = await supabase
-      .from("kakao_connections")
-      .select("kakao_user_id, user_id, profiles!inner(subscription_tier, subscription_expires_at)")
-      .eq("is_active", true);
+    // 알림톡 수신 가능 유저 조회 (phone + kakao_alimtalk_enabled)
+    const { data: alimtalkUsers } = await supabase
+      .from("profiles")
+      .select("id, phone, subscription_tier, subscription_expires_at")
+      .eq("kakao_alimtalk_enabled", true)
+      .not("phone", "is", null) as { data: Array<{ id: string; phone: string; subscription_tier: string; subscription_expires_at: string | null }> | null };
 
     for (const signal of signals) {
       const minTier = signal.min_tier_required || "basic";
@@ -65,16 +66,27 @@ async function sendSignalAlerts(
         }
       }
 
-      // 카카오 발송
-      if (kakaoUsers && process.env.KAKAO_ACCESS_TOKEN) {
-        for (const u of kakaoUsers) {
-          const tier = u.profiles?.subscription_tier || "free";
-          const expires = u.profiles?.subscription_expires_at;
-          const isExpired = expires && new Date(expires) < new Date();
+      // 알리고 알림톡 발송
+      if (alimtalkUsers && process.env.ALIGO_API_KEY) {
+        const { subject, message: alimMsg, buttonUrl } = formatSignalAlimtalk(signal);
+        const recipients = alimtalkUsers
+          .filter((u) => {
+            const tier = u.subscription_tier || "free";
+            const expires = u.subscription_expires_at;
+            const isExpired = expires && new Date(expires) < new Date();
+            return TIER_ORDER[tier] >= minTierOrder && !isExpired;
+          })
+          .map((u) => ({
+            phone: u.phone as string,
+            subject,
+            message: alimMsg,
+            buttonUrl,
+          }));
 
-          if (TIER_ORDER[tier] >= 1 && !isExpired && TIER_ORDER[tier] >= minTierOrder) {
-            await sendKakaoSignalAlert(u.kakao_user_id, signal).catch(() => null);
-          }
+        if (recipients.length > 0) {
+          await sendBulkAlimtalk("TM_SIGNAL", recipients).catch((err) =>
+            console.error("[Signal Engine] Alimtalk error:", err)
+          );
         }
       }
     }
