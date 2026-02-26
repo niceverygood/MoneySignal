@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, MessageCircle } from "lucide-react";
+import { Loader2, MessageCircle, Check, X } from "lucide-react";
 import { toast } from "sonner";
 
 function generateKoreanNickname(): string {
@@ -17,7 +17,7 @@ function generateKoreanNickname(): string {
     "빛나는", "용감한", "현명한", "행운의", "날렵한", "든든한",
     "재빠른", "슬기로운", "당당한", "활기찬", "꾸준한", "씩씩한",
     "영리한", "담대한", "부지런한", "신중한", "멋진", "빠른",
-    "똑똑한", "차분한", "대담한", "지혜로운", "열정의", "냉철한",
+    "똒똑한", "차분한", "대담한", "지혜로운", "열정의", "냉철한",
   ];
   const animals = [
     "호랑이", "독수리", "돌고래", "사자", "늑대", "매",
@@ -52,6 +52,74 @@ function SignupForm() {
   const [loading, setLoading] = useState(false);
   const [kakaoLoading, setKakaoLoading] = useState(false);
 
+  // 닉네임 중복검사
+  const [nicknameStatus, setNicknameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
+  const [nicknameChecked, setNicknameChecked] = useState(false);
+
+  // 이메일 중복검사
+  const [emailStatus, setEmailStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
+  const [emailChecked, setEmailChecked] = useState(false);
+
+  const handleCheckNickname = async () => {
+    const name = displayName.trim();
+    if (!name || name.length < 2) {
+      toast.error("닉네임은 2자 이상 입력해주세요");
+      return;
+    }
+    if (name.length > 20) {
+      toast.error("닉네임은 20자 이하로 입력해주세요");
+      return;
+    }
+
+    setNicknameStatus("checking");
+    try {
+      const res = await fetch(`/api/auth/check-nickname?nickname=${encodeURIComponent(name)}`);
+      const data = await res.json();
+
+      if (data.available) {
+        setNicknameStatus("available");
+        setNicknameChecked(true);
+        toast.success("사용 가능한 닉네임입니다");
+      } else {
+        setNicknameStatus("taken");
+        setNicknameChecked(false);
+        toast.error(data.message || "이미 사용 중인 닉네임입니다");
+      }
+    } catch {
+      setNicknameStatus("idle");
+      toast.error("닉네임 확인 중 오류가 발생했습니다");
+    }
+  };
+
+  const handleCheckEmail = async () => {
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      toast.error("올바른 이메일 형식을 입력해주세요");
+      return;
+    }
+
+    setEmailStatus("checking");
+    try {
+      // Supabase signUp으로 이미 가입된 이메일인지 확인하지 않고,
+      // 직접 profiles 테이블에서 확인 (공개 조회 불가이므로 API 사용)
+      const res = await fetch(`/api/auth/check-email?email=${encodeURIComponent(trimmedEmail)}`);
+      const data = await res.json();
+
+      if (data.available) {
+        setEmailStatus("available");
+        setEmailChecked(true);
+        toast.success("사용 가능한 이메일입니다");
+      } else {
+        setEmailStatus("taken");
+        setEmailChecked(false);
+        toast.error(data.message || "이미 가입된 이메일입니다");
+      }
+    } catch {
+      setEmailStatus("idle");
+      toast.error("이메일 확인 중 오류가 발생했습니다");
+    }
+  };
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
@@ -63,6 +131,20 @@ function SignupForm() {
       return;
     }
 
+    const finalName = displayName.trim() || generateKoreanNickname();
+
+    // 닉네임 입력했는데 중복검사 안 한 경우
+    if (displayName.trim() && !nicknameChecked) {
+      toast.error("닉네임 중복검사를 먼저 해주세요");
+      return;
+    }
+
+    // 이메일 중복검사 안 한 경우
+    if (!emailChecked) {
+      toast.error("이메일 중복검사를 먼저 해주세요");
+      return;
+    }
+
     setLoading(true);
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -70,7 +152,7 @@ function SignupForm() {
         password,
         options: {
           data: {
-            display_name: displayName || generateKoreanNickname(),
+            display_name: finalName,
           },
           emailRedirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
         },
@@ -86,18 +168,14 @@ function SignupForm() {
         return;
       }
 
-      // If referred_by, store for later
       if (referredBy) {
         localStorage.setItem("moneysignal_referred_by", referredBy);
       }
 
-      // Check if email confirmation is required
       if (data.session) {
-        // Auto-confirmed (email confirmation disabled in Supabase)
         toast.success("가입 완료! 환영합니다 🎉");
         router.push(redirectTo);
       } else if (data.user && !data.session) {
-        // Email confirmation required
         toast.success("가입 완료! 이메일에서 확인 링크를 클릭해주세요.", {
           duration: 8000,
         });
@@ -129,11 +207,23 @@ function SignupForm() {
         }
         setKakaoLoading(false);
       }
-      // If no error, browser will redirect to Kakao
     } catch {
       toast.error("카카오 로그인 연결에 실패했습니다.");
       setKakaoLoading(false);
     }
+  };
+
+  // 닉네임/이메일 변경 시 검사 상태 초기화
+  const handleNicknameChange = (value: string) => {
+    setDisplayName(value);
+    setNicknameStatus("idle");
+    setNicknameChecked(false);
+  };
+
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    setEmailStatus("idle");
+    setEmailChecked(false);
   };
 
   return (
@@ -170,26 +260,90 @@ function SignupForm() {
           </div>
 
           <form onSubmit={handleSignup} className="space-y-4">
+            {/* 닉네임 + 중복검사 */}
             <div>
               <Label className="text-[#8B95A5]">닉네임</Label>
-              <Input
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="표시될 이름"
-                className="bg-[#22262F] border-[#2A2D36] text-white mt-1.5"
-              />
+              <div className="flex gap-2 mt-1.5">
+                <div className="relative flex-1">
+                  <Input
+                    value={displayName}
+                    onChange={(e) => handleNicknameChange(e.target.value)}
+                    placeholder="2~20자 (미입력시 자동생성)"
+                    className="bg-[#22262F] border-[#2A2D36] text-white pr-8"
+                    maxLength={20}
+                  />
+                  {nicknameStatus === "available" && (
+                    <Check className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
+                  )}
+                  {nicknameStatus === "taken" && (
+                    <X className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-red-500" />
+                  )}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCheckNickname}
+                  disabled={nicknameStatus === "checking" || !displayName.trim() || displayName.trim().length < 2}
+                  className="shrink-0 border-[#2A2D36] text-[#8B95A5] hover:text-white hover:bg-[#22262F] text-xs px-3"
+                >
+                  {nicknameStatus === "checking" ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    "중복검사"
+                  )}
+                </Button>
+              </div>
+              {nicknameStatus === "available" && (
+                <p className="text-xs text-green-500 mt-1">사용 가능한 닉네임입니다</p>
+              )}
+              {nicknameStatus === "taken" && (
+                <p className="text-xs text-red-500 mt-1">이미 사용 중인 닉네임입니다</p>
+              )}
             </div>
+
+            {/* 이메일 + 중복검사 */}
             <div>
               <Label className="text-[#8B95A5]">이메일 *</Label>
-              <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="your@email.com"
-                className="bg-[#22262F] border-[#2A2D36] text-white mt-1.5"
-                required
-              />
+              <div className="flex gap-2 mt-1.5">
+                <div className="relative flex-1">
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => handleEmailChange(e.target.value)}
+                    placeholder="your@email.com"
+                    className="bg-[#22262F] border-[#2A2D36] text-white pr-8"
+                    required
+                  />
+                  {emailStatus === "available" && (
+                    <Check className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
+                  )}
+                  {emailStatus === "taken" && (
+                    <X className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-red-500" />
+                  )}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCheckEmail}
+                  disabled={emailStatus === "checking" || !email.trim()}
+                  className="shrink-0 border-[#2A2D36] text-[#8B95A5] hover:text-white hover:bg-[#22262F] text-xs px-3"
+                >
+                  {emailStatus === "checking" ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    "중복검사"
+                  )}
+                </Button>
+              </div>
+              {emailStatus === "available" && (
+                <p className="text-xs text-green-500 mt-1">사용 가능한 이메일입니다</p>
+              )}
+              {emailStatus === "taken" && (
+                <p className="text-xs text-red-500 mt-1">이미 가입된 이메일입니다</p>
+              )}
             </div>
+
+            {/* 비밀번호 */}
             <div>
               <Label className="text-[#8B95A5]">비밀번호 *</Label>
               <Input
@@ -202,9 +356,10 @@ function SignupForm() {
                 minLength={6}
               />
             </div>
+
             <Button
               type="submit"
-              disabled={loading || !email || !password || password.length < 6}
+              disabled={loading || !email || !password || password.length < 6 || !emailChecked}
               className="w-full bg-[#F5B800] text-[#0D0F14] hover:bg-[#FFD54F] font-semibold"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}

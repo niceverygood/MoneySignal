@@ -83,7 +83,7 @@ async function sendTPSLAlerts(
 
         if (recipients.length > 0) {
           const tplCode = isTP ? "UF_6820" : "UF_6821";
-          await sendBulkAlimtalk(tplCode, recipients).catch((err) =>
+          await sendBulkAlimtalk(tplCode, recipients, supabase).catch((err) =>
             console.error("[Track Signals] Alimtalk error:", err)
           );
         }

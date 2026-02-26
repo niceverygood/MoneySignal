@@ -1,13 +1,12 @@
 // ============================================
 // Aligo 카카오 알림톡 API
 // ============================================
-// 알리고 API를 통한 카카오 알림톡 발송
-// 전화번호 기반 1회 최대 500명 발송
+// Supabase DB http extension을 통해 알리고 API 호출
+// (Vercel IP 불일치 문제 해결 — DB 고정 IP에서 직접 호출)
 // ============================================
 
 import type { Signal } from "@/types";
-
-const ALIGO_API_URL = "https://kakaoapi.aligo.in/akv10/alimtalk/send/";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 interface AlimtalkRecipient {
   phone: string;
@@ -22,13 +21,14 @@ interface AlimtalkResult {
 }
 
 // ============================================
-// 단건 알림톡 발송
+// 단건 알림톡 발송 (Supabase RPC)
 // ============================================
 export async function sendAlimtalk(
   phone: string,
   tplCode: string,
   subject: string,
   message: string,
+  supabase: SupabaseClient,
   buttonUrl?: string
 ): Promise<boolean> {
   const apiKey = process.env.ALIGO_API_KEY;
@@ -42,44 +42,29 @@ export async function sendAlimtalk(
   }
 
   try {
-    const params = new URLSearchParams({
-      apikey: apiKey,
-      userid: userId,
-      senderkey: senderKey,
-      tpl_code: tplCode,
-      sender: sender,
-      receiver_1: phone.replace(/-/g, ""),
-      subject_1: subject,
-      message_1: message,
+    const receivers = [{
+      phone,
+      subject,
+      message,
+      ...(buttonUrl ? { buttonUrl } : {}),
+    }];
+
+    const { data, error } = await supabase.rpc("send_alimtalk", {
+      p_api_key: apiKey,
+      p_user_id: userId,
+      p_sender_key: senderKey,
+      p_sender: sender,
+      p_tpl_code: tplCode,
+      p_receivers: receivers,
     });
 
-    if (buttonUrl) {
-      params.set("button_1", JSON.stringify({
-        button: [{
-          name: "앱에서 확인",
-          linkType: "WL",
-          linkTypeName: "웹링크",
-          linkMo: buttonUrl,
-          linkPc: buttonUrl,
-        }],
-      }));
+    if (error) {
+      console.error("[Aligo] RPC error:", error.message);
+      return false;
     }
 
-    const res = await fetch(ALIGO_API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: params.toString(),
-    });
-
-    const result = await res.json();
-
-    if (result.code === 0) {
-      console.log(`[Aligo] Sent to ${phone}: ${subject}`);
-      return true;
-    }
-
-    console.error("[Aligo] Send failed:", result.message || result);
-    return false;
+    console.log(`[Aligo] Sent to ${phone}: ${subject}`, data);
+    return true;
   } catch (error) {
     console.error("[Aligo] Error:", error);
     return false;
@@ -87,11 +72,12 @@ export async function sendAlimtalk(
 }
 
 // ============================================
-// 대량 알림톡 발송 (최대 500명)
+// 대량 알림톡 발송 (Supabase RPC, 내부 500명 분할)
 // ============================================
 export async function sendBulkAlimtalk(
   tplCode: string,
-  recipients: AlimtalkRecipient[]
+  recipients: AlimtalkRecipient[],
+  supabase: SupabaseClient
 ): Promise<AlimtalkResult> {
   const apiKey = process.env.ALIGO_API_KEY;
   const userId = process.env.ALIGO_USER_ID;
@@ -107,64 +93,59 @@ export async function sendBulkAlimtalk(
     return { success: 0, fail: 0 };
   }
 
-  let totalSuccess = 0;
-  let totalFail = 0;
+  try {
+    const { data, error } = await supabase.rpc("send_alimtalk", {
+      p_api_key: apiKey,
+      p_user_id: userId,
+      p_sender_key: senderKey,
+      p_sender: sender,
+      p_tpl_code: tplCode,
+      p_receivers: recipients,
+    });
 
-  // 500명씩 분할 발송
-  const batchSize = 500;
-  for (let i = 0; i < recipients.length; i += batchSize) {
-    const batch = recipients.slice(i, i + batchSize);
-
-    try {
-      const params = new URLSearchParams({
-        apikey: apiKey,
-        userid: userId,
-        senderkey: senderKey,
-        tpl_code: tplCode,
-        sender: sender,
-        testMode: process.env.NODE_ENV === "development" ? "Y" : "N",
-      });
-
-      batch.forEach((r, idx) => {
-        const n = idx + 1;
-        params.set(`receiver_${n}`, r.phone.replace(/-/g, ""));
-        params.set(`subject_${n}`, r.subject);
-        params.set(`message_${n}`, r.message);
-        if (r.buttonUrl) {
-          params.set(`button_${n}`, JSON.stringify({
-            button: [{
-              name: "앱에서 확인",
-              linkType: "WL",
-              linkTypeName: "웹링크",
-              linkMo: r.buttonUrl,
-              linkPc: r.buttonUrl,
-            }],
-          }));
-        }
-      });
-
-      const res = await fetch(ALIGO_API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: params.toString(),
-      });
-
-      const result = await res.json();
-
-      if (result.code === 0) {
-        totalSuccess += batch.length;
-        console.log(`[Aligo] Bulk batch sent: ${batch.length} recipients`);
-      } else {
-        totalFail += batch.length;
-        console.error("[Aligo] Bulk send failed:", result.message || result);
-      }
-    } catch (error) {
-      totalFail += batch.length;
-      console.error("[Aligo] Bulk send error:", error);
+    if (error) {
+      console.error("[Aligo] RPC error:", error.message);
+      return { success: 0, fail: recipients.length };
     }
-  }
 
-  return { success: totalSuccess, fail: totalFail };
+    console.log(`[Aligo] Bulk sent via RPC:`, data);
+
+    // RPC 반환값에서 성공/실패 판별
+    const batches = data?.batches || [];
+    let totalSuccess = 0;
+    let totalFail = 0;
+
+    for (const batch of batches) {
+      if (batch.status === 200) {
+        try {
+          const body = typeof batch.body === "string" ? JSON.parse(batch.body) : batch.body;
+          if (body?.code === 0) {
+            totalSuccess += recipients.length; // 배치당 성공
+          } else {
+            totalFail += recipients.length;
+            console.error("[Aligo] Batch failed:", body?.message || body);
+          }
+        } catch {
+          // body 파싱 실패 시 HTTP 200이면 성공으로 처리
+          totalSuccess += recipients.length;
+        }
+      } else {
+        totalFail += recipients.length;
+        console.error("[Aligo] Batch HTTP error:", batch.status);
+      }
+    }
+
+    // batches가 여러 개면 실제 배치 크기로 정규화
+    if (batches.length > 1) {
+      totalSuccess = Math.min(totalSuccess, recipients.length);
+      totalFail = recipients.length - totalSuccess;
+    }
+
+    return { success: totalSuccess, fail: totalFail };
+  } catch (error) {
+    console.error("[Aligo] Bulk send error:", error);
+    return { success: 0, fail: recipients.length };
+  }
 }
 
 // ============================================
