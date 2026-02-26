@@ -84,7 +84,7 @@ async function sendSignalAlerts(
           }));
 
         if (recipients.length > 0) {
-          await sendBulkAlimtalk("UF_6812", recipients).catch((err) =>
+          await sendBulkAlimtalk("UF_6812", recipients, supabase).catch((err) =>
             console.error("[Signal Engine] Alimtalk error:", err)
           );
         }
