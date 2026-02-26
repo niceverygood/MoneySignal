@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
+  try {
   // Admin 권한 확인
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
   }
 
   const { action } = await request.json();
-  const validActions = ["generate-signals", "calculate-backtest", "track-signals", "weekly-report", "daily-briefing"];
+  const validActions = ["generate-signals", "calculate-backtest", "track-signals", "weekly-report", "daily-briefing", "subscription-check", "auto-billing", "monthly-settlement"];
   if (!validActions.includes(action)) {
     return NextResponse.json({ error: "유효하지 않은 작업입니다" }, { status: 400 });
   }
@@ -43,5 +44,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, data });
   } else {
     return NextResponse.json({ error: "작업 실행에 실패했습니다" }, { status: res.status });
+  }
+  } catch (outerError) {
+    console.error("[admin/trigger-cron] Outer error:", outerError);
+    return NextResponse.json({ error: "요청 처리 중 오류가 발생했습니다" }, { status: 500 });
   }
 }

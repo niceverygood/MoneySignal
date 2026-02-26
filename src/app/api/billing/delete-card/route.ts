@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 export async function POST() {
+  try {
   const supabase = await createClient();
   const serviceClient = await createServiceClient();
 
@@ -48,5 +49,9 @@ export async function POST() {
       { error: "카드 삭제 중 오류가 발생했습니다" },
       { status: 500 }
     );
+  }
+  } catch (outerError) {
+    console.error("[billing/delete-card] Outer error:", outerError);
+    return NextResponse.json({ error: "요청 처리 중 오류가 발생했습니다" }, { status: 500 });
   }
 }

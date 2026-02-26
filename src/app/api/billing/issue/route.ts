@@ -8,6 +8,7 @@ import {
 } from "@/lib/portone";
 
 export async function POST(request: NextRequest) {
+  try {
   const supabase = await createClient();
   const serviceClient = await createServiceClient();
 
@@ -247,5 +248,9 @@ export async function POST(request: NextRequest) {
       { error: "결제 처리 중 오류가 발생했습니다" },
       { status: 500 }
     );
+  }
+  } catch (outerError) {
+    console.error("[billing/issue] Outer error:", outerError);
+    return NextResponse.json({ error: "요청 처리 중 오류가 발생했습니다" }, { status: 500 });
   }
 }
