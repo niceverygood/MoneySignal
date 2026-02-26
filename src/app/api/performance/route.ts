@@ -70,7 +70,8 @@ export async function GET() {
     .order("followed_at", { ascending: false });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[Performance] DB error:", error);
+    return NextResponse.json({ error: "성과 데이터 조회 중 오류가 발생했습니다" }, { status: 500 });
   }
 
   const followsList = follows || [];

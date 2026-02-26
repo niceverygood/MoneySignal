@@ -22,6 +22,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "유효하지 않은 구독 등급" }, { status: 400 });
   }
 
+  // Validate amount
+  if (typeof amount !== "number" || (!Number.isFinite(amount)) || amount < 0 || amount > 999999) {
+    return NextResponse.json({ error: "유효하지 않은 결제 금액입니다" }, { status: 400 });
+  }
+
   // Get user profile
   const { data: profile } = await serviceClient
     .from("profiles")

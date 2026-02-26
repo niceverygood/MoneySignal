@@ -367,7 +367,7 @@ export async function GET(request: Request) {
 
         if (error) {
           console.error(`Error inserting ${key} signals:`, error);
-          errors.push(`${key}: ${error.message}`);
+          errors.push(`${key}: 시그널 저장 실패`);
         } else {
           results[key] = { count: data?.length || 0, signals: data };
           console.log(`[Signal Engine] Saved ${data?.length} ${key} signals`);

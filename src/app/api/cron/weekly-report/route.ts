@@ -39,7 +39,7 @@ export async function GET(request: Request) {
 
     if (signalsError) {
       console.error("[Weekly Report] Failed to fetch signals:", signalsError);
-      return NextResponse.json({ error: signalsError.message }, { status: 500 });
+      return NextResponse.json({ error: "시그널 데이터 조회 실패" }, { status: 500 });
     }
 
     // Calculate per-category stats
@@ -137,7 +137,7 @@ ${perfSummary || "데이터 없음"}
 
     if (insertError) {
       console.error("[Weekly Report] Failed to save report:", insertError);
-      return NextResponse.json({ error: insertError.message }, { status: 500 });
+      return NextResponse.json({ error: "주간 리포트 저장 실패" }, { status: 500 });
     }
 
     console.log("[Weekly Report] Generated successfully:", report.id);

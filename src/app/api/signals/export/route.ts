@@ -57,7 +57,8 @@ export async function GET(request: NextRequest) {
     .order("created_at", { ascending: false });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[Signals Export] DB error:", error);
+    return NextResponse.json({ error: "시그널 내보내기 중 오류가 발생했습니다" }, { status: 500 });
   }
 
   if (!signals || signals.length === 0) {

@@ -80,7 +80,8 @@ export async function GET(request: NextRequest) {
   const { data, error } = await query;
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[Signals] DB error:", error);
+    return NextResponse.json({ error: "시그널 조회 중 오류가 발생했습니다" }, { status: 500 });
   }
 
   // Apply tier-based filtering to each signal

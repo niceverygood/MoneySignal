@@ -144,7 +144,7 @@ export async function GET(request: Request) {
 
       if (error) {
         console.error(`Error upserting backtest for ${category}:`, error);
-        results[category] = { error: error.message };
+        results[category] = { error: "백테스트 저장 실패" };
       } else {
         results[category] = {
           totalSignals: signals.length,
