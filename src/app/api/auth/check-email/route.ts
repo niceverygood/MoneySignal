@@ -13,34 +13,24 @@ export async function GET(request: Request) {
       );
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
 
-    if (!supabaseUrl || !supabaseKey) {
-      console.error("[check-email] Missing SUPABASE env vars");
-      return NextResponse.json(
-        { available: false, message: "서버 설정 오류입니다." },
-        { status: 500 }
-      );
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("email", email)
-      .limit(1);
+    const { data, error } = await supabase.rpc("check_email_available", {
+      p_email: email,
+    });
 
     if (error) {
-      console.error("[check-email] DB error:", error);
+      console.error("[check-email] RPC error:", error);
       return NextResponse.json(
         { available: false, message: "확인 중 오류가 발생했습니다." },
         { status: 500 }
       );
     }
 
-    const available = !data || data.length === 0;
+    const available = data === true;
 
     return NextResponse.json({
       available,
