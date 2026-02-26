@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
       userMessage += `\n\n## 실시간 시장 데이터\n${marketDataParts.join("\n\n---\n\n")}`;
     }
 
-    // 9. Call Claude (with fallback demo mode)
+    // 9. Call Claude
     let answer: string;
     try {
       answer = await callClaude(
@@ -141,8 +141,14 @@ export async function POST(request: NextRequest) {
         { maxTokens: 2000, temperature: 0.6 }
       );
     } catch (aiError) {
-      console.error("Claude API error:", aiError);
-      // Fallback: generate demo response based on detected symbols
+      console.error("[AI Ask] Claude API error:", aiError);
+      if (process.env.NODE_ENV === "production") {
+        return NextResponse.json(
+          { error: "AI 분석 서비스에 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요." },
+          { status: 503 }
+        );
+      }
+      // 개발 환경에서만 demo fallback 사용
       answer = generateDemoResponse(question, symbolsDetected, marketDataParts);
     }
 

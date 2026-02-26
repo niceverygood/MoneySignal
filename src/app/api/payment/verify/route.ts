@@ -74,8 +74,12 @@ export async function POST(request: NextRequest) {
       }
     }
   } else {
-    // API Secret 없으면 개발 모드로 통과
-    console.warn("[SECURITY] Payment verification bypassed: no PORTONE_API_SECRET configured");
+    // API Secret 없으면 개발 모드로만 통과
+    if (process.env.NODE_ENV === "production") {
+      console.error("[SECURITY] PORTONE_API_SECRET is not configured in production!");
+      return NextResponse.json({ error: "결제 시스템 설정 오류" }, { status: 500 });
+    }
+    console.warn("[SECURITY] Payment verification bypassed: no PORTONE_API_SECRET configured (dev only)");
     verified = true;
   }
 

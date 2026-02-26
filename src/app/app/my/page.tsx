@@ -55,6 +55,7 @@ export default function MyPage() {
     winRate: number;
     avgPnl: number;
   } | null>(null);
+  const [billingCard, setBillingCard] = useState<{ card_name: string; last4: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
   const [deletingCard, setDeletingCard] = useState(false);
@@ -134,6 +135,15 @@ export default function MyPage() {
 
       if (subsData) setSubscriptions(subsData as Subscription[]);
 
+      // Fetch billing card info
+      const { data: billingKey } = await supabase
+        .from("billing_keys")
+        .select("card_name, last4")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .single();
+      if (billingKey) setBillingCard(billingKey);
+
       // Fetch performance summary
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -203,6 +213,7 @@ export default function MyPage() {
         setSubscriptions((prev) =>
           prev.map((s) => s.status === "active" ? { ...s, auto_renew: false, next_billing_at: null } : s)
         );
+        setBillingCard(null);
         toast.success("카드가 삭제되었습니다");
       } else {
         toast.error(data.error || "카드 삭제 실패");
@@ -435,11 +446,19 @@ export default function MyPage() {
           label="결제 내역"
           onClick={() => router.push("/app/my/payments")}
         />
-        <MenuItem
-          icon={CreditCard}
-          label={deletingCard ? "카드 삭제 중..." : "등록 카드 삭제"}
-          onClick={handleDeleteCard}
-        />
+        {billingCard ? (
+          <MenuItem
+            icon={CreditCard}
+            label={deletingCard ? "카드 삭제 중..." : `${billingCard.card_name || "카드"} ****${billingCard.last4 || ""} 삭제`}
+            onClick={handleDeleteCard}
+          />
+        ) : (
+          <MenuItem
+            icon={CreditCard}
+            label="등록된 카드 없음"
+            onClick={() => {}}
+          />
+        )}
         <MenuItem
           icon={Shield}
           label="개인정보 처리방침"

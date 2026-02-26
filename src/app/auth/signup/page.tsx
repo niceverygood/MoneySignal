@@ -204,7 +204,7 @@ function SignupForm() {
             </div>
             <Button
               type="submit"
-              disabled={loading}
+              disabled={loading || !email || !password || password.length < 6}
               className="w-full bg-[#F5B800] text-[#0D0F14] hover:bg-[#FFD54F] font-semibold"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
