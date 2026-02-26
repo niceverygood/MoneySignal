@@ -57,9 +57,11 @@ export default function AdminSignalsPage() {
 
   const triggerGeneration = async () => {
     try {
-      const res = await fetch(
-        `/api/cron/generate-signals?secret=${process.env.NEXT_PUBLIC_CRON_SECRET || "dev"}`
-      );
+      const res = await fetch("/api/admin/trigger-cron", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "generate-signals" }),
+      });
       if (res.ok) {
         toast.success("시그널 생성이 시작되었습니다");
       } else {

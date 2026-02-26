@@ -32,9 +32,11 @@ export default function AdminBacktestPage() {
 
   const triggerRecalc = async () => {
     try {
-      const res = await fetch(
-        `/api/cron/calculate-backtest?secret=${process.env.NEXT_PUBLIC_CRON_SECRET || "dev"}`
-      );
+      const res = await fetch("/api/admin/trigger-cron", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "calculate-backtest" }),
+      });
       if (res.ok) {
         toast.success("백테스트 재계산이 시작되었습니다");
         setTimeout(fetchResults, 3000);

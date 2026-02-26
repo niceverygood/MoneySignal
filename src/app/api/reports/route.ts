@@ -40,7 +40,8 @@ export async function GET(request: NextRequest) {
     .range(offset, offset + limit - 1);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("[Reports] DB error:", error);
+    return NextResponse.json({ error: "리포트 조회 중 오류가 발생했습니다" }, { status: 500 });
   }
 
   // Add isLocked flag based on tier comparison

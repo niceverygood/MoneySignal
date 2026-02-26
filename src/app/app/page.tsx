@@ -70,7 +70,7 @@ export default function SignalFeedPage() {
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { channel.unsubscribe().then(() => supabase.removeChannel(channel)); };
   }, [supabase, fetchSignals]);
 
   // Binance WebSocket for real-time prices

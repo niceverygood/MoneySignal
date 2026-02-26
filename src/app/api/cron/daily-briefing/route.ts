@@ -30,7 +30,7 @@ export async function GET(request: Request) {
 
     if (signalsError) {
       console.error("[Daily Briefing] Failed to fetch signals:", signalsError);
-      return NextResponse.json({ error: signalsError.message }, { status: 500 });
+      return NextResponse.json({ error: "시그널 데이터 조회 실패" }, { status: 500 });
     }
 
     // Calculate today's stats
@@ -106,7 +106,7 @@ export async function GET(request: Request) {
 
     if (insertError) {
       console.error("[Daily Briefing] Failed to save report:", insertError);
-      return NextResponse.json({ error: insertError.message }, { status: 500 });
+      return NextResponse.json({ error: "일일 브리핑 저장 실패" }, { status: 500 });
     }
 
     console.log("[Daily Briefing] Generated successfully:", report.id);
