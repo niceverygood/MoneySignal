@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Plus, Package, Edit, Users } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/types";
 import { CATEGORY_LABELS } from "@/types";
@@ -16,6 +17,7 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
+  const router = useRouter();
 
   useEffect(() => {
     async function fetchProducts() {
@@ -154,6 +156,7 @@ export default function ProductsPage() {
                   variant="outline"
                   size="sm"
                   className="flex-1 border-[#2A2D36] text-[#8B95A5] hover:text-white"
+                  onClick={() => router.push(`/partner/products/new?edit=${product.id}`)}
                 >
                   <Edit className="w-3.5 h-3.5 mr-1" />
                   수정
@@ -162,6 +165,7 @@ export default function ProductsPage() {
                   variant="outline"
                   size="sm"
                   className="border-[#2A2D36] text-[#8B95A5] hover:text-white"
+                  onClick={() => router.push(`/partner/subscribers?product=${product.id}`)}
                 >
                   <Users className="w-3.5 h-3.5" />
                 </Button>

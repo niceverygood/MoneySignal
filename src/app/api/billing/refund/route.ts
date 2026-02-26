@@ -57,6 +57,14 @@ export async function POST(request: NextRequest) {
 
   console.log(`[AUDIT] Admin ${user.id} initiated refund for transaction ${transactionId}, reason: ${reason}`);
 
+  // 감사 로그 DB 기록 (notifications 테이블 활용)
+  await serviceClient.from("notifications").insert({
+    user_id: user.id,
+    type: "system",
+    title: "환불 감사 로그",
+    body: `관리자 ${user.email || user.id}가 거래 ${transactionId} (${transaction.amount?.toLocaleString()}원, 유저: ${transaction.user_id}) 환불 처리. 사유: ${reason}`,
+  });
+
   try {
     // 4. PortOne 결제 취소
     if (transaction.pg_transaction_id) {

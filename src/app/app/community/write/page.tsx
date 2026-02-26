@@ -168,10 +168,11 @@ export default function CommunityWritePage() {
               value={form.title}
               onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
               placeholder="제목을 입력하세요"
-              maxLength={100}
+              maxLength={200}
               className="bg-[#22262F] border-[#2A2D36] text-white mt-1.5"
               required
             />
+            <p className="text-[10px] text-[#8B95A5] mt-1 text-right">{form.title.length}/200</p>
           </div>
 
           <div>
@@ -180,11 +181,11 @@ export default function CommunityWritePage() {
               value={form.message}
               onChange={(e) => setForm((p) => ({ ...p, message: e.target.value }))}
               placeholder="내용을 입력하세요"
-              maxLength={2000}
+              maxLength={50000}
               className="bg-[#22262F] border-[#2A2D36] text-white mt-1.5 min-h-[200px]"
               required
             />
-            <p className="text-[10px] text-[#8B95A5] mt-1 text-right">{form.message.length}/2000</p>
+            <p className="text-[10px] text-[#8B95A5] mt-1 text-right">{form.message.length.toLocaleString()}/50,000</p>
           </div>
 
           <Button
