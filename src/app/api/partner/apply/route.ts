@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
+  try {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -80,6 +81,10 @@ export async function POST(request: NextRequest) {
     referralCode,
     message: "운영자 신청이 완료되었습니다. 관리자 승인 후 활동할 수 있습니다.",
   });
+  } catch (outerError) {
+    console.error("[partner/apply] Outer error:", outerError);
+    return NextResponse.json({ error: "요청 처리 중 오류가 발생했습니다" }, { status: 500 });
+  }
 }
 
 function generateReferralCode(): string {
