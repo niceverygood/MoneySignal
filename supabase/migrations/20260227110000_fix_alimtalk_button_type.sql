@@ -1,12 +1,9 @@
 -- ============================================
--- 알리고 알림톡 발송을 Supabase DB http extension으로 이전
--- Vercel IP 불일치 문제 해결: DB 고정 IP(65.0.147.111)에서 직접 호출
+-- 알림톡 버튼 타입 수정: WL(웹링크) → AL(앱링크)
+-- 승인된 템플릿이 AL(앱링크) 타입이므로 일치시켜야 함
+-- linkMo/linkPc → linkIos/linkAnd
 -- ============================================
 
--- 1. http extension 활성화
-CREATE EXTENSION IF NOT EXISTS http WITH SCHEMA extensions;
-
--- 2. send_alimtalk RPC 함수
 CREATE OR REPLACE FUNCTION public.send_alimtalk(
   p_api_key text,
   p_user_id text,
