@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, MessageCircle, Check, X } from "lucide-react";
+import { Loader2, MessageCircle, Check, X, Mail } from "lucide-react";
 import { toast } from "sonner";
 
 function generateKoreanNickname(): string {
@@ -56,9 +56,25 @@ function SignupForm() {
   const [nicknameStatus, setNicknameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
   const [nicknameChecked, setNicknameChecked] = useState(false);
 
-  // 이메일 중복검사
+  // 이메일 인증
   const [emailStatus, setEmailStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
   const [emailChecked, setEmailChecked] = useState(false);
+  const [emailVerificationSent, setEmailVerificationSent] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [verifyingCode, setVerifyingCode] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 재발송 타이머
+  useEffect(() => {
+    if (resendTimer > 0) {
+      timerRef.current = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
+    }
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [resendTimer]);
 
   const handleCheckNickname = async () => {
     const name = displayName.trim();
@@ -91,7 +107,7 @@ function SignupForm() {
     }
   };
 
-  const handleCheckEmail = async () => {
+  const handleSendVerification = async () => {
     const trimmedEmail = email.trim().toLowerCase();
     if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
       toast.error("올바른 이메일 형식을 입력해주세요");
@@ -100,23 +116,68 @@ function SignupForm() {
 
     setEmailStatus("checking");
     try {
-      // Supabase signUp으로 이미 가입된 이메일인지 확인하지 않고,
-      // 직접 profiles 테이블에서 확인 (공개 조회 불가이므로 API 사용)
+      // 1. 중복 확인
       const res = await fetch(`/api/auth/check-email?email=${encodeURIComponent(trimmedEmail)}`);
       const data = await res.json();
 
-      if (data.available) {
-        setEmailStatus("available");
-        setEmailChecked(true);
-        toast.success("사용 가능한 이메일입니다");
-      } else {
+      if (!data.available) {
         setEmailStatus("taken");
         setEmailChecked(false);
         toast.error(data.message || "이미 가입된 이메일입니다");
+        return;
       }
+
+      // 2. OTP 발송
+      const { error } = await supabase.auth.signInWithOtp({
+        email: trimmedEmail,
+        options: {
+          shouldCreateUser: true,
+        },
+      });
+
+      if (error) {
+        setEmailStatus("idle");
+        toast.error("인증 메일 발송에 실패했습니다. 다시 시도해주세요.");
+        return;
+      }
+
+      setEmailStatus("available");
+      setEmailVerificationSent(true);
+      setResendTimer(60);
+      toast.success("인증 코드가 이메일로 발송되었습니다.");
     } catch {
       setEmailStatus("idle");
       toast.error("이메일 확인 중 오류가 발생했습니다");
+    }
+  };
+
+  const handleVerifyCode = async () => {
+    const code = verificationCode.trim();
+    if (code.length !== 6 || !/^\d{6}$/.test(code)) {
+      toast.error("6자리 숫자 코드를 입력해주세요");
+      return;
+    }
+
+    setVerifyingCode(true);
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email: email.trim().toLowerCase(),
+        token: code,
+        type: "email",
+      });
+
+      if (error) {
+        toast.error("인증 코드가 올바르지 않습니다. 다시 확인해주세요.");
+        return;
+      }
+
+      setEmailVerified(true);
+      setEmailChecked(true);
+      toast.success("이메일 인증이 완료되었습니다!");
+    } catch {
+      toast.error("인증 확인 중 오류가 발생했습니다");
+    } finally {
+      setVerifyingCode(false);
     }
   };
 
@@ -139,48 +200,44 @@ function SignupForm() {
       return;
     }
 
-    // 이메일 중복검사 안 한 경우
-    if (!emailChecked) {
-      toast.error("이메일 중복검사를 먼저 해주세요");
+    // 이메일 인증 안 한 경우
+    if (!emailVerified) {
+      toast.error("이메일 인증을 먼저 완료해주세요");
       return;
     }
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
+      // OTP 인증으로 이미 세션이 있으므로 updateUser로 비밀번호 설정
+      const { error: updateError } = await supabase.auth.updateUser({
         password,
-        options: {
-          data: {
-            display_name: finalName,
-          },
-          emailRedirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
+        data: {
+          display_name: finalName,
         },
       });
 
-      if (error) {
-        if (error.message.includes("already registered")) {
-          toast.error("이미 가입된 이메일입니다. 로그인해주세요.");
-        } else {
-          toast.error(error.message);
-        }
+      if (updateError) {
+        toast.error(updateError.message);
         setLoading(false);
         return;
       }
 
+      // profiles 테이블 업데이트
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from("profiles")
+          .update({ display_name: finalName })
+          .eq("id", user.id);
+      }
+
+      // referredBy 처리
       if (referredBy) {
         localStorage.setItem("moneysignal_referred_by", referredBy);
       }
 
-      if (data.session) {
-        toast.success("가입 완료! 환영합니다 🎉");
-        router.push(redirectTo);
-      } else if (data.user && !data.session) {
-        toast.success("가입 완료! 이메일에서 확인 링크를 클릭해주세요.", {
-          duration: 8000,
-        });
-        router.push(`/auth/login?message=confirm_email&email=${encodeURIComponent(email)}`);
-      }
+      toast.success("가입 완료! 환영합니다.");
+      router.push(redirectTo);
     } catch (err) {
       console.error("Signup error:", err);
       toast.error("회원가입 중 오류가 발생했습니다. 다시 시도해주세요.");
@@ -224,6 +281,9 @@ function SignupForm() {
     setEmail(value);
     setEmailStatus("idle");
     setEmailChecked(false);
+    setEmailVerificationSent(false);
+    setEmailVerified(false);
+    setVerificationCode("");
   };
 
   return (
@@ -301,7 +361,7 @@ function SignupForm() {
               )}
             </div>
 
-            {/* 이메일 + 중복검사 */}
+            {/* 이메일 + 인증 */}
             <div>
               <Label className="text-[#8B95A5]">이메일 *</Label>
               <div className="flex gap-2 mt-1.5">
@@ -313,33 +373,74 @@ function SignupForm() {
                     placeholder="your@email.com"
                     className="bg-[#22262F] border-[#2A2D36] text-white pr-8"
                     required
+                    disabled={emailVerified}
                   />
-                  {emailStatus === "available" && (
+                  {emailVerified && (
                     <Check className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
                   )}
                   {emailStatus === "taken" && (
                     <X className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-red-500" />
                   )}
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleCheckEmail}
-                  disabled={emailStatus === "checking" || !email.trim()}
-                  className="shrink-0 border-[#2A2D36] text-[#8B95A5] hover:text-white hover:bg-[#22262F] text-xs px-3"
-                >
-                  {emailStatus === "checking" ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    "중복검사"
-                  )}
-                </Button>
+                {!emailVerified && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleSendVerification}
+                    disabled={emailStatus === "checking" || !email.trim() || resendTimer > 0}
+                    className="shrink-0 border-[#2A2D36] text-[#8B95A5] hover:text-white hover:bg-[#22262F] text-xs px-3"
+                  >
+                    {emailStatus === "checking" ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : resendTimer > 0 ? (
+                      `재발송 (${resendTimer}초)`
+                    ) : emailVerificationSent ? (
+                      "재발송"
+                    ) : (
+                      <>
+                        <Mail className="w-3 h-3 mr-1" />
+                        인증하기
+                      </>
+                    )}
+                  </Button>
+                )}
               </div>
-              {emailStatus === "available" && (
-                <p className="text-xs text-green-500 mt-1">사용 가능한 이메일입니다</p>
+              {emailVerified && (
+                <p className="text-xs text-green-500 mt-1">인증 완료</p>
               )}
               {emailStatus === "taken" && (
                 <p className="text-xs text-red-500 mt-1">이미 가입된 이메일입니다</p>
+              )}
+
+              {/* 인증 코드 입력 */}
+              {emailVerificationSent && !emailVerified && (
+                <div className="mt-2">
+                  <div className="flex gap-2">
+                    <Input
+                      value={verificationCode}
+                      onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      placeholder="6자리 인증 코드"
+                      className="bg-[#22262F] border-[#2A2D36] text-white text-center tracking-widest"
+                      maxLength={6}
+                      inputMode="numeric"
+                    />
+                    <Button
+                      type="button"
+                      onClick={handleVerifyCode}
+                      disabled={verificationCode.length !== 6 || verifyingCode}
+                      className="shrink-0 bg-[#F5B800] text-[#0D0F14] hover:bg-[#FFD54F] text-xs px-4"
+                    >
+                      {verifyingCode ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        "확인"
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-[#8B95A5] mt-1">
+                    이메일로 발송된 6자리 코드를 입력해주세요
+                  </p>
+                </div>
               )}
             </div>
 
@@ -359,7 +460,7 @@ function SignupForm() {
 
             <Button
               type="submit"
-              disabled={loading || !email || !password || password.length < 6 || !emailChecked}
+              disabled={loading || !email || !password || password.length < 6 || !emailVerified}
               className="w-full bg-[#F5B800] text-[#0D0F14] hover:bg-[#FFD54F] font-semibold"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
