@@ -190,8 +190,8 @@ export function formatTPHitAlimtalk(
   const pnlStr = pnl >= 0 ? `+${pnl.toFixed(2)}` : pnl.toFixed(2);
 
   return {
-    subject: `[머니시그널] ${signal.symbol_name || signal.symbol} TP${tpLevel} 도달`,
-    message: `[머니시그널] 목표가 도달\n\n${signal.symbol_name || signal.symbol} TP${tpLevel} 도달!\n수익률: ${pnlStr}%\n\n앱에서 확인하세요.\n\n해당 메시지는 고객님께서 요청하신 목표가 도달 알림이 있을 경우 발송됩니다.`,
+    subject: `[머니시그널] ${signal.symbol_name || signal.symbol} TP${tpLevel}도달`,
+    message: `[머니시그널] 목표가 도달\n\n${signal.symbol_name || signal.symbol} TP${tpLevel}도달!\n수익률: ${pnlStr}%\n\n앱에서 확인하세요.\n\n해당 메시지는 고객님께서 요청하신 목표가 도달 알림이 있을 경우 발송됩니다.`,
     buttonUrl: `${SITE_URL}/app/signals/${signal.id}`,
   };
 }
