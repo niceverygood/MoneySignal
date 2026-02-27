@@ -3,7 +3,7 @@
 // ============================================
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-opus-4-20250918";
+const MODEL = "claude-opus-4-20250514";
 
 interface Message {
   role: "user" | "assistant";
