@@ -116,23 +116,24 @@ function SignupForm() {
 
     setEmailStatus("checking");
     try {
-      // 1. 중복 확인
-      const res = await fetch(`/api/auth/check-email?email=${encodeURIComponent(trimmedEmail)}`);
-      const data = await res.json();
+      // 1. 서버에서 중복 확인 + 미인증 유저 정리
+      const res = await fetch("/api/auth/send-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmedEmail }),
+      });
 
-      if (!data.available) {
-        setEmailStatus("taken");
-        setEmailChecked(false);
-        toast.error(data.message || "이미 가입된 이메일입니다");
+      if (!res.ok) {
+        const data = await res.json();
+        setEmailStatus(res.status === 409 ? "taken" : "idle");
+        toast.error(data.error || "이메일 확인 중 오류가 발생했습니다");
         return;
       }
 
-      // 2. OTP 발송
-      const { error } = await supabase.auth.signInWithOtp({
+      // 2. signUp으로 유저 생성 + 인증 메일 발송 (임시 비밀번호)
+      const { error } = await supabase.auth.signUp({
         email: trimmedEmail,
-        options: {
-          shouldCreateUser: true,
-        },
+        password: crypto.randomUUID(),
       });
 
       if (error) {
@@ -163,7 +164,7 @@ function SignupForm() {
       const { error } = await supabase.auth.verifyOtp({
         email: email.trim().toLowerCase(),
         token: code,
-        type: "email",
+        type: "signup",
       });
 
       if (error) {
