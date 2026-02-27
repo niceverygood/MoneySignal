@@ -20,8 +20,18 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const category = searchParams.get("category");
   const status = searchParams.get("status");
-  const limit = Math.min(Math.max(parseInt(searchParams.get("limit") || "50") || 50, 1), 200);
-  const offset = Math.max(parseInt(searchParams.get("offset") || "0") || 0, 0);
+  const rawLimit = parseInt(searchParams.get("limit") || "50") || 50;
+  const rawOffset = parseInt(searchParams.get("offset") || "0") || 0;
+
+  if (rawLimit < 1 || rawLimit > 200) {
+    return NextResponse.json({ error: "limit은 1~200 사이여야 합니다" }, { status: 400 });
+  }
+  if (rawOffset < 0) {
+    return NextResponse.json({ error: "offset은 0 이상이어야 합니다" }, { status: 400 });
+  }
+
+  const limit = rawLimit;
+  const offset = rawOffset;
 
   // Get user's subscription tier
   const { data: profile } = await supabase
