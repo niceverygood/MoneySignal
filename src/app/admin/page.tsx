@@ -27,7 +27,6 @@ interface Transaction {
 
 interface UserRow {
   id: string;
-  email: string;
   display_name: string;
   role: string;
   subscription_tier: string;
@@ -57,7 +56,7 @@ export default function AdminDashboardPage() {
     async function fetchAll() {
       const [txRes, userRes, partnerRes] = await Promise.all([
         supabase.from("transactions").select("*").order("created_at", { ascending: false }).limit(100),
-        supabase.from("profiles").select("*").order("created_at", { ascending: false }).limit(200),
+        supabase.from("profiles").select("id, display_name, role, subscription_tier, created_at").order("created_at", { ascending: false }).limit(200),
         supabase.from("partners").select("*").order("created_at", { ascending: false }),
       ]);
       if (txRes.data) setTransactions(txRes.data as Transaction[]);

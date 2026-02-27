@@ -40,7 +40,7 @@ interface PartnerRow {
   bio: string | null;
   is_active: boolean;
   created_at: string;
-  profiles?: { display_name: string; email: string };
+  profiles?: { display_name: string };
 }
 
 export default function AdminPartnersPage() {
@@ -53,7 +53,7 @@ export default function AdminPartnersPage() {
   const fetchPartners = async () => {
     let query = supabase
       .from("partners")
-      .select("*, profiles(display_name, email)")
+      .select("*, profiles(display_name)")
       .order("created_at", { ascending: false });
 
     const { data } = await query;
@@ -136,7 +136,7 @@ export default function AdminPartnersPage() {
       const s = search.toLowerCase();
       return (
         p.brand_name.toLowerCase().includes(s) ||
-        p.profiles?.email?.toLowerCase().includes(s) ||
+        p.profiles?.display_name?.toLowerCase().includes(s) ||
         p.referral_code?.toLowerCase().includes(s)
       );
     }
@@ -205,7 +205,7 @@ export default function AdminPartnersPage() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="이름, 이메일, 코드 검색"
+            placeholder="이름, 코드 검색"
             className="pl-10 bg-[#1A1D26] border-[#2A2D36] text-white"
           />
         </div>
@@ -244,7 +244,7 @@ export default function AdminPartnersPage() {
                     </Badge>
                   </div>
                   <p className="text-xs text-[#8B95A5] mt-1">
-                    {partner.profiles?.email} · 가입{" "}
+                    {partner.profiles?.display_name || "사용자"} · 가입{" "}
                     {dayjs(partner.created_at).format("YY.MM.DD")}
                   </p>
                   {partner.bio && (

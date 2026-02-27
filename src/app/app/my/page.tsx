@@ -69,10 +69,7 @@ export default function MyPage() {
         return;
       }
 
-      // Fetch profile - try Supabase client first, then direct REST API
-      let profileLoaded = false;
-
-      // Method 1: Supabase client
+      // Fetch profile
       const { data: profileData } = await supabase
         .from("profiles")
         .select("*")
@@ -81,36 +78,8 @@ export default function MyPage() {
 
       if (profileData?.role) {
         setProfile(profileData as Profile);
-        profileLoaded = true;
-      }
-
-      // Method 2: Direct REST API with session token
-      if (!profileLoaded) {
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.access_token) {
-            const restRes = await fetch(
-              `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/profiles?select=*&id=eq.${user.id}`,
-              {
-                headers: {
-                  "apikey": process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
-                  "Authorization": `Bearer ${session.access_token}`,
-                },
-              }
-            );
-            if (restRes.ok) {
-              const restData = await restRes.json();
-              if (restData[0]?.role) {
-                setProfile(restData[0] as Profile);
-                profileLoaded = true;
-              }
-            }
-          }
-        } catch { /* ignore */ }
-      }
-
-      // Method 3: Fallback
-      if (!profileLoaded) {
+      } else {
+        // Fallback: 프로필이 아직 생성되지 않은 경우
         setProfile({
           id: user.id,
           email: user.email || "",
