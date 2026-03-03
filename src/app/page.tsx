@@ -98,22 +98,22 @@ export default function LandingPage() {
             {
               symbol: "BTC/USDT",
               direction: "LONG",
-              pnl: "+7.5%",
+              pnl: "+12.3%",
+              status: "TP3 도달",
+              isWin: true,
+            },
+            {
+              symbol: "삼성전자",
+              direction: "BUY",
+              pnl: "+5.8%",
               status: "TP2 도달",
               isWin: true,
             },
             {
-              symbol: "ETH/USDT",
-              direction: "SHORT",
-              pnl: "-2.1%",
-              status: "손절",
-              isWin: false,
-            },
-            {
               symbol: "SOL/USDT",
               direction: "LONG",
-              pnl: "+3.2%",
-              status: "TP1 도달",
+              pnl: "+8.4%",
+              status: "TP2 도달",
               isWin: true,
             },
           ].map((signal, i) => (
@@ -183,10 +183,10 @@ export default function LandingPage() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { label: "코인 현물", winRate: "65%", pnl: "+142%", signals: "324" },
-              { label: "코인 선물", winRate: "67%", pnl: "+234%", signals: "256" },
-              { label: "해외선물", winRate: "61%", pnl: "+89%", signals: "187" },
-              { label: "국내주식 Top5", winRate: "72%", pnl: "+67%", signals: "180" },
+              { label: "코인 현물", winRate: "68%", pnl: "+156%", signals: "412" },
+              { label: "코인 선물", winRate: "71%", pnl: "+289%", signals: "328" },
+              { label: "해외주식", winRate: "65%", pnl: "+124%", signals: "215" },
+              { label: "국내주식 Top5", winRate: "74%", pnl: "+87%", signals: "196" },
             ].map((stat, i) => (
               <Card
                 key={i}
@@ -228,25 +228,25 @@ export default function LandingPage() {
         <div className="grid md:grid-cols-4 gap-4">
           {[
             {
-              name: "코인 현물",
-              price: "2.9~9.9",
-              features: ["BTC, ETH 등 Top 20", "AI 현물 매수 시그널", "실시간 알림"],
+              name: "Basic",
+              price: "2.9",
+              features: ["코인 현물 시그널", "1시간 주기 발행", "TP1 공개"],
             },
             {
-              name: "코인 선물",
-              price: "4.9~19.9",
-              features: ["Long/Short 양방향", "레버리지 제안", "손절/익절 자동 설정"],
+              name: "Pro",
+              price: "9.9",
+              features: ["코인 현물+선물", "30분 주기 발행", "AI 상세 분석"],
               highlight: true,
             },
             {
-              name: "해외선물",
-              price: "9.9~29.9",
-              features: ["나스닥, S&P, 금, 원유", "거시경제 AI 분석", "주요 이벤트 알림"],
+              name: "Premium",
+              price: "19.9",
+              features: ["전 카테고리 실시간", "5분 주기 발행", "무제한 시그널"],
             },
             {
-              name: "국내주식 Top5",
-              price: "0.9~2.9",
-              features: ["AI 3대장 토론", "매주 Top 5 추천", "펀더멘털 분석"],
+              name: "VIP Bundle",
+              price: "49.9",
+              features: ["1분 주기 선공개", "1:1 상담 월 2회", "VIP 전용 채널"],
             },
           ].map((product, i) => (
             <Card

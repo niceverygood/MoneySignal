@@ -108,7 +108,7 @@ export default function AdminSignalsPage() {
             <SelectItem value="all">전체 카테고리</SelectItem>
             <SelectItem value="coin_spot">코인 현물</SelectItem>
             <SelectItem value="coin_futures">코인 선물</SelectItem>
-            <SelectItem value="overseas_futures">해외선물</SelectItem>
+            <SelectItem value="overseas_futures">해외주식</SelectItem>
             <SelectItem value="kr_stock">국내주식</SelectItem>
           </SelectContent>
         </Select>

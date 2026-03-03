@@ -263,7 +263,7 @@ export default function BecomePartnerPage() {
               </SelectTrigger>
               <SelectContent className="bg-[#1A1D26] border-[#2A2D36]">
                 <SelectItem value="coin">코인</SelectItem>
-                <SelectItem value="futures">해외선물</SelectItem>
+                <SelectItem value="futures">해외주식</SelectItem>
                 <SelectItem value="stock">국내주식</SelectItem>
                 <SelectItem value="all">전체</SelectItem>
               </SelectContent>

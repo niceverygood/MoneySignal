@@ -61,8 +61,9 @@ export default function AskPage() {
           const data = await res.json();
           setRemaining(data.remainingQuestions ?? 0);
           setLimitReached(true);
-        } else if (res.status === 400) {
-          // Expected: empty/check question returns 400 but access is granted
+        } else if (res.ok) {
+          const data = await res.json();
+          setRemaining(data.remainingQuestions ?? null);
           setTierBlocked(false);
         }
       } catch {
@@ -157,6 +158,14 @@ export default function AskPage() {
     }
   };
 
+  // tierBlocked → limitReached 전환 (render 중 setState 방지)
+  useEffect(() => {
+    if (tierBlocked) {
+      setTierBlocked(false);
+      setLimitReached(true);
+    }
+  }, [tierBlocked]);
+
   // Loading state
   if (initialLoading) {
     return (
@@ -165,14 +174,6 @@ export default function AskPage() {
       </div>
     );
   }
-
-  // tierBlocked → limitReached 전환 (render 중 setState 방지)
-  useEffect(() => {
-    if (tierBlocked) {
-      setTierBlocked(false);
-      setLimitReached(true);
-    }
-  }, [tierBlocked]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">

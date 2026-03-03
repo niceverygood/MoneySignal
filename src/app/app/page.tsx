@@ -17,7 +17,7 @@ const categories = [
   { key: "all", label: "전체" },
   { key: "coin_spot", label: "코인 현물" },
   { key: "coin_futures", label: "코인 선물" },
-  { key: "overseas_futures", label: "해외선물" },
+  { key: "overseas_futures", label: "해외주식" },
   { key: "kr_stock", label: "국내주식" },
 ];
 

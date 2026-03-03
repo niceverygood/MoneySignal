@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
   }
 
   const amount = prices[cycle];
-  if (amount > 999999) {
+  if (amount > 5000000) {
     return NextResponse.json({ error: "결제 금액이 허용 범위를 초과합니다" }, { status: 400 });
   }
 

@@ -14,105 +14,173 @@ import {
   Loader2,
   Zap,
   Lock,
+  X,
+  ChevronDown,
+  ChevronUp,
+  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { SubscriptionTier } from "@/types";
+import { PLAN_PRICES } from "@/lib/portone";
 
-const plans = [
+// ============================================
+// Plan definitions
+// ============================================
+type BillingCycle = "monthly" | "quarterly" | "yearly";
+
+const PLANS = [
+  {
+    tier: "free" as const,
+    name: "Free",
+    desc: "AI 시그널 체험",
+    color: "#8B95A5",
+    frequency: "없음",
+    frequencyBar: 0,
+    features: {
+      signal: ["완료 시그널 결과 공개", "진입가/손절가 공개"],
+      analysis: ["AI 질문 3회/일 (맛보기)"],
+      alert: [],
+      vip: [],
+    },
+    locked: ["시그널 딜레이 무한", "카테고리 없음", "목표가 비공개", "레버리지 비공개"],
+  },
   {
     tier: "basic" as const,
     name: "Basic",
-    price: 29900,
-    priceLabel: "29,900원",
+    desc: "코인 현물 입문",
+    color: "#448AFF",
+    frequency: "1시간",
+    frequencyBar: 25,
     freeTrial: true,
-    freeTrialLabel: "첫 달 무료",
-    features: [
-      "코인 현물 시그널",
-      "1일 3개 시그널",
-      "30분 딜레이",
-      "TP1 공개",
-      "AI 분석 요약",
-      "백테스트 30일",
-    ],
-    locked: ["코인 선물", "해외선물", "국내주식", "실시간 시그널"],
-    color: "border-[#448AFF]/30",
-    badge: "bg-[#448AFF]/10 text-[#448AFF]",
+    features: {
+      signal: ["코인 현물 시그널", "1일 3개", "30분 딜레이", "TP1 공개"],
+      analysis: ["AI 분석 요약 (100자)", "백테스트 30일", "기본 대시보드"],
+      alert: ["앱 푸시 알림", "TP1 도달 알림"],
+      vip: [],
+    },
+    locked: ["코인 선물", "해외주식", "국내주식"],
   },
   {
     tier: "pro" as const,
     name: "Pro",
-    price: 59900,
-    priceLabel: "59,900원",
+    desc: "본격 트레이딩",
+    color: "#F5B800",
     popular: true,
+    frequency: "30분",
+    frequencyBar: 50,
     freeTrial: true,
-    freeTrialLabel: "첫 달 무료",
-    features: [
-      "코인 현물 + 선물 시그널",
-      "1일 10개 시그널",
-      "10분 딜레이",
-      "TP1~2 공개",
-      "보수적 레버리지",
-      "AI 상세 분석",
-      "AI 종목 질문 3회/일",
-      "텔레그램 알림",
-      "주간 리포트",
-      "백테스트 180일",
-    ],
-    locked: ["해외선물", "국내주식", "실시간 시그널"],
-    color: "border-[#F5B800]/30",
-    badge: "bg-[#F5B800]/10 text-[#F5B800]",
+    features: {
+      signal: ["코인 현물+선물", "1일 10개", "10분 딜레이", "TP1~2 공개", "보수적 레버리지"],
+      analysis: ["AI 상세 분석", "AI 질문 3회/일", "백테스트 180일", "상세 대시보드", "주간 리포트"],
+      alert: ["앱 푸시 + 텔레그램", "TP1~2 + SL 알림"],
+      vip: [],
+    },
+    locked: ["해외주식", "국내주식"],
   },
   {
     tier: "premium" as const,
     name: "Premium",
-    price: 99900,
-    priceLabel: "99,900원",
-    features: [
-      "전체 카테고리 시그널 (코인+선물+주식)",
-      "무제한 시그널",
-      "실시간 (딜레이 0)",
-      "TP1~3 전체 공개",
-      "보수적+공격적 레버리지",
-      "AI 전체 분석 근거",
-      "AI 종목 질문 10회/일",
-      "텔레그램 알림",
-      "주간 리포트 + 일일 브리핑",
-      "백테스트 전체 이력",
-      "CSV 다운로드",
-      "수익률 고급 대시보드",
-    ],
+    desc: "프로 트레이더",
+    color: "#E040FB",
+    frequency: "5분",
+    frequencyBar: 80,
+    features: {
+      signal: ["전 카테고리 (코인+주식)", "무제한 시그널", "실시간 (딜레이 0)", "TP1~3 전체", "보수적+공격적 레버리지"],
+      analysis: ["AI 전체 분석 근거", "AI 질문 10회/일", "백테스트 전체 이력", "고급 대시보드", "주간 리포트 + 일일 브리핑", "CSV 다운로드"],
+      alert: ["앱 푸시 + 텔레그램", "TP1~3 + SL + 취소/만료 알림"],
+      vip: [],
+    },
     locked: [],
-    color: "border-[#E040FB]/30",
-    badge: "bg-[#E040FB]/10 text-[#E040FB]",
   },
   {
     tier: "bundle" as const,
     name: "VIP Bundle",
-    price: 149900,
-    priceLabel: "149,900원",
-    features: [
-      "Premium 전체 기능 포함",
-      "시그널 1시간 선공개",
-      "AI 종목 질문 무제한",
-      "VIP 전용 텔레그램 채널",
-      "월간 종합 리포트",
-      "1:1 상담 (월 2회)",
-      "프리미엄 채팅방",
-    ],
+    desc: "최상위 특권",
+    color: "#F5B800",
+    frequency: "1분",
+    frequencyBar: 100,
+    features: {
+      signal: ["Premium 전체 포함", "1시간 선공개", "AI 질문 무제한"],
+      analysis: ["월간 종합 리포트", "전체 분석+모델 정보"],
+      alert: ["전체 알림 + VIP 채널"],
+      vip: ["VIP 전용 텔레그램", "프리미엄 채팅방", "1:1 상담 월 2회"],
+    },
     locked: [],
-    color: "border-[#F5B800]/50 shadow-[0_0_20px_rgba(245,184,0,0.1)]",
-    badge: "bg-[#F5B800] text-[#0D0F14]",
   },
 ];
 
+const COMPARISON_SECTIONS = [
+  {
+    title: "시그널 접근",
+    rows: [
+      { label: "카테고리", values: ["없음", "코인 현물", "현물+선물", "전체", "전체"] },
+      { label: "일일 한도", values: ["0", "3개", "10개", "무제한", "무제한"] },
+      { label: "딜레이", values: ["-", "30분", "10분", "실시간", "1h 선공개"] },
+      { label: "TP 레벨", values: ["0", "TP1", "TP1~2", "TP1~3", "TP1~3"] },
+      { label: "레버리지", values: ["-", "-", "보수적", "전체", "전체"] },
+    ],
+  },
+  {
+    title: "AI 분석",
+    rows: [
+      { label: "AI 분석 근거", values: ["-", "요약", "상세", "전체", "전체+모델"] },
+      { label: "AI 종목 질문", values: ["3회", "-", "3회/일", "10회/일", "무제한"] },
+      { label: "백테스트", values: ["7일", "30일", "180일", "전체", "전체"] },
+    ],
+  },
+  {
+    title: "리포트",
+    rows: [
+      { label: "주간 리포트", values: ["-", "-", "O", "O", "O"] },
+      { label: "일일 브리핑", values: ["-", "-", "-", "O", "O"] },
+      { label: "월간 종합", values: ["-", "-", "-", "-", "O"] },
+      { label: "CSV 내보내기", values: ["-", "-", "-", "O", "O"] },
+    ],
+  },
+  {
+    title: "알림",
+    rows: [
+      { label: "앱 푸시", values: ["-", "O", "O", "O", "O"] },
+      { label: "텔레그램", values: ["-", "-", "O", "O", "O"] },
+      { label: "SL 알림", values: ["-", "-", "O", "O", "O"] },
+    ],
+  },
+  {
+    title: "VIP 전용",
+    rows: [
+      { label: "VIP 채널", values: ["-", "-", "-", "-", "O"] },
+      { label: "프리미엄 채팅", values: ["-", "-", "-", "-", "O"] },
+      { label: "1:1 상담", values: ["-", "-", "-", "-", "월 2회"] },
+    ],
+  },
+];
+
+function formatPrice(n: number): string {
+  return n.toLocaleString("ko-KR");
+}
+
+function getDiscountPercent(tier: string, cycle: BillingCycle): number | null {
+  const prices = PLAN_PRICES[tier];
+  if (!prices || cycle === "monthly") return null;
+  const monthlyTotal = cycle === "quarterly" ? prices.monthly * 3 : prices.monthly * 12;
+  const actual = prices[cycle];
+  const pct = Math.round(((monthlyTotal - actual) / monthlyTotal) * 100);
+  return pct > 0 ? pct : null;
+}
+
+// ============================================
+// Component
+// ============================================
 export default function SubscribePage() {
   const router = useRouter();
   const supabase = createClient();
   const [currentTier, setCurrentTier] = useState<SubscriptionTier>("free");
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
   const [referralCode, setReferralCode] = useState("");
   const [referralPartner, setReferralPartner] = useState<string | null>(null);
   const [subscribing, setSubscribing] = useState<string | null>(null);
+  const [showComparison, setShowComparison] = useState(false);
 
   useEffect(() => {
     async function fetchTier() {
@@ -150,7 +218,6 @@ export default function SubscribePage() {
   const handleSubscribe = async (tier: string, price: number) => {
     setSubscribing(tier);
 
-    // 무료 체험 (첫 달 무료)
     if (price === 0) {
       try {
         if (referralCode && referralPartner) {
@@ -173,19 +240,16 @@ export default function SubscribePage() {
         });
         const data = await res.json();
         if (!res.ok) { toast.error(data.error); return; }
-        toast.success(`${tier.toUpperCase()} 무료 체험이 시작되었습니다! 🎉`);
+        toast.success(`${tier.toUpperCase()} 무료 체험이 시작되었습니다!`);
         router.push("/app");
         return;
       } catch { toast.error("처리 중 오류"); } finally { setSubscribing(null); }
       return;
     }
 
-    // 유료 결제: PortOne 빌링키 발급 → 서버에서 즉시 결제
     try {
       const { default: PortOne } = await import("@portone/browser-sdk/v2");
-
       const tierNames: Record<string, string> = { basic: "Basic", pro: "Pro", premium: "Premium", bundle: "VIP Bundle" };
-
       const { data: { user: authUser } } = await supabase.auth.getUser();
 
       const response = await PortOne.requestIssueBillingKey({
@@ -216,7 +280,6 @@ export default function SubscribePage() {
         return;
       }
 
-      // 빌링키 발급 성공 → 서버에서 즉시 결제
       toast.loading("결제 처리 중...");
 
       if (referralCode && referralPartner) {
@@ -233,7 +296,7 @@ export default function SubscribePage() {
         body: JSON.stringify({
           billingKey: response.billingKey,
           tier,
-          billingCycle: "monthly",
+          billingCycle,
           referralCode: referralCode || null,
         }),
       });
@@ -261,9 +324,10 @@ export default function SubscribePage() {
   const currentIdx = tierOrder.indexOf(currentTier);
 
   return (
-    <div className="py-4 space-y-6">
+    <div className="py-4 space-y-6 max-w-4xl mx-auto">
+      {/* Header */}
       <div className="text-center">
-        <h1 className="text-xl font-bold text-white">구독 플랜 선택</h1>
+        <h1 className="text-2xl font-bold text-white">구독 플랜</h1>
         <p className="text-sm text-[#8B95A5] mt-1">
           현재 등급:{" "}
           <Badge className={cn("border-0", currentTier === "free" ? "bg-[#8B95A5]/10 text-[#8B95A5]" : "bg-[#F5B800]/10 text-[#F5B800]")}>
@@ -272,7 +336,28 @@ export default function SubscribePage() {
         </p>
       </div>
 
-      {/* Referral Code Input */}
+      {/* Billing cycle toggle */}
+      <div className="flex justify-center">
+        <div className="inline-flex bg-[#1A1D26] rounded-lg border border-[#2A2D36] p-1">
+          {(["monthly", "quarterly", "yearly"] as BillingCycle[]).map((c) => (
+            <button
+              key={c}
+              onClick={() => setBillingCycle(c)}
+              className={cn(
+                "px-4 py-2 rounded-md text-sm font-medium transition-all",
+                billingCycle === c
+                  ? "bg-[#F5B800] text-[#0D0F14]"
+                  : "text-[#8B95A5] hover:text-white"
+              )}
+            >
+              {c === "monthly" ? "월간" : c === "quarterly" ? "분기" : "연간"}
+              {c === "yearly" && <span className="ml-1 text-[10px]">BEST</span>}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Referral Code */}
       <Card className="bg-[#1A1D26] border-[#2A2D36] p-4">
         <p className="text-sm text-white mb-2">운영자 추천코드 (선택)</p>
         <div className="flex gap-2">
@@ -293,79 +378,114 @@ export default function SubscribePage() {
         </div>
         {referralPartner && (
           <p className="text-xs text-[#00E676] mt-2">
-            ✅ {referralPartner} 운영자와 연결됩니다
+            {referralPartner} 운영자와 연결됩니다
           </p>
         )}
       </Card>
 
-      {/* Plans */}
-      <div className="space-y-4">
-        {plans.map((plan) => {
+      {/* Plan Cards Grid */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {PLANS.filter(p => p.tier !== "free").map((plan) => {
+          const prices = PLAN_PRICES[plan.tier];
+          const price = prices?.[billingCycle] || 0;
+          const monthlyEquiv = billingCycle === "monthly" ? price : billingCycle === "quarterly" ? Math.round(price / 3) : Math.round(price / 12);
+          const discount = getDiscountPercent(plan.tier, billingCycle);
           const planIdx = tierOrder.indexOf(plan.tier);
           const isCurrent = plan.tier === currentTier;
           const isDowngrade = planIdx <= currentIdx && currentTier !== "free";
+          const isFreeTrial = plan.freeTrial && currentTier === "free" && billingCycle === "monthly";
 
           return (
             <Card
               key={plan.tier}
               className={cn(
-                "bg-[#1A1D26] border p-5 transition-all",
-                plan.color,
-                plan.popular && "relative"
+                "bg-[#1A1D26] border p-5 transition-all relative flex flex-col",
+                plan.tier === "bundle"
+                  ? "border-[#F5B800]/50 shadow-[0_0_20px_rgba(245,184,0,0.1)] md:col-span-2 lg:col-span-1"
+                  : `border-[${plan.color}]/30`
               )}
+              style={{ borderColor: `${plan.color}30` }}
             >
-              {plan.popular && !("freeTrial" in plan && plan.freeTrial) && (
-                <Badge className="absolute -top-2 left-4 bg-[#F5B800] text-[#0D0F14] border-0 text-xs">
-                  <Star className="w-3 h-3 mr-1" /> 인기
-                </Badge>
-              )}
-
-              {/* Free trial + popular badges */}
-              {"freeTrial" in plan && plan.freeTrial && (
-                <div className="flex gap-2 mb-3">
-                  <Badge className="bg-[#00E676] text-[#0D0F14] border-0 text-xs font-bold animate-pulse">
-                    🎁 {("freeTrialLabel" in plan && plan.freeTrialLabel) || "첫 달 무료"}
+              {/* Badges */}
+              <div className="flex gap-2 mb-3 min-h-[24px]">
+                {plan.popular && (
+                  <Badge className="bg-[#F5B800] text-[#0D0F14] border-0 text-[10px]">
+                    <Star className="w-3 h-3 mr-0.5" /> 인기
                   </Badge>
-                  {plan.popular && (
-                    <Badge className="bg-[#F5B800] text-[#0D0F14] border-0 text-xs">
-                      <Star className="w-3 h-3 mr-1" /> 인기
-                    </Badge>
-                  )}
-                </div>
-              )}
+                )}
+                {isFreeTrial && (
+                  <Badge className="bg-[#00E676] text-[#0D0F14] border-0 text-[10px] font-bold animate-pulse">
+                    첫 달 무료
+                  </Badge>
+                )}
+                {discount && !isFreeTrial && (
+                  <Badge className="bg-[#E040FB]/10 text-[#E040FB] border-0 text-[10px]">
+                    {discount}% 할인
+                  </Badge>
+                )}
+                {plan.tier === "bundle" && (
+                  <Badge className="bg-[#F5B800] text-[#0D0F14] border-0 text-[10px]">
+                    <Crown className="w-3 h-3 mr-0.5" /> VIP
+                  </Badge>
+                )}
+              </div>
 
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <h3 className="text-lg font-bold text-white">{plan.name}</h3>
-                </div>
-                <div className="text-right">
-                  {"freeTrial" in plan && plan.freeTrial && currentTier === "free" ? (
+              {/* Name + Price */}
+              <div className="mb-4">
+                <h3 className="text-lg font-bold text-white">{plan.name}</h3>
+                <p className="text-xs text-[#8B95A5]">{plan.desc}</p>
+                <div className="mt-2">
+                  {isFreeTrial ? (
                     <>
-                      <span className="text-2xl font-bold text-[#00E676]">0원</span>
-                      <span className="text-xs text-[#8B95A5] ml-1">/첫 달</span>
+                      <span className="text-3xl font-bold text-[#00E676]">0</span>
+                      <span className="text-sm text-[#8B95A5]">원/첫 달</span>
                       <p className="text-[10px] text-[#8B95A5]">
-                        <span className="line-through">{plan.priceLabel}/월</span>
-                        <span className="text-[#F5B800] ml-1">→ 다음 달부터 결제</span>
+                        <span className="line-through">{formatPrice(prices?.monthly || 0)}원</span>
+                        <span className="text-[#F5B800] ml-1">다음 달부터</span>
                       </p>
                     </>
                   ) : (
                     <>
-                      <span className="text-2xl font-bold text-white">
-                        {plan.priceLabel}
-                      </span>
-                      <span className="text-xs text-[#8B95A5]">/월</span>
+                      <span className="text-3xl font-bold text-white">{formatPrice(monthlyEquiv)}</span>
+                      <span className="text-sm text-[#8B95A5]">원/월</span>
+                      {billingCycle !== "monthly" && (
+                        <p className="text-[10px] text-[#8B95A5]">
+                          {billingCycle === "quarterly" ? "3개월" : "12개월"} 합계 {formatPrice(price)}원
+                        </p>
+                      )}
                     </>
                   )}
                 </div>
               </div>
 
-              <div className="space-y-1.5 mb-4">
-                {plan.features.map((f, i) => (
-                  <div key={i} className="flex items-center gap-2 text-xs text-[#8B95A5]">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-[#00E676] shrink-0" />
-                    {f}
-                  </div>
-                ))}
+              {/* Frequency bar */}
+              <div className="mb-4">
+                <div className="flex justify-between text-[10px] text-[#8B95A5] mb-1">
+                  <span>시그널 발행 주기</span>
+                  <span className="font-bold" style={{ color: plan.color }}>{plan.frequency}</span>
+                </div>
+                <div className="h-1.5 bg-[#22262F] rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{ width: `${plan.frequencyBar}%`, backgroundColor: plan.color }}
+                  />
+                </div>
+              </div>
+
+              {/* Features */}
+              <div className="space-y-3 mb-5 flex-1">
+                {Object.entries(plan.features).map(([section, items]) =>
+                  items.length > 0 ? (
+                    <div key={section}>
+                      {items.map((f, i) => (
+                        <div key={i} className="flex items-start gap-2 text-xs text-[#C0C0C0] py-0.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-[#00E676] shrink-0 mt-0.5" />
+                          <span>{f}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null
+                )}
                 {plan.locked.map((f, i) => (
                   <div key={i} className="flex items-center gap-2 text-xs text-[#8B95A5]/40">
                     <Lock className="w-3.5 h-3.5 shrink-0" />
@@ -374,29 +494,30 @@ export default function SubscribePage() {
                 ))}
               </div>
 
+              {/* CTA */}
               <Button
-                onClick={() => handleSubscribe(plan.tier, "freeTrial" in plan && plan.freeTrial && currentTier === "free" ? 0 : plan.price)}
+                onClick={() => handleSubscribe(plan.tier, isFreeTrial ? 0 : price)}
                 disabled={isCurrent || isDowngrade || subscribing === plan.tier}
                 className={cn(
                   "w-full font-semibold h-11",
                   isCurrent
                     ? "bg-[#22262F] text-[#8B95A5] cursor-default"
-                    : "freeTrial" in plan && plan.freeTrial && currentTier === "free"
+                    : isFreeTrial
                       ? "bg-[#00E676] text-[#0D0F14] hover:bg-[#00E676]/90"
                       : plan.popular
                         ? "bg-[#F5B800] text-[#0D0F14] hover:bg-[#FFD54F]"
-                        : "bg-[#22262F] text-white hover:bg-[#2A2D36]"
+                        : plan.tier === "bundle"
+                          ? "bg-gradient-to-r from-[#F5B800] to-[#FF8F00] text-[#0D0F14] hover:opacity-90"
+                          : "bg-[#22262F] text-white hover:bg-[#2A2D36]"
                 )}
               >
-                {subscribing === plan.tier ? (
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                ) : null}
+                {subscribing === plan.tier && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                 {isCurrent
                   ? "현재 구독중"
                   : isDowngrade
                     ? "다운그레이드 불가"
-                    : "freeTrial" in plan && plan.freeTrial && currentTier === "free"
-                      ? `🎁 ${plan.name} 무료로 시작하기`
+                    : isFreeTrial
+                      ? `${plan.name} 무료로 시작하기`
                       : `${plan.name} 구독하기`}
               </Button>
             </Card>
@@ -404,9 +525,91 @@ export default function SubscribePage() {
         })}
       </div>
 
+      {/* Comparison Table Toggle */}
+      <button
+        onClick={() => setShowComparison(!showComparison)}
+        className="w-full flex items-center justify-center gap-2 py-3 text-sm text-[#8B95A5] hover:text-white transition-colors"
+      >
+        {showComparison ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        상세 비교표 {showComparison ? "접기" : "보기"}
+      </button>
+
+      {/* Comparison Table */}
+      {showComparison && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-[#2A2D36]">
+                <th className="text-left py-3 px-2 text-[#8B95A5] font-normal w-[120px]"></th>
+                {["Free", "Basic", "Pro", "Premium", "VIP"].map((name, i) => (
+                  <th key={name} className="py-3 px-2 text-center font-bold" style={{ color: PLANS[i].color }}>
+                    {name}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {COMPARISON_SECTIONS.map((section) => (
+                <>
+                  <tr key={section.title}>
+                    <td colSpan={6} className="pt-4 pb-2 px-2 text-[#F5B800] font-bold text-[11px]">
+                      {section.title}
+                    </td>
+                  </tr>
+                  {section.rows.map((row) => (
+                    <tr key={row.label} className="border-b border-[#1A1D26] hover:bg-[#1A1D26]/50">
+                      <td className="py-2 px-2 text-[#8B95A5]">{row.label}</td>
+                      {row.values.map((val, i) => (
+                        <td key={i} className={cn(
+                          "py-2 px-2 text-center",
+                          val === "-" ? "text-[#555]" : val === "O" ? "text-[#00E676]" : "text-[#C0C0C0]"
+                        )}>
+                          {val === "O" ? <CheckCircle2 className="w-3.5 h-3.5 text-[#00E676] mx-auto" /> : val}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Partner Revenue Simulation */}
+      <Card className="bg-[#1A1D26] border-[#2A2D36] p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <TrendingUp className="w-5 h-5 text-[#F5B800]" />
+          <h3 className="text-sm font-bold text-white">파트너 수익 시뮬레이션</h3>
+        </div>
+        <p className="text-[11px] text-[#8B95A5] mb-4">
+          파트너(리딩방 운영자)로 등록하면 구독자 수에 따라 수익을 분배받습니다
+        </p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { subs: 30, tier: "starter", rate: 80 },
+            { subs: 100, tier: "pro", rate: 83 },
+            { subs: 300, tier: "elite", rate: 85 },
+            { subs: 700, tier: "legend", rate: 88 },
+          ].map((s) => {
+            const monthlyRev = s.subs * 99000 * (s.rate / 100);
+            return (
+              <div key={s.tier} className="bg-[#22262F] rounded-lg p-3 text-center">
+                <p className="text-[10px] text-[#8B95A5]">{s.subs}명 구독</p>
+                <p className="text-lg font-bold text-[#F5B800]">
+                  {Math.round(monthlyRev / 10000).toLocaleString()}만원
+                </p>
+                <p className="text-[10px] text-[#8B95A5]">/월 (수수료 {s.rate}%)</p>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* Footer */}
       <div className="p-3 rounded-lg bg-[#1A1D26] border border-[#2A2D36]">
         <p className="text-[10px] text-[#8B95A5] leading-relaxed text-center">
-          구독은 월 단위로 자동 갱신됩니다. 언제든 해지 가능합니다.
+          구독은 선택한 주기에 따라 자동 갱신됩니다. 언제든 해지 가능합니다.
           <br />결제 관련 문의: contact@moneysignal.io
         </p>
       </div>

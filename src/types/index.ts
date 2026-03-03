@@ -218,7 +218,7 @@ export interface SignalWithPrice extends Signal {
 export const CATEGORY_LABELS: Record<SignalCategory, string> = {
   coin_spot: "코인 현물",
   coin_futures: "코인 선물",
-  overseas_futures: "해외선물",
+  overseas_futures: "해외주식",
   kr_stock: "국내주식",
 };
 
@@ -227,7 +227,7 @@ export const TIER_LABELS: Record<SubscriptionTier, string> = {
   basic: "베이직",
   pro: "프로",
   premium: "프리미엄",
-  bundle: "번들",
+  bundle: "VIP 번들",
 };
 
 export const TIER_ACCESS: Record<SubscriptionTier, SignalCategory[]> = {

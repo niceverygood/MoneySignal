@@ -224,8 +224,8 @@ async function generateOverseasFuturesSignals(): Promise<
     .join("\n");
 
   const { analysis } = await analyzeWithThreePerspectives(
-    "해외선물 매매 시그널 분석",
-    `분석 대상 해외선물:
+    "해외주식 매매 시그널 분석",
+    `분석 대상 해외주식:
 ${instrumentInfo}
 
 최근 글로벌 거시경제 상황과 기술적 분석을 기반으로 각 선물에 대한 매매 시그널을 생성해주세요.

@@ -9,10 +9,10 @@ import type { Signal } from "@/types";
 // ============================================
 export const TIER_PRICES = {
   free: 0,
-  basic: 29900,
-  pro: 59900,
-  premium: 99900,
-  bundle: 149900,
+  basic: 29000,
+  pro: 99000,
+  premium: 199000,
+  bundle: 499000,
 } as const;
 
 export const TIER_CONFIG = {
@@ -383,7 +383,7 @@ export function getCategoryLabel(category: string): string {
   const labels: Record<string, string> = {
     coin_spot: "코인 현물",
     coin_futures: "코인 선물",
-    overseas_futures: "해외선물",
+    overseas_futures: "해외주식",
     kr_stock: "국내주식",
   };
   return labels[category] || category;
