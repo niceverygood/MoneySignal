@@ -30,9 +30,9 @@ export default function AskPage() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [remaining, setRemaining] = useState<number | null>(null);
-  const [tierBlocked, setTierBlocked] = useState(false);
   const [limitReached, setLimitReached] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -47,16 +47,22 @@ export default function AskPage() {
 
   // Check tier access on mount
   useEffect(() => {
+    const controller = new AbortController();
     async function checkAccess() {
       try {
         const res = await fetch("/api/ai-ask", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ question: "__check__" }),
+          signal: controller.signal,
         });
 
-        if (res.status === 403) {
-          setTierBlocked(true);
+        if (res.status === 401) {
+          // Session expired — show error instead of redirect loop
+          setErrorMsg("로그인이 필요합니다. 다시 로그인해주세요.");
+          setLimitReached(true);
+        } else if (res.status === 403) {
+          setLimitReached(true);
         } else if (res.status === 429) {
           const data = await res.json();
           setRemaining(data.remainingQuestions ?? 0);
@@ -64,15 +70,15 @@ export default function AskPage() {
         } else if (res.ok) {
           const data = await res.json();
           setRemaining(data.remainingQuestions ?? null);
-          setTierBlocked(false);
         }
       } catch {
-        // Network error — allow access attempt
+        // Network error or abort — allow access attempt
       } finally {
         setInitialLoading(false);
       }
     }
     checkAccess();
+    return () => controller.abort();
   }, []);
 
   const handleSend = useCallback(
@@ -157,14 +163,6 @@ export default function AskPage() {
       handleSend();
     }
   };
-
-  // tierBlocked → limitReached 전환 (render 중 setState 방지)
-  useEffect(() => {
-    if (tierBlocked) {
-      setTierBlocked(false);
-      setLimitReached(true);
-    }
-  }, [tierBlocked]);
 
   // Loading state
   if (initialLoading) {
@@ -323,16 +321,20 @@ export default function AskPage() {
         <div className="flex flex-col items-center gap-3 p-4 rounded-xl bg-[#1A1D26] border border-[#F5B800]/20 mb-2">
           <Lock className="w-6 h-6 text-[#F5B800]" />
           <div className="text-center">
-            <p className="text-sm text-white font-bold">오늘 무료 질문을 모두 사용했습니다</p>
-            <p className="text-[11px] text-[#8B95A5] mt-1">
-              Pro 구독 시 매일 3회, Premium 10회, Bundle 무제한!
+            <p className="text-sm text-white font-bold">
+              {errorMsg || "오늘 무료 질문을 모두 사용했습니다"}
             </p>
+            {!errorMsg && (
+              <p className="text-[11px] text-[#8B95A5] mt-1">
+                Pro 구독 시 매일 3회, Premium 10회, Bundle 무제한!
+              </p>
+            )}
           </div>
           <a
-            href="/app/subscribe"
+            href={errorMsg ? "/auth/login" : "/app/subscribe"}
             className="w-full text-center px-4 py-2.5 bg-[#F5B800] text-[#0D0F14] font-bold rounded-lg hover:bg-[#FFD54F] transition-colors text-sm"
           >
-            🎁 Pro 첫 달 무료로 시작하기
+            {errorMsg ? "로그인하기" : "구독하기"}
           </a>
         </div>
       )}
