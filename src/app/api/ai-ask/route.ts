@@ -92,6 +92,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 5-1. __check__ early return — skip Claude API call
+    if (question === "__check__") {
+      const remaining = limit === Infinity ? null : Math.max(0, limit - used);
+      return NextResponse.json({ remainingQuestions: remaining });
+    }
+
     // 6. Detect symbols from question
     const symbolsDetected = detectSymbols(question);
 

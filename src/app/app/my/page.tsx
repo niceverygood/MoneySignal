@@ -1008,7 +1008,7 @@ function TierServicesCard({ tier }: { tier: TierKey }) {
           : config.categories.map((c: string) =>
               c === "coin_spot" ? "코인현물" :
               c === "coin_futures" ? "코인선물" :
-              c === "overseas_futures" ? "해외선물" : "국내주식"
+              c === "overseas_futures" ? "해외주식" : "국내주식"
             ).join(", "),
       available: config.categories.length > 0,
       unlockAt: "basic",

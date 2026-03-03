@@ -150,7 +150,7 @@ export default function NewProductPage() {
               <SelectContent className="bg-[#1A1D26] border-[#2A2D36]">
                 <SelectItem value="coin_spot">코인 현물</SelectItem>
                 <SelectItem value="coin_futures">코인 선물</SelectItem>
-                <SelectItem value="overseas_futures">해외선물</SelectItem>
+                <SelectItem value="overseas_futures">해외주식</SelectItem>
                 <SelectItem value="kr_stock">국내주식</SelectItem>
                 <SelectItem value="bundle">프리미엄 번들</SelectItem>
               </SelectContent>

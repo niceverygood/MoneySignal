@@ -87,7 +87,7 @@ export function getSymbolCategory(type: string): string {
     case "kr_stock":
       return "국내주식";
     case "futures":
-      return "해외선물";
+      return "해외주식";
     default:
       return "기타";
   }

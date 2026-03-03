@@ -51,7 +51,7 @@ const typeColors: Record<string, string> = {
 const CATEGORY_LABELS: Record<string, string> = {
   coin_spot: "코인 현물",
   coin_futures: "코인 선물",
-  overseas_futures: "해외선물",
+  overseas_futures: "해외주식",
   kr_stock: "국내주식",
 };
 

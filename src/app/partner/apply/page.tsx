@@ -23,7 +23,7 @@ import { toast } from "sonner";
 const categories = [
   { value: "coin_spot", label: "코인 현물" },
   { value: "coin_futures", label: "코인 선물" },
-  { value: "overseas_futures", label: "해외선물" },
+  { value: "overseas_futures", label: "해외주식" },
   { value: "kr_stock", label: "국내주식" },
   { value: "bundle", label: "복합/번들" },
 ];

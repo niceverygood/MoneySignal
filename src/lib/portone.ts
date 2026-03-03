@@ -43,10 +43,10 @@ export function getCycleLabel(cycle: string): string {
 // 구독 플랜 가격표
 // ============================================
 export const PLAN_PRICES: Record<string, Record<string, number>> = {
-  basic: { monthly: 29900, quarterly: 79900, yearly: 299000 },
-  pro: { monthly: 59900, quarterly: 159900, yearly: 599000 },
-  premium: { monthly: 99900, quarterly: 269900, yearly: 999000 },
-  bundle: { monthly: 149900, quarterly: 399900, yearly: 1499000 },
+  basic: { monthly: 29000, quarterly: 78300, yearly: 290000 },
+  pro: { monthly: 99000, quarterly: 267300, yearly: 990000 },
+  premium: { monthly: 199000, quarterly: 537300, yearly: 1990000 },
+  bundle: { monthly: 499000, quarterly: 1347300, yearly: 4990000 },
 };
 
 // ============================================
