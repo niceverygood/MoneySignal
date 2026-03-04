@@ -324,7 +324,7 @@ export default function SubscribePage() {
   const currentIdx = tierOrder.indexOf(currentTier);
 
   return (
-    <div className="py-4 space-y-6 max-w-5xl mx-auto px-3">
+    <div className="py-4 space-y-6">
       {/* Header */}
       <div className="text-center">
         <h1 className="text-2xl font-bold text-white">구독 플랜</h1>
@@ -437,8 +437,8 @@ export default function SubscribePage() {
                 <div className="mt-2">
                   {isFreeTrial ? (
                     <>
-                      <span className="text-3xl font-bold text-[#00E676]">0</span>
-                      <span className="text-sm text-[#8B95A5]">원/첫 달</span>
+                      <span className="text-2xl font-bold text-[#00E676]">0</span>
+                      <span className="text-xs text-[#8B95A5]">원/첫 달</span>
                       <p className="text-[10px] text-[#8B95A5]">
                         <span className="line-through">{formatPrice(prices?.monthly || 0)}원</span>
                         <span className="text-[#F5B800] ml-1">다음 달부터</span>
@@ -446,8 +446,8 @@ export default function SubscribePage() {
                     </>
                   ) : (
                     <>
-                      <span className="text-3xl font-bold text-white">{formatPrice(monthlyEquiv)}</span>
-                      <span className="text-sm text-[#8B95A5]">원/월</span>
+                      <span className="text-xl sm:text-2xl font-bold text-white">{formatPrice(monthlyEquiv)}</span>
+                      <span className="text-xs text-[#8B95A5]">원/월</span>
                       {billingCycle !== "monthly" && (
                         <p className="text-[10px] text-[#8B95A5]">
                           {billingCycle === "quarterly" ? "3개월" : "12개월"} 합계 {formatPrice(price)}원
