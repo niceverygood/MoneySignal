@@ -324,7 +324,7 @@ export default function SubscribePage() {
   const currentIdx = tierOrder.indexOf(currentTier);
 
   return (
-    <div className="py-4 space-y-6 max-w-4xl mx-auto">
+    <div className="py-4 space-y-6 max-w-5xl mx-auto px-3">
       {/* Header */}
       <div className="text-center">
         <h1 className="text-2xl font-bold text-white">구독 플랜</h1>
@@ -384,7 +384,7 @@ export default function SubscribePage() {
       </Card>
 
       {/* Plan Cards Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         {PLANS.filter(p => p.tier !== "free").map((plan) => {
           const prices = PLAN_PRICES[plan.tier];
           const price = prices?.[billingCycle] || 0;
@@ -399,9 +399,9 @@ export default function SubscribePage() {
             <Card
               key={plan.tier}
               className={cn(
-                "bg-[#1A1D26] border p-5 transition-all relative flex flex-col",
+                "bg-[#1A1D26] border p-3 sm:p-4 transition-all relative flex flex-col",
                 plan.tier === "bundle"
-                  ? "border-[#F5B800]/50 shadow-[0_0_20px_rgba(245,184,0,0.1)] md:col-span-2 lg:col-span-1"
+                  ? "border-[#F5B800]/50 shadow-[0_0_20px_rgba(245,184,0,0.1)]"
                   : `border-[${plan.color}]/30`
               )}
               style={{ borderColor: `${plan.color}30` }}
@@ -499,7 +499,7 @@ export default function SubscribePage() {
                 onClick={() => handleSubscribe(plan.tier, isFreeTrial ? 0 : price)}
                 disabled={isCurrent || isDowngrade || subscribing === plan.tier}
                 className={cn(
-                  "w-full font-semibold h-11",
+                  "w-full font-semibold h-11 text-xs sm:text-sm",
                   isCurrent
                     ? "bg-[#22262F] text-[#8B95A5] cursor-default"
                     : isFreeTrial
@@ -517,8 +517,8 @@ export default function SubscribePage() {
                   : isDowngrade
                     ? "다운그레이드 불가"
                     : isFreeTrial
-                      ? `${plan.name} 무료로 시작하기`
-                      : `${plan.name} 구독하기`}
+                      ? "무료 시작"
+                      : "구독하기"}
               </Button>
             </Card>
           );
