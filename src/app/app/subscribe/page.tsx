@@ -239,7 +239,7 @@ export default function SubscribePage() {
           }),
         });
         const data = await res.json();
-        if (!res.ok) { toast.error(data.error); return; }
+        if (!res.ok) { toast.error(`${data.error}${data.debug ? ` [${data.debug}]` : ''}`); return; }
         toast.success(`${tier.toUpperCase()} 무료 체험이 시작되었습니다!`);
         router.push("/app");
         return;
