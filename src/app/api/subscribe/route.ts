@@ -200,13 +200,11 @@ export async function POST(request: NextRequest) {
       platformShare,
     });
   } catch (error) {
-    const errMsg = error instanceof Error ? error.message : String(error);
-    console.error("Subscribe error:", errMsg, error);
-    return NextResponse.json({ error: "구독 처리 중 오류 발생", debug: errMsg }, { status: 500 });
+    console.error("Subscribe error:", error);
+    return NextResponse.json({ error: "구독 처리 중 오류 발생" }, { status: 500 });
   }
   } catch (outerError) {
-    const errMsg = outerError instanceof Error ? outerError.message : String(outerError);
-    console.error("[subscribe] Outer error:", errMsg, outerError);
-    return NextResponse.json({ error: "요청 처리 중 오류가 발생했습니다", debug: errMsg }, { status: 500 });
+    console.error("[subscribe] Outer error:", outerError);
+    return NextResponse.json({ error: "요청 처리 중 오류가 발생했습니다" }, { status: 500 });
   }
 }
