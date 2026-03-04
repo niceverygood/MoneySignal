@@ -36,7 +36,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Main content */}
-      <main className="flex-1 max-w-lg mx-auto w-full px-4 pb-20">
+      <main className={cn(
+        "flex-1 mx-auto w-full px-4 pb-20",
+        pathname === "/app/subscribe" ? "max-w-5xl" : "max-w-lg"
+      )}>
         {children}
       </main>
 
