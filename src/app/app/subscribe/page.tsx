@@ -181,6 +181,7 @@ export default function SubscribePage() {
   const [referralPartner, setReferralPartner] = useState<string | null>(null);
   const [subscribing, setSubscribing] = useState<string | null>(null);
   const [showComparison, setShowComparison] = useState(false);
+  const [displayName, setDisplayName] = useState<string>("사용자");
 
   useEffect(() => {
     async function fetchTier() {
@@ -188,11 +189,12 @@ export default function SubscribePage() {
       if (!user) return;
       const { data } = await supabase
         .from("profiles")
-        .select("subscription_tier, referred_by")
+        .select("subscription_tier, referred_by, display_name")
         .eq("id", user.id)
         .single();
       if (data) {
         setCurrentTier(data.subscription_tier as SubscriptionTier);
+        if (data.display_name) setDisplayName(data.display_name);
       }
     }
     fetchTier();
@@ -260,6 +262,7 @@ export default function SubscribePage() {
         issueName: `머니시그널 ${tierNames[tier] || tier} 정기구독`,
         customer: {
           customerId: authUser?.id || undefined,
+          fullName: displayName,
           email: authUser?.email || undefined,
           phoneNumber: authUser?.phone || "01000000000",
         },
