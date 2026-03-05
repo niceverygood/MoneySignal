@@ -384,7 +384,7 @@ export default function SubscribePage() {
       </Card>
 
       {/* Plan Cards Grid */}
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
         {PLANS.filter(p => p.tier !== "free").map((plan) => {
           const prices = PLAN_PRICES[plan.tier];
           const price = prices?.[billingCycle] || 0;
@@ -585,7 +585,7 @@ export default function SubscribePage() {
         <p className="text-[11px] text-[#8B95A5] mb-4">
           파트너(리딩방 운영자)로 등록하면 구독자 수에 따라 수익을 분배받습니다
         </p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
             { subs: 30, tier: "starter", rate: 80 },
             { subs: 100, tier: "pro", rate: 83 },

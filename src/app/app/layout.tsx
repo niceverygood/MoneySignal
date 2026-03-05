@@ -20,7 +20,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-[#0D0F14] flex flex-col">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-[#0D0F14]/95 backdrop-blur-sm border-b border-[#2A2D36]">
-        <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
+        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/app" className="text-lg font-bold text-gold-gradient">
             MONEY SIGNAL
           </Link>
@@ -36,16 +36,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Main content */}
-      <main className={cn(
-        "flex-1 mx-auto w-full px-4 pb-20",
-        pathname === "/app/subscribe" ? "max-w-5xl" : "max-w-lg"
-      )}>
+      <main className="flex-1 max-w-2xl mx-auto w-full px-4 pb-20">
         {children}
       </main>
 
       {/* Bottom tab bar */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0D0F14]/95 backdrop-blur-sm border-t border-[#2A2D36]">
-        <div className="max-w-lg mx-auto flex">
+        <div className="max-w-2xl mx-auto flex">
           {tabs.map((tab) => {
             const isActive =
               tab.href === "/app"
