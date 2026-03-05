@@ -407,7 +407,7 @@ export default function SubscribePage() {
               style={{ borderColor: `${plan.color}30` }}
             >
               {/* Badges */}
-              <div className="flex gap-2 mb-3 min-h-[24px]">
+              <div className="flex gap-2 mb-2 min-h-[24px]">
                 {plan.popular && (
                   <Badge className="bg-[#F5B800] text-[#0D0F14] border-0 text-[10px]">
                     <Star className="w-3 h-3 mr-0.5" /> 인기
@@ -431,7 +431,7 @@ export default function SubscribePage() {
               </div>
 
               {/* Name + Price */}
-              <div className="mb-4">
+              <div className="mb-2">
                 <h3 className="text-lg font-bold text-white">{plan.name}</h3>
                 <p className="text-xs text-[#8B95A5]">{plan.desc}</p>
                 <div className="mt-2">
@@ -459,7 +459,7 @@ export default function SubscribePage() {
               </div>
 
               {/* Frequency bar */}
-              <div className="mb-4">
+              <div className="mb-2">
                 <div className="flex justify-between text-[10px] text-[#8B95A5] mb-1">
                   <span>시그널 발행 주기</span>
                   <span className="font-bold" style={{ color: plan.color }}>{plan.frequency}</span>
@@ -473,7 +473,7 @@ export default function SubscribePage() {
               </div>
 
               {/* Features */}
-              <div className="space-y-3 mb-5 flex-1">
+              <div className="space-y-2 mb-3 flex-1">
                 {Object.entries(plan.features).map(([section, items]) =>
                   items.length > 0 ? (
                     <div key={section}>
