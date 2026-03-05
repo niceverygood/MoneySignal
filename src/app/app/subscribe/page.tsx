@@ -269,8 +269,9 @@ export default function SubscribePage() {
       });
 
       if (response?.code) {
+        console.error("PortOne response:", JSON.stringify(response));
         if (response.code === "FAILURE_TYPE_PG") {
-          toast.error("카드 등록에 실패했습니다. 다시 시도해주세요.");
+          toast.error(`카드 등록 실패: ${response.message || "PG 오류"}`);
         } else {
           toast.error(response.message || "카드 등록이 취소되었습니다.");
         }
