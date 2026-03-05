@@ -251,17 +251,19 @@ export default function LandingPage() {
           ].map((product, i) => (
             <Card
               key={i}
-              className={`bg-[#1A1D26] border-[#2A2D36] p-5 ${product.highlight ? "border-[#F5B800]/30 card-glow" : ""}`}
+              className={`bg-[#1A1D26] border-[#2A2D36] p-5 relative ${product.highlight ? "border-[#F5B800] shadow-[0_0_20px_rgba(245,184,0,0.15)]" : ""}`}
             >
-              {product.highlight && (
-                <Badge className="bg-[#F5B800] text-[#0D0F14] border-0 mb-3">
-                  <Star className="w-3 h-3 mr-1" />
-                  인기
-                </Badge>
-              )}
-              <h3 className="text-lg font-bold text-white mb-2">
-                {product.name}
-              </h3>
+              <div className="flex items-start justify-between mb-2">
+                <h3 className="text-lg font-bold text-white">
+                  {product.name}
+                </h3>
+                {product.highlight && (
+                  <Badge className="bg-[#F5B800] text-[#0D0F14] border-0">
+                    <Star className="w-3 h-3 mr-1" />
+                    인기
+                  </Badge>
+                )}
+              </div>
               <p className="text-2xl font-bold text-[#F5B800] mb-4">
                 <span className="text-sm text-[#8B95A5]">월</span>{" "}
                 {product.price}
