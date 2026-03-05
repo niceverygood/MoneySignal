@@ -110,7 +110,7 @@ export default function MyPage() {
           .select("card_name, card_number_masked")
           .eq("user_id", user.id)
           .eq("is_active", true)
-          .single(),
+          .maybeSingle(),
         session
           ? fetch("/api/performance", {
               headers: { Authorization: `Bearer ${session.access_token}` },
