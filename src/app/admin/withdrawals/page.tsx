@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,7 @@ export default function AdminWithdrawalsPage() {
   const [adminNotes, setAdminNotes] = useState<Record<string, string>>({});
   const supabase = createClient();
 
-  const fetchWithdrawals = async () => {
+  const fetchWithdrawals = useCallback(async () => {
     const { data } = await supabase
       .from("withdrawal_requests")
       .select("*, partners(brand_name, available_balance, user_id, referral_code, total_revenue, total_withdrawn)")
@@ -45,11 +45,11 @@ export default function AdminWithdrawalsPage() {
 
     if (data) setWithdrawals(data as WithdrawalRow[]);
     setLoading(false);
-  };
+  }, [supabase]);
 
   useEffect(() => {
     fetchWithdrawals();
-  }, []);
+  }, [fetchWithdrawals]);
 
   const handleApprove = async (wd: WithdrawalRow) => {
     setProcessing(wd.id);

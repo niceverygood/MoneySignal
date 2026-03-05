@@ -6,7 +6,6 @@ import { Lock, Star, TrendingUp, TrendingDown } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import type { FilteredSignal } from "@/lib/tier-access";
 import type { TierKey } from "@/lib/tier-access";
-import { getDelayLabel, getTierLabel, getMinTierForCategory } from "@/lib/tier-access";
 import DelayBadge from "./DelayBadge";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -40,7 +39,6 @@ export default function SignalCard({
   signal,
   tier,
   currentPrice,
-  onUpgrade,
 }: SignalCardProps) {
   const isLong = signal.direction === "long" || signal.direction === "buy";
   const isCompleted = signal.status !== "active";

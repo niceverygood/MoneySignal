@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Gift, Star, Lock, TrendingUp, Eye } from "lucide-react";
+import { Gift, Star, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import type { FilteredSignal, TierKey } from "@/lib/tier-access";

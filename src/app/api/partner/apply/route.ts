@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { brandName, channel, subscriberCount, category, bio } = body;
+  const { brandName, channel, subscriberCount, bio } = body;
 
   if (!brandName) {
     return NextResponse.json({ error: "브랜드명을 입력해주세요" }, { status: 400 });

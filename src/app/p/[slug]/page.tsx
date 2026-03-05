@@ -9,7 +9,6 @@ import {
   TrendingUp,
   Shield,
   Lock,
-  Star,
   CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
@@ -109,6 +108,7 @@ export default async function PartnerPublicPage({ params }: Props) {
         <div className="text-center">
           <div className="w-20 h-20 rounded-full bg-[#1A1D26] mx-auto mb-4 flex items-center justify-center overflow-hidden">
             {p.profile_image_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={p.profile_image_url}
                 alt={p.brand_name}

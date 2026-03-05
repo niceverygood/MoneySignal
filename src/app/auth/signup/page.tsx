@@ -58,7 +58,7 @@ function SignupForm() {
 
   // 이메일 인증
   const [emailStatus, setEmailStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
-  const [emailChecked, setEmailChecked] = useState(false);
+  const [, setEmailChecked] = useState(false);
   const [emailVerificationSent, setEmailVerificationSent] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
   const [emailVerified, setEmailVerified] = useState(false);

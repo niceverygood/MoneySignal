@@ -136,7 +136,7 @@ export default function MyPage() {
     }
 
     fetchData();
-  }, [supabase]);
+  }, [supabase, router]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -942,6 +942,7 @@ function ProfileCard({
       <div className="flex items-center gap-4">
         <div className="w-14 h-14 rounded-full bg-[#2A2D36] flex items-center justify-center">
           {profile?.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img src={profile.avatar_url} alt="" className="w-14 h-14 rounded-full object-cover" />
           ) : (
             <User className="w-6 h-6 text-[#8B95A5]" />

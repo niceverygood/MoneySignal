@@ -33,30 +33,29 @@ export async function GET(request: NextRequest) {
   const limit = rawLimit;
   const offset = rawOffset;
 
-  // Get user's subscription tier
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("subscription_tier")
-    .eq("id", user.id)
-    .single();
+  // Get user's subscription tier + daily view count in parallel
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
 
-  const userTier = (profile?.subscription_tier || "free") as TierKey;
-  const tierConfig = TIER_CONFIG[userTier];
-
-  // Check daily limit (count today's views)
-  let viewedToday = 0;
-  if (tierConfig.dailyLimit !== Infinity) {
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const { count, error: viewError } = await supabase
+  const [profileResult, viewCountResult] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("subscription_tier")
+      .eq("id", user.id)
+      .single(),
+    supabase
       .from("signal_views")
       .select("*", { count: "exact", head: true })
       .eq("user_id", user.id)
-      .gte("viewed_at", todayStart.toISOString());
-    // If table doesn't exist, ignore the error
-    if (!viewError) {
-      viewedToday = count || 0;
-    }
+      .gte("viewed_at", todayStart.toISOString()),
+  ]);
+
+  const userTier = (profileResult.data?.subscription_tier || "free") as TierKey;
+  const tierConfig = TIER_CONFIG[userTier];
+
+  let viewedToday = 0;
+  if (tierConfig.dailyLimit !== Infinity && !viewCountResult.error) {
+    viewedToday = viewCountResult.count || 0;
   }
 
   const dailyLimitReached = !checkDailyLimit(viewedToday, userTier);

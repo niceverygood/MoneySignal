@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { Signal, SignalTracking } from "@/types";
 import { CATEGORY_LABELS } from "@/types";
-import { filterSignalByTier, TIER_CONFIG } from "@/lib/tier-access";
+import { filterSignalByTier } from "@/lib/tier-access";
 import type { TierKey, FilteredSignal } from "@/lib/tier-access";
 import dayjs from "dayjs";
 import "dayjs/locale/ko";
@@ -20,7 +20,7 @@ export default function SignalDetailPage() {
   const params = useParams();
   const router = useRouter();
   const [signal, setSignal] = useState<FilteredSignal | null>(null);
-  const [rawSignal, setRawSignal] = useState<Signal | null>(null);
+  const [, setRawSignal] = useState<Signal | null>(null);
   const [tracking, setTracking] = useState<SignalTracking[]>([]);
   const [loading, setLoading] = useState(true);
   const [userTier, setUserTier] = useState<TierKey>("free");
@@ -87,7 +87,6 @@ export default function SignalDetailPage() {
   }
 
   const isLong = signal.direction === "long" || signal.direction === "buy";
-  const entryPrice = Number(signal.entry_price);
 
   return (
     <div className="py-4 space-y-4">

@@ -189,11 +189,10 @@ export async function POST(request: NextRequest) {
 function generateDemoResponse(
   question: string,
   symbols: Array<{ symbol: string; type: string; name: string }>,
-  marketData: string[]
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _marketData: string[]
 ): string {
   const sym = symbols[0];
-  const hasData = marketData.length > 0;
-
   if (!sym) {
     return `## 시장 분석
 

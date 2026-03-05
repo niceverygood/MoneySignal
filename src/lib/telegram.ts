@@ -45,7 +45,7 @@ export function formatSignalMessage(signal: Signal): string {
 
   const entryPrice = Number(signal.entry_price).toLocaleString("en-US");
 
-  let lines = [
+  const lines = [
     `${directionEmoji} <b>${signal.symbol} ${directionLabel}</b> ⭐${signal.confidence}/5`,
     `${categoryLabel} | ${signal.timeframe}`,
     ``,

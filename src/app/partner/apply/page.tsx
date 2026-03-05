@@ -92,7 +92,7 @@ export default function PartnerApplyPage() {
 
       toast.success("파트너 신청이 완료되었습니다! 관리자 승인을 기다려주세요.");
       router.push("/app");
-    } catch (error) {
+    } catch {
       toast.error("신청 중 오류가 발생했습니다");
     } finally {
       setLoading(false);

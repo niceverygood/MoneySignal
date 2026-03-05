@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ export default function AdminBacktestPage() {
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
-  const fetchResults = async () => {
+  const fetchResults = useCallback(async () => {
     const { data } = await supabase
       .from("backtest_results")
       .select("*")
@@ -24,11 +24,11 @@ export default function AdminBacktestPage() {
 
     if (data) setResults(data as BacktestResult[]);
     setLoading(false);
-  };
+  }, [supabase]);
 
   useEffect(() => {
     fetchResults();
-  }, []);
+  }, [fetchResults]);
 
   const triggerRecalc = async () => {
     try {

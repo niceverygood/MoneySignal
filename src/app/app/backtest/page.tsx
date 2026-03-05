@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 import {
   Target,
   TrendingUp,
-  TrendingDown,
   BarChart3,
   Shield,
   Activity,
