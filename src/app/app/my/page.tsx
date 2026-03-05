@@ -96,43 +96,40 @@ export default function MyPage() {
         } as Profile);
       }
 
-      const { data: subsData } = await supabase
-        .from("subscriptions")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+      // Fetch subscriptions, billing card, performance in parallel
+      const { data: { session } } = await supabase.auth.getSession();
 
-      if (subsData) setSubscriptions(subsData as Subscription[]);
+      const [subsResult, billingResult, perfResult] = await Promise.allSettled([
+        supabase
+          .from("subscriptions")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("billing_keys")
+          .select("card_name, card_number_masked")
+          .eq("user_id", user.id)
+          .eq("is_active", true)
+          .single(),
+        session
+          ? fetch("/api/performance", {
+              headers: { Authorization: `Bearer ${session.access_token}` },
+            }).then(r => r.ok ? r.json() : null)
+          : Promise.resolve(null),
+      ]);
 
-      // Fetch billing card info
-      const { data: billingKey } = await supabase
-        .from("billing_keys")
-        .select("card_name, card_number_masked")
-        .eq("user_id", user.id)
-        .eq("is_active", true)
-        .single();
-      if (billingKey) setBillingCard(billingKey);
-
-      // Fetch performance summary
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          const res = await fetch("/api/performance", {
-            headers: { Authorization: `Bearer ${session.access_token}` },
-          });
-          if (res.ok) {
-            const perfData = await res.json();
-            if (perfData.stats) {
-              setPerfSummary({
-                totalFollowed: perfData.stats.totalFollowed,
-                winRate: perfData.stats.winRate,
-                avgPnl: perfData.stats.avgPnl,
-              });
-            }
-          }
-        }
-      } catch {
-        // Performance data is optional
+      if (subsResult.status === "fulfilled" && subsResult.value.data) {
+        setSubscriptions(subsResult.value.data as Subscription[]);
+      }
+      if (billingResult.status === "fulfilled" && billingResult.value.data) {
+        setBillingCard(billingResult.value.data);
+      }
+      if (perfResult.status === "fulfilled" && perfResult.value?.stats) {
+        setPerfSummary({
+          totalFollowed: perfResult.value.stats.totalFollowed,
+          winRate: perfResult.value.stats.winRate,
+          avgPnl: perfResult.value.stats.avgPnl,
+        });
       }
 
       setLoading(false);
