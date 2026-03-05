@@ -15,9 +15,9 @@ export default function KakaoCallbackPage() {
 
   useEffect(() => {
     const code = searchParams.get("code");
-    const error = searchParams.get("error");
+    const authError = searchParams.get("error");
 
-    if (error) {
+    if (authError) {
       setErrorMsg("카카오 로그인이 취소되었습니다.");
       setStatus("error");
       return;

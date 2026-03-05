@@ -39,7 +39,7 @@ export default function AdminRevenuePage() {
     }
 
     fetchData();
-  }, []);
+  }, [supabase]);
 
   const handleRefund = async (tx: Transaction) => {
     const reason = window.prompt(`환불 사유를 입력하세요\n\n거래: ${tx.description || tx.id}\n금액: ${tx.amount.toLocaleString()}원`);

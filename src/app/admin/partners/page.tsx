@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,9 +17,6 @@ import {
 import {
   CheckCircle2,
   XCircle,
-  Clock,
-  Users,
-  DollarSign,
   Copy,
   Search,
 } from "lucide-react";
@@ -50,8 +47,8 @@ export default function AdminPartnersPage() {
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
-  const fetchPartners = async () => {
-    let query = supabase
+  const fetchPartners = useCallback(async () => {
+    const query = supabase
       .from("partners")
       .select("*, profiles(display_name)")
       .order("created_at", { ascending: false });
@@ -59,11 +56,11 @@ export default function AdminPartnersPage() {
     const { data } = await query;
     if (data) setPartners(data as PartnerRow[]);
     setLoading(false);
-  };
+  }, [supabase]);
 
   useEffect(() => {
     fetchPartners();
-  }, []);
+  }, [fetchPartners]);
 
   const approvePartner = async (partner: PartnerRow) => {
     // Activate partner

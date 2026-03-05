@@ -105,7 +105,7 @@ export default function WithdrawPage() {
         .order("created_at", { ascending: false });
 
       if (wdData) setWithdrawals(wdData as WithdrawalRequest[]);
-    } catch (error) {
+    } catch {
       toast.error("출금 요청에 실패했습니다");
     } finally {
       setSubmitting(false);

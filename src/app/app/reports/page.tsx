@@ -176,12 +176,11 @@ export default function ReportsPage() {
 
 function ReportCard({
   report,
-  userTier,
   isExpanded,
   onToggle,
 }: {
   report: Report;
-  userTier: TierKey;
+  userTier?: TierKey;
   isExpanded: boolean;
   onToggle: () => void;
 }) {

@@ -7,8 +7,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Users, UserCheck, DollarSign, TrendingUp, UserCog,
-  Activity, Signal, Wallet, ArrowUpRight, ArrowDownRight,
+  Users, DollarSign, UserCog,
+  Activity, Signal, Wallet,
   Crown, ChevronRight, BarChart3, Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";

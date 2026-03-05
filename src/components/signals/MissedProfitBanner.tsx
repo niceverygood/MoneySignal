@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, DollarSign, Flame, Lock } from "lucide-react";
+import { DollarSign, Flame, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import type { TierKey } from "@/lib/tier-access";

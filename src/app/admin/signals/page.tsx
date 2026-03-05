@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ export default function AdminSignalsPage() {
   const [filter, setFilter] = useState({ category: "all", status: "all" });
   const supabase = createClient();
 
-  const fetchSignals = async () => {
+  const fetchSignals = useCallback(async () => {
     setLoading(true);
     let query = supabase
       .from("signals")
@@ -39,11 +39,11 @@ export default function AdminSignalsPage() {
     const { data } = await query;
     if (data) setSignals(data as Signal[]);
     setLoading(false);
-  };
+  }, [supabase, filter]);
 
   useEffect(() => {
     fetchSignals();
-  }, [filter]);
+  }, [fetchSignals]);
 
   const cancelSignal = async (id: string) => {
     await supabase

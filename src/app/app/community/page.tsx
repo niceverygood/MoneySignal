@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -79,6 +79,18 @@ export default function CommunityPage() {
   const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState("all");
 
+  const fetchPosts = useCallback(async () => {
+    const { data } = await supabase
+      .from("community_messages")
+      .select("*")
+      .order("is_pinned", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (data) setPosts(data as Post[]);
+    setLoading(false);
+  }, [supabase]);
+
   useEffect(() => {
     fetchPosts();
 
@@ -90,19 +102,7 @@ export default function CommunityPage() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, []);
-
-  async function fetchPosts() {
-    const { data } = await supabase
-      .from("community_messages")
-      .select("*")
-      .order("is_pinned", { ascending: false })
-      .order("created_at", { ascending: false })
-      .limit(50);
-
-    if (data) setPosts(data as Post[]);
-    setLoading(false);
-  }
+  }, [supabase, fetchPosts]);
 
   const filtered = selectedTab === "all"
     ? posts
