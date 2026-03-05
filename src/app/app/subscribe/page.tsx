@@ -261,6 +261,7 @@ export default function SubscribePage() {
         customer: {
           customerId: authUser?.id || undefined,
           email: authUser?.email || undefined,
+          phoneNumber: authUser?.phone || "01000000000",
         },
       });
 
