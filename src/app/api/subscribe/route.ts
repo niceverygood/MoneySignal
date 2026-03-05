@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
 
   const serviceClient = await createServiceClient();
 
-  const { tier, amount, referralCode, billingCycle, paymentMethod } = await request.json();
+  const { tier, amount, referralCode, billingCycle, paymentMethod, paymentId } = await request.json();
 
   if (!tier || amount === undefined || amount === null) {
     return NextResponse.json({ error: "필수 정보가 누락되었습니다" }, { status: 400 });
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Validate amount
-  if (typeof amount !== "number" || (!Number.isFinite(amount)) || amount < 0 || amount > 999999) {
+  if (typeof amount !== "number" || (!Number.isFinite(amount)) || amount < 0 || amount > 5000000) {
     return NextResponse.json({ error: "유효하지 않은 결제 금액입니다" }, { status: 400 });
   }
 
@@ -95,6 +95,7 @@ export async function POST(request: NextRequest) {
       currency: "KRW",
       status: "completed",
       payment_method: paymentMethod || "card",
+      pg_transaction_id: paymentId || null,
       description: `${tier.toUpperCase()} 구독 (${billingCycle || "monthly"})`,
     });
 
@@ -138,7 +139,7 @@ export async function POST(request: NextRequest) {
           platform_share: platformShare,
           current_period_start: now.toISOString(),
           current_period_end: periodEnd.toISOString(),
-          auto_renew: true,
+          auto_renew: false,
         });
       }
     }
