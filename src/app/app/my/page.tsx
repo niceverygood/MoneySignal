@@ -55,7 +55,7 @@ export default function MyPage() {
     winRate: number;
     avgPnl: number;
   } | null>(null);
-  const [billingCard, setBillingCard] = useState<{ card_name: string; last4: string } | null>(null);
+  const [billingCard, setBillingCard] = useState<{ card_name: string; card_number_masked: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
   const [deletingCard, setDeletingCard] = useState(false);
@@ -107,7 +107,7 @@ export default function MyPage() {
       // Fetch billing card info
       const { data: billingKey } = await supabase
         .from("billing_keys")
-        .select("card_name, last4")
+        .select("card_name, card_number_masked")
         .eq("user_id", user.id)
         .eq("is_active", true)
         .single();
@@ -418,7 +418,7 @@ export default function MyPage() {
         {billingCard ? (
           <MenuItem
             icon={CreditCard}
-            label={deletingCard ? "카드 삭제 중..." : `${billingCard.card_name || "카드"} ****${billingCard.last4 || ""} 삭제`}
+            label={deletingCard ? "카드 삭제 중..." : `${billingCard.card_name || "카드"} ${billingCard.card_number_masked || ""} 삭제`}
             onClick={handleDeleteCard}
           />
         ) : (
