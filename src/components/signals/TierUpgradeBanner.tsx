@@ -1,21 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getUpgradeMessage, getNextTier, getTierLabel } from "@/lib/tier-access";
 import type { TierKey } from "@/lib/tier-access";
 import Link from "next/link";
 
-function getInitialDismissed(): boolean {
-  if (typeof window === "undefined") return false;
-  const lastDismissed = localStorage.getItem("upgrade_banner_dismissed");
-  if (!lastDismissed) return false;
-  return new Date(lastDismissed).toDateString() === new Date().toDateString();
-}
-
 export default function TierUpgradeBanner({ tier }: { tier: TierKey }) {
-  const [dismissed, setDismissed] = useState(getInitialDismissed);
+  const [dismissed, setDismissed] = useState(false);
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage는 클라이언트 전용
+  useEffect(() => {
+    const lastDismissed = localStorage.getItem("upgrade_banner_dismissed");
+    if (lastDismissed && new Date(lastDismissed).toDateString() === new Date().toDateString()) {
+      setDismissed(true);
+    }
+  }, []);
   const message = getUpgradeMessage(tier);
   const nextTier = getNextTier(tier);
 
