@@ -113,6 +113,27 @@ export default function NotificationsPage() {
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
   };
 
+  const markOneRead = async (id: string) => {
+    await supabase
+      .from("notifications")
+      .update({ is_read: true })
+      .eq("id", id);
+    setNotifications((prev) =>
+      prev.map((n) => n.id === id ? { ...n, is_read: true } : n)
+    );
+  };
+
+  const deleteAll = async () => {
+    if (!confirm("모든 알림을 삭제하시겠습니까?")) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase
+      .from("notifications")
+      .delete()
+      .eq("user_id", user.id);
+    setNotifications([]);
+  };
+
   const tierConfig = TIER_CONFIG[userTier];
   const accessibleCategories = tierConfig.categories as readonly string[];
   const unreadCount = notifications.filter((n) => !n.is_read).length;
@@ -132,10 +153,19 @@ export default function NotificationsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-bold text-white">알림</h1>
-        {tab === "notifications" && unreadCount > 0 && (
-          <Button variant="ghost" size="sm" onClick={markAllRead} className="text-[#F5B800] text-xs">
-            <Check className="w-3.5 h-3.5 mr-1" /> 모두 읽음
-          </Button>
+        {tab === "notifications" && (
+          <div className="flex gap-2">
+            {unreadCount > 0 && (
+              <Button variant="ghost" size="sm" onClick={markAllRead} className="text-[#F5B800] text-xs">
+                <Check className="w-3.5 h-3.5 mr-1" /> 모두 읽음
+              </Button>
+            )}
+            {notifications.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={deleteAll} className="text-[#FF5252] text-xs">
+                전체 삭제
+              </Button>
+            )}
+          </div>
         )}
       </div>
 
@@ -317,7 +347,8 @@ export default function NotificationsPage() {
                     !notification.is_read && "border-l-2 border-l-[#F5B800]",
                     signalId && "cursor-pointer hover:border-[#3A3D46]"
                   )}
-                  onClick={() => {
+                  onClick={async () => {
+                    if (!notification.is_read) await markOneRead(notification.id);
                     if (signalId) router.push(`/app/signals/${signalId}`);
                   }}
                 >
