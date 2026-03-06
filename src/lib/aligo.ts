@@ -151,7 +151,7 @@ export async function sendBulkAlimtalk(
 // ============================================
 // 시그널 알림톡 메시지 포맷
 // ============================================
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://money-signal-weld.vercel.app";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://money-signal.vercel.app";
 
 export function formatSignalAlimtalk(signal: Signal): {
   subject: string;
