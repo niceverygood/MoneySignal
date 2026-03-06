@@ -34,7 +34,7 @@ export const TIER_CONFIG = {
     monthlyReport: false,
     csvExport: false,
     // AI 종목 질문
-    aiAskLimit: 3,                  // 무료 체험 3회 (맛보기)
+    aiAskLimit: 0,                  // 무료 → AI질문 불가
     aiAskHistory: false,
     // 알림
     pushNotification: false,
@@ -63,7 +63,7 @@ export const TIER_CONFIG = {
     dailyBriefing: false,
     monthlyReport: false,
     csvExport: false,
-    aiAskLimit: 0,
+    aiAskLimit: 1,                  // Basic → 1회/일
     aiAskHistory: false,
     pushNotification: true,         // 앱 푸시 ✓
     telegramEnabled: false,

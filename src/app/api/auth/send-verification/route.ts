@@ -19,21 +19,34 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // auth.users에서 이메일로 기존 유저 확인
-    const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers({
-      page: 1,
-      perPage: 1000,
-    });
+    // auth.users에서 이메일로 기존 유저 확인 (페이지네이션 전체 순회)
+    let existingUser = null;
+    let page = 1;
+    const perPage = 500;
 
-    if (listError) {
-      console.error("[send-verification] listUsers error:", listError);
-      return NextResponse.json(
-        { error: "서버 오류가 발생했습니다." },
-        { status: 500 }
-      );
+    while (true) {
+      const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers({
+        page,
+        perPage,
+      });
+
+      if (listError) {
+        console.error("[send-verification] listUsers error:", listError);
+        return NextResponse.json(
+          { error: "서버 오류가 발생했습니다." },
+          { status: 500 }
+        );
+      }
+
+      const found = users.find(u => u.email === trimmedEmail);
+      if (found) {
+        existingUser = found;
+        break;
+      }
+
+      if (users.length < perPage) break;
+      page++;
     }
-
-    const existingUser = users.find(u => u.email === trimmedEmail);
 
     if (existingUser) {
       if (existingUser.email_confirmed_at) {
