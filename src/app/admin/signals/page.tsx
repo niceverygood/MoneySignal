@@ -12,7 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RefreshCw, Ban } from "lucide-react";
+import { RefreshCw, Ban, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { Signal } from "@/types";
@@ -22,7 +23,7 @@ import dayjs from "dayjs";
 export default function AdminSignalsPage() {
   const [signals, setSignals] = useState<Signal[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState({ category: "all", status: "all" });
+  const [filter, setFilter] = useState({ category: "all", status: "all", search: "" });
   const supabase = createClient();
 
   const fetchSignals = useCallback(async () => {
@@ -35,6 +36,7 @@ export default function AdminSignalsPage() {
 
     if (filter.category !== "all") query = query.eq("category", filter.category);
     if (filter.status !== "all") query = query.eq("status", filter.status);
+    if (filter.search) query = query.or(`symbol.ilike.%${filter.search}%,symbol_name.ilike.%${filter.search}%`);
 
     const { data } = await query;
     if (data) setSignals(data as Signal[]);
@@ -95,8 +97,17 @@ export default function AdminSignalsPage() {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-3">
+      {/* Search + Filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8B95A5]" />
+          <Input
+            value={filter.search}
+            onChange={(e) => setFilter((p) => ({ ...p, search: e.target.value }))}
+            placeholder="종목명 또는 심볼 검색"
+            className="pl-10 bg-[#1A1D26] border-[#2A2D36] text-white"
+          />
+        </div>
         <Select
           value={filter.category}
           onValueChange={(v) => setFilter((p) => ({ ...p, category: v }))}

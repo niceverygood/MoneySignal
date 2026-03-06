@@ -5,10 +5,48 @@ import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DollarSign, TrendingUp, PiggyBank, Loader2 } from "lucide-react";
+import { DollarSign, TrendingUp, PiggyBank, Loader2, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import type { Transaction } from "@/types";
 import dayjs from "dayjs";
+
+function RevenueChart({ transactions }: { transactions: Transaction[] }) {
+  const days = Array.from({ length: 14 }, (_, i) => {
+    const d = dayjs().subtract(13 - i, "day");
+    return { date: d.format("MM.DD"), key: d.format("YYYY-MM-DD") };
+  });
+
+  const dailyAmounts = days.map(({ key }) => {
+    return transactions
+      .filter((t) => t.type === "subscription_payment" && t.status === "completed" && dayjs(t.created_at).format("YYYY-MM-DD") === key)
+      .reduce((sum, t) => sum + t.amount, 0);
+  });
+
+  const max = Math.max(...dailyAmounts, 1);
+
+  return (
+    <Card className="bg-[#1A1D26] border-[#2A2D36] p-4">
+      <div className="flex items-center gap-2 mb-4">
+        <BarChart3 className="w-4 h-4 text-[#F5B800]" />
+        <h3 className="text-sm font-semibold text-white">일별 매출 (14일)</h3>
+      </div>
+      <div className="flex items-end gap-1 h-32">
+        {days.map(({ date }, i) => (
+          <div key={date} className="flex-1 flex flex-col items-center gap-1">
+            <div className="w-full flex items-end justify-center" style={{ height: 96 }}>
+              <div
+                className="w-full max-w-[20px] rounded-t bg-[#F5B800]/80 hover:bg-[#F5B800] transition-all"
+                style={{ height: `${Math.max((dailyAmounts[i] / max) * 96, 2)}px` }}
+                title={`${date}: ${dailyAmounts[i].toLocaleString()}원`}
+              />
+            </div>
+            <span className="text-[8px] text-[#8B95A5]">{date.split(".")[1]}</span>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
 
 export default function AdminRevenuePage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -109,6 +147,8 @@ export default function AdminRevenuePage() {
           </p>
         </Card>
       </div>
+
+      <RevenueChart transactions={transactions} />
 
       <Card className="bg-[#1A1D26] border-[#2A2D36] overflow-hidden">
         <div className="p-4 border-b border-[#2A2D36]">

@@ -183,7 +183,7 @@ export default function NotificationsPage() {
         </div>
         {userTier !== "premium" && userTier !== "bundle" && (
           <Button size="sm" onClick={() => router.push("/app/subscribe")}
-            className="bg-[#F5B800] text-[#0D0F14] text-[10px] h-6 px-2 hover:bg-[#FFD54F]">
+            className="bg-[#F5B800] text-[#0D0F14] text-[10px] h-9 px-3 hover:bg-[#FFD54F]">
             업그레이드
           </Button>
         )}

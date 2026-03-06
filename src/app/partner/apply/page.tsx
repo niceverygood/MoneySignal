@@ -39,6 +39,7 @@ export default function PartnerApplyPage() {
     subscriberCount: "",
     category: "",
     bio: "",
+    profileImage: "",
     agreeTerms: false,
   });
 
@@ -78,6 +79,7 @@ export default function PartnerApplyPage() {
           .replace(/[^a-z0-9-]/g, "-")
           .replace(/-+/g, "-"),
         bio: form.bio || `${form.channel} 운영 | ${form.subscriberCount}명 구독자`,
+        profile_image_url: form.profileImage || null,
         is_active: false, // Pending admin approval
       });
 
@@ -214,6 +216,21 @@ export default function PartnerApplyPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div>
+              <Label className="text-[#8B95A5]">프로필 이미지 URL</Label>
+              <Input
+                value={form.profileImage}
+                onChange={(e) =>
+                  setForm((p) => ({ ...p, profileImage: e.target.value }))
+                }
+                placeholder="https://example.com/profile.jpg"
+                className="bg-[#22262F] border-[#2A2D36] text-white mt-1.5"
+              />
+              <p className="text-[10px] text-[#8B95A5] mt-1">
+                승인 후 설정 페이지에서 변경 가능합니다
+              </p>
             </div>
 
             <div>
