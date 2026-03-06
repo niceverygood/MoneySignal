@@ -27,6 +27,7 @@ export interface Profile {
   referred_by: string | null;
   phone: string | null;
   kakao_alimtalk_enabled: boolean;
+  is_suspended: boolean;
   created_at: string;
   updated_at: string;
 }

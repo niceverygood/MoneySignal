@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { PLAN_PRICES } from "@/lib/portone";
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,6 +28,42 @@ export async function POST(request: NextRequest) {
   // Validate amount
   if (typeof amount !== "number" || (!Number.isFinite(amount)) || amount < 0 || amount > 5000000) {
     return NextResponse.json({ error: "유효하지 않은 결제 금액입니다" }, { status: 400 });
+  }
+
+  // Validate amount matches plan price (무료 체험 제외)
+  if (amount > 0) {
+    const expectedPrice = PLAN_PRICES[tier]?.[billingCycle || "monthly"];
+    if (expectedPrice && amount !== expectedPrice) {
+      return NextResponse.json({ error: "결제 금액이 플랜 가격과 일치하지 않습니다" }, { status: 400 });
+    }
+  }
+
+  // PortOne 서버 측 결제 검증 (유료 결제만)
+  if (amount > 0 && paymentId) {
+    const apiSecret = process.env.PORTONE_API_SECRET;
+    if (!apiSecret && process.env.NODE_ENV === "production") {
+      return NextResponse.json({ error: "결제 시스템 설정 오류" }, { status: 500 });
+    }
+
+    if (apiSecret) {
+      const verifyRes = await fetch(
+        `https://api.portone.io/payments/${encodeURIComponent(paymentId)}`,
+        { headers: { Authorization: `PortOne ${apiSecret}` } }
+      );
+
+      if (verifyRes.ok) {
+        const paymentData = await verifyRes.json();
+        if (paymentData.amount?.total !== amount || paymentData.status !== "PAID") {
+          console.error("[subscribe] Payment verification failed:", {
+            expected: amount, actual: paymentData.amount?.total, status: paymentData.status,
+          });
+          return NextResponse.json({ error: "결제 검증에 실패했습니다" }, { status: 400 });
+        }
+      } else {
+        console.error("[subscribe] PortOne verify error:", await verifyRes.text());
+        return NextResponse.json({ error: "결제 검증에 실패했습니다" }, { status: 400 });
+      }
+    }
   }
 
   // Get user profile
