@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 import {
   getAccessToken,
   getStockPrice,
@@ -8,6 +9,17 @@ import {
 } from "@/lib/kis";
 
 export async function GET() {
+  // 관리자 전용
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "인증 필요" }, { status: 401 });
+  }
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  if (profile?.role !== "admin") {
+    return NextResponse.json({ error: "권한 없음" }, { status: 403 });
+  }
+
   const results: Record<string, unknown> = {};
   const errors: string[] = [];
 
