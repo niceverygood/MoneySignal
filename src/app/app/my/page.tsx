@@ -1243,6 +1243,7 @@ function TierServicesCard({ tier }: { tier: TierKey }) {
 function FullNameEditor({ profile, supabase }: { profile: Profile | null; supabase: ReturnType<typeof createClient> }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(profile?.full_name || "");
+  const [displayValue, setDisplayValue] = useState(profile?.full_name || "");
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -1254,6 +1255,7 @@ function FullNameEditor({ profile, supabase }: { profile: Profile | null; supaba
       .eq("id", profile.id);
     setSaving(false);
     if (!error) {
+      setDisplayValue(name.trim());
       setEditing(false);
       toast.success("이름이 변경되었습니다");
     } else {
@@ -1283,8 +1285,8 @@ function FullNameEditor({ profile, supabase }: { profile: Profile | null; supaba
         </div>
       ) : (
         <div className="flex items-center gap-1.5">
-          <span className="text-xs text-white">{profile?.full_name || "미입력"}</span>
-          <button onClick={() => { setName(profile?.full_name || ""); setEditing(true); }} className="text-[#8B95A5] hover:text-[#F5B800]">
+          <span className="text-xs text-white">{displayValue || "미입력"}</span>
+          <button onClick={() => { setName(displayValue || ""); setEditing(true); }} className="text-[#8B95A5] hover:text-[#F5B800]">
             <Pencil className="w-3 h-3" />
           </button>
         </div>
