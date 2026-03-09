@@ -252,17 +252,11 @@ export default function SubscribePage() {
       const tierNames: Record<string, string> = { basic: "Basic", pro: "Pro", premium: "Premium", bundle: "VIP Bundle" };
       const { data: { user: authUser } } = await supabase.auth.getUser();
 
-      const paymentId = `PAY-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-      const orderName = `머니시그널 ${tierNames[tier] || tier} ${billingCycle === "monthly" ? "월간" : billingCycle === "quarterly" ? "분기" : "연간"} 구독`;
-
-      const response = await PortOne.requestPayment({
+      // 빌링키 발급 요청 (정기결제용 카드 등록)
+      const response = await PortOne.requestIssueBillingKey({
         storeId: process.env.NEXT_PUBLIC_PORTONE_STORE_ID || "",
         channelKey: process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY || "",
-        paymentId,
-        orderName,
-        totalAmount: price,
-        currency: "CURRENCY_KRW",
-        payMethod: "CARD",
+        billingKeyMethod: "CARD",
         customer: {
           customerId: authUser?.id || undefined,
           fullName: displayName,
@@ -274,21 +268,21 @@ export default function SubscribePage() {
       if (response?.code) {
         console.error("PortOne response:", JSON.stringify(response));
         if (response.code === "FAILURE_TYPE_PG") {
-          toast.error(`결제 실패: ${response.message || "PG 오류"}`);
+          toast.error(`카드 등록 실패: ${response.message || "PG 오류"}`);
         } else {
-          toast.error(response.message || "결제가 취소되었습니다.");
+          toast.error(response.message || "카드 등록이 취소되었습니다.");
         }
         setSubscribing(null);
         return;
       }
 
-      if (!response?.paymentId) {
-        toast.error("결제에 실패했습니다.");
+      if (!response?.billingKey) {
+        toast.error("카드 등록에 실패했습니다.");
         setSubscribing(null);
         return;
       }
 
-      toast.loading("결제 확인 중...");
+      toast.loading("결제 처리 중...");
 
       if (referralCode && referralPartner) {
         await fetch("/api/partner/referral", {
@@ -298,23 +292,25 @@ export default function SubscribePage() {
         });
       }
 
-      const verifyRes = await fetch("/api/subscribe", {
+      // 빌링키로 첫 결제 + 구독 생성
+      const issueRes = await fetch("/api/billing/issue", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          paymentId: response.paymentId,
+          billingKey: response.billingKey,
           tier,
           billingCycle,
-          amount: price,
           referralCode: referralCode || null,
+          cardName: null,
+          cardNumberMasked: null,
         }),
       });
 
-      const verifyData = await verifyRes.json();
+      const issueData = await issueRes.json();
       toast.dismiss();
 
-      if (!verifyRes.ok) {
-        toast.error(verifyData.error || "결제 처리 실패");
+      if (!issueRes.ok) {
+        toast.error(issueData.error || "결제 처리 실패");
         return;
       }
 
