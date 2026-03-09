@@ -105,7 +105,7 @@ export default function AdminUsersPage() {
         <select
           value={tierFilter}
           onChange={(e) => setTierFilter(e.target.value as TierFilter)}
-          className="bg-[#1A1D26] border border-[#2A2D36] text-white text-sm rounded-md px-3 py-2"
+          className="bg-[#1A1D26] border border-[#2A2D36] text-white text-base rounded-md px-3 py-2.5"
         >
           {tierOptions.map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
@@ -114,7 +114,7 @@ export default function AdminUsersPage() {
         <select
           value={roleFilter}
           onChange={(e) => setRoleFilter(e.target.value as RoleFilter)}
-          className="bg-[#1A1D26] border border-[#2A2D36] text-white text-sm rounded-md px-3 py-2"
+          className="bg-[#1A1D26] border border-[#2A2D36] text-white text-base rounded-md px-3 py-2.5"
         >
           {roleOptions.map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
