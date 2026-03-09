@@ -11,6 +11,7 @@ import {
   Crown,
   CreditCard,
   LogOut,
+  Trash2,
   ChevronRight,
   Shield,
   Star,
@@ -141,6 +142,34 @@ export default function MyPage() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/");
+  };
+
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm(
+      "정말 탈퇴하시겠습니까?\n\n• 모든 데이터가 삭제됩니다\n• 활성 구독이 즉시 해지됩니다\n• 이 작업은 되돌릴 수 없습니다"
+    );
+    if (!confirmed) return;
+
+    const doubleConfirm = window.confirm("마지막 확인입니다. 정말 계정을 삭제하시겠습니까?");
+    if (!doubleConfirm) return;
+
+    setDeleteLoading(true);
+    try {
+      const res = await fetch("/api/auth/delete-account", { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data.error || "탈퇴 처리 중 오류가 발생했습니다.");
+        return;
+      }
+      await supabase.auth.signOut();
+      toast.success("계정이 삭제되었습니다. 이용해주셔서 감사합니다.");
+      router.push("/");
+    } catch {
+      toast.error("탈퇴 처리 중 오류가 발생했습니다.");
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   const handleCancelSubscription = async () => {
@@ -434,6 +463,12 @@ export default function MyPage() {
           icon={LogOut}
           label="로그아웃"
           onClick={handleLogout}
+          danger
+        />
+        <MenuItem
+          icon={Trash2}
+          label={deleteLoading ? "탈퇴 처리 중..." : "회원 탈퇴"}
+          onClick={handleDeleteAccount}
           danger
         />
       </div>
