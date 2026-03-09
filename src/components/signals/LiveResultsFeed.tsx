@@ -18,6 +18,10 @@ export default function LiveResultsFeed({ results }: LiveResultsFeedProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
+    setCurrentIndex(0);
+  }, [results.length]);
+
+  useEffect(() => {
     if (results.length <= 1) return;
     const timer = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % results.length);
@@ -27,7 +31,8 @@ export default function LiveResultsFeed({ results }: LiveResultsFeedProps) {
 
   if (results.length === 0) return null;
 
-  const current = results[currentIndex];
+  const current = results[currentIndex % results.length];
+  if (!current) return null;
   const isProfit = current.result_pnl_percent > 0;
 
   return (
