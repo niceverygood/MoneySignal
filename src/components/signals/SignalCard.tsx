@@ -102,7 +102,9 @@ export default function SignalCard({
             {Array.from({ length: 5 }).map((_, i) => (
               <Star
                 key={i}
-                className={cn("w-3 h-3", i < signal.confidence ? "fill-[#F5B800] text-[#F5B800]" : "text-[#2A2D36]")}
+                fill={i < signal.confidence ? "#F5B800" : "none"}
+                stroke={i < signal.confidence ? "#F5B800" : "#2A2D36"}
+                className="w-3 h-3"
               />
             ))}
           </div>
