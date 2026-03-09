@@ -127,7 +127,53 @@ export default function AdminUsersPage() {
           <div className="w-6 h-6 border-2 border-[#FF5252] border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
-        <Card className="bg-[#1A1D26] border-[#2A2D36] overflow-hidden">
+        {/* Mobile: Card List */}
+        <div className="md:hidden space-y-2">
+          {filtered.map((user) => (
+            <Card key={user.id} className="bg-[#1A1D26] border-[#2A2D36] p-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-white truncate">{user.display_name}</p>
+                  <p className="text-[10px] text-[#8B95A5] truncate">{user.email}</p>
+                </div>
+                {user.role !== "admin" && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={suspending === user.id}
+                    onClick={() => handleToggleSuspend(user.id, !!user.is_suspended)}
+                    className={user.is_suspended
+                      ? "text-green-400 hover:text-green-300 h-7 text-xs shrink-0"
+                      : "text-red-400 hover:text-red-300 h-7 text-xs shrink-0"
+                    }
+                  >
+                    {user.is_suspended ? (
+                      <><CheckCircle className="w-3 h-3 mr-1" />해제</>
+                    ) : (
+                      <><Ban className="w-3 h-3 mr-1" />정지</>
+                    )}
+                  </Button>
+                )}
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant="outline" className={
+                  user.role === "admin" ? "border-[#FF5252] text-[#FF5252] text-[10px]"
+                    : user.role === "partner" ? "border-[#F5B800] text-[#F5B800] text-[10px]"
+                    : "border-[#2A2D36] text-[#8B95A5] text-[10px]"
+                }>{user.role}</Badge>
+                <Badge className="bg-[#22262F] text-[#8B95A5] border-0 text-[10px]">{TIER_LABELS[user.subscription_tier]}</Badge>
+                {user.is_suspended
+                  ? <Badge className="bg-red-500/20 text-red-400 border-0 text-[10px]">정지됨</Badge>
+                  : <Badge className="bg-green-500/20 text-green-400 border-0 text-[10px]">활성</Badge>
+                }
+                <span className="text-[10px] text-[#8B95A5]">{dayjs(user.created_at).format("YY.MM.DD")}</span>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Desktop: Table */}
+        <Card className="bg-[#1A1D26] border-[#2A2D36] overflow-hidden hidden md:block">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -142,43 +188,28 @@ export default function AdminUsersPage() {
               </thead>
               <tbody>
                 {filtered.map((user) => (
-                  <tr
-                    key={user.id}
-                    className="border-b border-[#2A2D36]/50 hover:bg-[#22262F]"
-                  >
+                  <tr key={user.id} className="border-b border-[#2A2D36]/50 hover:bg-[#22262F]">
                     <td className="p-3">
                       <p className="text-sm text-white">{user.display_name}</p>
                       <p className="text-[10px] text-[#8B95A5]">{user.email}</p>
                     </td>
                     <td className="p-3">
-                      <Badge
-                        variant="outline"
-                        className={
-                          user.role === "admin"
-                            ? "border-[#FF5252] text-[#FF5252] text-[10px]"
-                            : user.role === "partner"
-                              ? "border-[#F5B800] text-[#F5B800] text-[10px]"
-                              : "border-[#2A2D36] text-[#8B95A5] text-[10px]"
-                        }
-                      >
-                        {user.role}
-                      </Badge>
+                      <Badge variant="outline" className={
+                        user.role === "admin" ? "border-[#FF5252] text-[#FF5252] text-[10px]"
+                          : user.role === "partner" ? "border-[#F5B800] text-[#F5B800] text-[10px]"
+                          : "border-[#2A2D36] text-[#8B95A5] text-[10px]"
+                      }>{user.role}</Badge>
                     </td>
                     <td className="p-3">
-                      <Badge className="bg-[#22262F] text-[#8B95A5] border-0 text-[10px]">
-                        {TIER_LABELS[user.subscription_tier]}
-                      </Badge>
+                      <Badge className="bg-[#22262F] text-[#8B95A5] border-0 text-[10px]">{TIER_LABELS[user.subscription_tier]}</Badge>
                     </td>
                     <td className="p-3">
-                      {user.is_suspended ? (
-                        <Badge className="bg-red-500/20 text-red-400 border-0 text-[10px]">정지됨</Badge>
-                      ) : (
-                        <Badge className="bg-green-500/20 text-green-400 border-0 text-[10px]">활성</Badge>
-                      )}
+                      {user.is_suspended
+                        ? <Badge className="bg-red-500/20 text-red-400 border-0 text-[10px]">정지됨</Badge>
+                        : <Badge className="bg-green-500/20 text-green-400 border-0 text-[10px]">활성</Badge>
+                      }
                     </td>
-                    <td className="p-3 text-xs text-[#8B95A5]">
-                      {dayjs(user.created_at).format("YY.MM.DD")}
-                    </td>
+                    <td className="p-3 text-xs text-[#8B95A5]">{dayjs(user.created_at).format("YY.MM.DD")}</td>
                     <td className="p-3">
                       {user.role !== "admin" && (
                         <Button

@@ -149,7 +149,52 @@ export default function AdminSignalsPage() {
           <div className="w-6 h-6 border-2 border-[#FF5252] border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
-        <Card className="bg-[#1A1D26] border-[#2A2D36] overflow-hidden">
+        {/* Mobile: Card List */}
+        <div className="md:hidden space-y-2">
+          {signals.map((signal) => {
+            const pnl = Number(signal.result_pnl_percent || 0);
+            return (
+              <Card key={signal.id} className="bg-[#1A1D26] border-[#2A2D36] p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="text-sm text-white font-medium">{signal.symbol_name}</p>
+                    <p className="text-[10px] text-[#8B95A5]">{dayjs(signal.created_at).format("MM.DD HH:mm")}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {signal.status !== "active" ? (
+                      <span className={cn("text-sm font-mono font-bold", pnl >= 0 ? "text-[#00E676]" : "text-[#FF5252]")}>
+                        {pnl >= 0 ? "+" : ""}{pnl.toFixed(1)}%
+                      </span>
+                    ) : (
+                      signal.status === "active" && (
+                        <Button size="sm" variant="ghost" onClick={() => cancelSignal(signal.id)}
+                          className="text-[#FF5252] hover:bg-[#FF5252]/10 h-7 px-2">
+                          <Ban className="w-3.5 h-3.5" />
+                        </Button>
+                      )
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge variant="outline" className="border-[#2A2D36] text-[#8B95A5] text-[10px]">{CATEGORY_LABELS[signal.category]}</Badge>
+                  <Badge className={cn("text-[10px] border-0",
+                    signal.direction === "long" || signal.direction === "buy" ? "bg-[#00E676]/10 text-[#00E676]" : "bg-[#FF5252]/10 text-[#FF5252]"
+                  )}>{signal.direction.toUpperCase()}</Badge>
+                  <span className="text-[10px] text-[#F5B800]">{"★".repeat(signal.confidence)}</span>
+                  <Badge className={cn("text-[10px] border-0",
+                    signal.status === "active" ? "bg-[#00E676]/10 text-[#00E676]"
+                      : signal.status.startsWith("hit_tp") ? "bg-[#00E676]/10 text-[#00E676]"
+                      : "bg-[#FF5252]/10 text-[#FF5252]"
+                  )}>{signal.status}</Badge>
+                  <span className="text-[10px] text-[#8B95A5] font-mono">{Number(signal.entry_price).toLocaleString()}</span>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Desktop: Table */}
+        <Card className="bg-[#1A1D26] border-[#2A2D36] overflow-hidden hidden md:block">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -169,73 +214,22 @@ export default function AdminSignalsPage() {
                 {signals.map((signal) => {
                   const pnl = Number(signal.result_pnl_percent || 0);
                   return (
-                    <tr
-                      key={signal.id}
-                      className="border-b border-[#2A2D36]/50 hover:bg-[#22262F]"
-                    >
-                      <td className="p-3 text-xs text-[#8B95A5]">
-                        {dayjs(signal.created_at).format("MM.DD HH:mm")}
-                      </td>
-                      <td className="p-3 text-sm text-white font-medium">
-                        {signal.symbol_name}
-                      </td>
-                      <td className="p-3">
-                        <Badge variant="outline" className="border-[#2A2D36] text-[#8B95A5] text-[10px]">
-                          {CATEGORY_LABELS[signal.category]}
-                        </Badge>
-                      </td>
-                      <td className="p-3">
-                        <Badge
-                          className={cn(
-                            "text-[10px] border-0",
-                            signal.direction === "long" || signal.direction === "buy"
-                              ? "bg-[#00E676]/10 text-[#00E676]"
-                              : "bg-[#FF5252]/10 text-[#FF5252]"
-                          )}
-                        >
-                          {signal.direction.toUpperCase()}
-                        </Badge>
-                      </td>
-                      <td className="p-3 text-sm text-white font-mono text-right">
-                        {Number(signal.entry_price).toLocaleString()}
-                      </td>
-                      <td className="p-3 text-sm text-[#F5B800]">
-                        {"★".repeat(signal.confidence)}
-                      </td>
+                    <tr key={signal.id} className="border-b border-[#2A2D36]/50 hover:bg-[#22262F]">
+                      <td className="p-3 text-xs text-[#8B95A5]">{dayjs(signal.created_at).format("MM.DD HH:mm")}</td>
+                      <td className="p-3 text-sm text-white font-medium">{signal.symbol_name}</td>
+                      <td className="p-3"><Badge variant="outline" className="border-[#2A2D36] text-[#8B95A5] text-[10px]">{CATEGORY_LABELS[signal.category]}</Badge></td>
+                      <td className="p-3"><Badge className={cn("text-[10px] border-0", signal.direction === "long" || signal.direction === "buy" ? "bg-[#00E676]/10 text-[#00E676]" : "bg-[#FF5252]/10 text-[#FF5252]")}>{signal.direction.toUpperCase()}</Badge></td>
+                      <td className="p-3 text-sm text-white font-mono text-right">{Number(signal.entry_price).toLocaleString()}</td>
+                      <td className="p-3 text-sm text-[#F5B800]">{"★".repeat(signal.confidence)}</td>
                       <td className="p-3 text-sm font-mono text-right">
                         {signal.status !== "active" ? (
-                          <span className={pnl >= 0 ? "text-[#00E676]" : "text-[#FF5252]"}>
-                            {pnl >= 0 ? "+" : ""}
-                            {pnl.toFixed(1)}%
-                          </span>
-                        ) : (
-                          <span className="text-[#8B95A5]">-</span>
-                        )}
+                          <span className={pnl >= 0 ? "text-[#00E676]" : "text-[#FF5252]"}>{pnl >= 0 ? "+" : ""}{pnl.toFixed(1)}%</span>
+                        ) : (<span className="text-[#8B95A5]">-</span>)}
                       </td>
-                      <td className="p-3">
-                        <Badge
-                          className={cn(
-                            "text-[10px] border-0",
-                            signal.status === "active"
-                              ? "bg-[#00E676]/10 text-[#00E676]"
-                              : signal.status.startsWith("hit_tp")
-                                ? "bg-[#00E676]/10 text-[#00E676]"
-                                : "bg-[#FF5252]/10 text-[#FF5252]"
-                          )}
-                        >
-                          {signal.status}
-                        </Badge>
-                      </td>
+                      <td className="p-3"><Badge className={cn("text-[10px] border-0", signal.status === "active" ? "bg-[#00E676]/10 text-[#00E676]" : signal.status.startsWith("hit_tp") ? "bg-[#00E676]/10 text-[#00E676]" : "bg-[#FF5252]/10 text-[#FF5252]")}>{signal.status}</Badge></td>
                       <td className="p-3">
                         {signal.status === "active" && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => cancelSignal(signal.id)}
-                            className="text-[#FF5252] hover:text-[#FF5252] hover:bg-[#FF5252]/10 h-7 px-2"
-                          >
-                            <Ban className="w-3.5 h-3.5" />
-                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => cancelSignal(signal.id)} className="text-[#FF5252] hover:text-[#FF5252] hover:bg-[#FF5252]/10 h-7 px-2"><Ban className="w-3.5 h-3.5" /></Button>
                         )}
                       </td>
                     </tr>
