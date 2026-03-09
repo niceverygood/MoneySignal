@@ -1,3 +1,5 @@
+export const maxDuration = 120;
+
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { TIER_CONFIG } from "@/lib/tier-access";
