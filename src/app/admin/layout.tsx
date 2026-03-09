@@ -16,13 +16,13 @@ import {
 } from "lucide-react";
 
 const sidebarItems = [
-  { href: "/admin", label: "대시보드", icon: LayoutDashboard },
-  { href: "/admin/partners", label: "파트너 관리", icon: UserCog },
-  { href: "/admin/users", label: "유저 관리", icon: Users },
-  { href: "/admin/signals", label: "시그널 관리", icon: TrendingUp },
-  { href: "/admin/revenue", label: "전체 매출", icon: DollarSign },
-  { href: "/admin/withdrawals", label: "출금 처리", icon: Wallet },
-  { href: "/admin/backtest", label: "백테스트", icon: BarChart3 },
+  { href: "/admin", label: "대시보드", mobileLabel: "홈", icon: LayoutDashboard },
+  { href: "/admin/partners", label: "파트너 관리", mobileLabel: "파트너", icon: UserCog },
+  { href: "/admin/users", label: "유저 관리", mobileLabel: "유저", icon: Users },
+  { href: "/admin/signals", label: "시그널 관리", mobileLabel: "시그널", icon: TrendingUp },
+  { href: "/admin/revenue", label: "전체 매출", mobileLabel: "매출", icon: DollarSign },
+  { href: "/admin/withdrawals", label: "출금 처리", mobileLabel: "출금", icon: Wallet },
+  { href: "/admin/backtest", label: "백테스트", mobileLabel: "백테스트", icon: BarChart3 },
 ];
 
 export default function AdminLayout({
@@ -110,7 +110,7 @@ export default function AdminLayout({
                 )}
               >
                 <item.icon className="w-3.5 h-3.5" />
-                {item.label}
+                {item.mobileLabel}
               </Link>
             );
           })}
