@@ -149,6 +149,7 @@ export default function AdminSignalsPage() {
           <div className="w-6 h-6 border-2 border-[#FF5252] border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
+        <>
         {/* Mobile: Card List */}
         <div className="md:hidden space-y-2">
           {signals.map((signal) => {
@@ -239,6 +240,7 @@ export default function AdminSignalsPage() {
             </table>
           </div>
         </Card>
+        </>
       )}
     </div>
   );
