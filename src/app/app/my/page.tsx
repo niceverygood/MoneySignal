@@ -1016,6 +1016,8 @@ function ProfileCard({
           </Badge>
         </div>
       </div>
+      {/* 이름 표시/수정 */}
+      <FullNameEditor profile={profile} supabase={supabase} />
       {profile?.subscription_expires_at && (
         <p className="text-xs text-[#8B95A5] mt-3 pt-3 border-t border-[#2A2D36]">
           구독 만료: {dayjs(profile.subscription_expires_at).format("YYYY.MM.DD")}
@@ -1235,6 +1237,59 @@ function TierServicesCard({ tier }: { tier: TierKey }) {
         </Button>
       )}
     </Card>
+  );
+}
+
+function FullNameEditor({ profile, supabase }: { profile: Profile | null; supabase: ReturnType<typeof createClient> }) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(profile?.full_name || "");
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!name.trim() || !profile) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ full_name: name.trim() })
+      .eq("id", profile.id);
+    setSaving(false);
+    if (!error) {
+      setEditing(false);
+      toast.success("이름이 변경되었습니다");
+    } else {
+      toast.error("변경에 실패했습니다");
+    }
+  };
+
+  return (
+    <div className="mt-3 pt-3 border-t border-[#2A2D36] flex items-center justify-between">
+      <span className="text-xs text-[#8B95A5]">이름</span>
+      {editing ? (
+        <div className="flex items-center gap-2">
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            maxLength={20}
+            className="bg-[#22262F] border-[#2A2D36] text-white h-7 text-xs w-28"
+            autoFocus
+            onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") setEditing(false); }}
+          />
+          <Button size="sm" onClick={handleSave} disabled={saving} className="bg-[#F5B800] text-[#0D0F14] h-7 px-2 text-xs">
+            {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : "저장"}
+          </Button>
+          <button onClick={() => setEditing(false)} className="text-[#8B95A5]">
+            <XIcon className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-white">{profile?.full_name || "미입력"}</span>
+          <button onClick={() => { setName(profile?.full_name || ""); setEditing(true); }} className="text-[#8B95A5] hover:text-[#F5B800]">
+            <Pencil className="w-3 h-3" />
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 

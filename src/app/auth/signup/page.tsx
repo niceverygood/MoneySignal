@@ -48,6 +48,7 @@ function SignupForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
   const [kakaoLoading, setKakaoLoading] = useState(false);
@@ -184,8 +185,8 @@ function SignupForm() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
-      toast.error("이메일과 비밀번호를 입력해주세요");
+    if (!email || !password || !fullName.trim()) {
+      toast.error("이름, 이메일, 비밀번호를 모두 입력해주세요");
       return;
     }
     if (password.length < 6) {
@@ -228,7 +229,7 @@ function SignupForm() {
       if (user) {
         await supabase
           .from("profiles")
-          .update({ display_name: finalName })
+          .update({ display_name: finalName, full_name: fullName.trim() })
           .eq("id", user.id);
       }
 
@@ -321,6 +322,19 @@ function SignupForm() {
           </div>
 
           <form onSubmit={handleSignup} className="space-y-4">
+            {/* 이름 (실명) */}
+            <div>
+              <Label className="text-[#8B95A5]">이름 *</Label>
+              <Input
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="실명을 입력해주세요"
+                className="bg-[#22262F] border-[#2A2D36] text-white mt-1.5"
+                maxLength={20}
+                required
+              />
+            </div>
+
             {/* 닉네임 + 중복검사 */}
             <div>
               <Label className="text-[#8B95A5]">닉네임</Label>
@@ -461,7 +475,7 @@ function SignupForm() {
 
             <Button
               type="submit"
-              disabled={loading || !email || !password || password.length < 6 || !emailVerified}
+              disabled={loading || !fullName.trim() || !email || !password || password.length < 6 || !emailVerified}
               className="w-full bg-[#F5B800] text-[#0D0F14] hover:bg-[#FFD54F] font-semibold"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
