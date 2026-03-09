@@ -98,8 +98,8 @@ export default function AdminSignalsPage() {
       </div>
 
       {/* Search + Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
+      <div className="space-y-3">
+        <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8B95A5]" />
           <Input
             value={filter.search}
@@ -108,39 +108,41 @@ export default function AdminSignalsPage() {
             className="pl-10 bg-[#1A1D26] border-[#2A2D36] text-white"
           />
         </div>
-        <Select
-          value={filter.category}
-          onValueChange={(v) => setFilter((p) => ({ ...p, category: v }))}
-        >
-          <SelectTrigger className="w-40 bg-[#1A1D26] border-[#2A2D36] text-white">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="bg-[#1A1D26] border-[#2A2D36]">
-            <SelectItem value="all">전체 카테고리</SelectItem>
-            <SelectItem value="coin_spot">코인 현물</SelectItem>
-            <SelectItem value="coin_futures">코인 선물</SelectItem>
-            <SelectItem value="overseas_futures">해외주식</SelectItem>
-            <SelectItem value="kr_stock">국내주식</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select
-          value={filter.status}
-          onValueChange={(v) => setFilter((p) => ({ ...p, status: v }))}
-        >
-          <SelectTrigger className="w-40 bg-[#1A1D26] border-[#2A2D36] text-white">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="bg-[#1A1D26] border-[#2A2D36]">
-            <SelectItem value="all">전체 상태</SelectItem>
-            <SelectItem value="active">활성</SelectItem>
-            <SelectItem value="hit_tp1">TP1</SelectItem>
-            <SelectItem value="hit_tp2">TP2</SelectItem>
-            <SelectItem value="hit_tp3">TP3</SelectItem>
-            <SelectItem value="hit_sl">SL</SelectItem>
-            <SelectItem value="expired">만료</SelectItem>
-            <SelectItem value="cancelled">취소</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex gap-3">
+          <Select
+            value={filter.category}
+            onValueChange={(v) => setFilter((p) => ({ ...p, category: v }))}
+          >
+            <SelectTrigger className="flex-1 bg-[#1A1D26] border-[#2A2D36] text-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-[#1A1D26] border-[#2A2D36]">
+              <SelectItem value="all">전체 카테고리</SelectItem>
+              <SelectItem value="coin_spot">코인 현물</SelectItem>
+              <SelectItem value="coin_futures">코인 선물</SelectItem>
+              <SelectItem value="overseas_futures">해외주식</SelectItem>
+              <SelectItem value="kr_stock">국내주식</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select
+            value={filter.status}
+            onValueChange={(v) => setFilter((p) => ({ ...p, status: v }))}
+          >
+            <SelectTrigger className="flex-1 bg-[#1A1D26] border-[#2A2D36] text-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-[#1A1D26] border-[#2A2D36]">
+              <SelectItem value="all">전체 상태</SelectItem>
+              <SelectItem value="active">활성</SelectItem>
+              <SelectItem value="hit_tp1">TP1</SelectItem>
+              <SelectItem value="hit_tp2">TP2</SelectItem>
+              <SelectItem value="hit_tp3">TP3</SelectItem>
+              <SelectItem value="hit_sl">SL</SelectItem>
+              <SelectItem value="expired">만료</SelectItem>
+              <SelectItem value="cancelled">취소</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Signals table */}
