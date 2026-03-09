@@ -1,3 +1,5 @@
+export const maxDuration = 60;
+
 // GET /api/cron/auto-billing
 // 매일 00:00 UTC (KST 09:00) 실행
 // 만료 예정 구독 자동 재결제 + 실패 재시도

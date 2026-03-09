@@ -1,3 +1,5 @@
+export const maxDuration = 60;
+
 // GET /api/cron/monthly-settlement
 // 매월 1일 01:00 KST (16:00 UTC 전월 말) 실행
 // 지난달 정산 계산 + 파트너별 정산 리포트 생성
