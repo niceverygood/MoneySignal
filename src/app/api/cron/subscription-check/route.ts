@@ -1,3 +1,5 @@
+export const maxDuration = 60;
+
 // GET /api/cron/subscription-check
 // 매일 00:00 KST (15:00 UTC) 실행
 // 만료된 구독 자동 처리 + 구독 만료 알림 발송

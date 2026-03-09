@@ -1,3 +1,5 @@
+export const maxDuration = 120;
+
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getMultipleSpotPrices } from "@/lib/binance";
