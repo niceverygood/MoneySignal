@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Bell, TrendingUp, TrendingDown, CreditCard, Megaphone,
-  Check, Clock, ChevronRight, Lock, Crown,
+  Check, Clock, ChevronRight, Lock, Crown, X as XIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Notification } from "@/types";
@@ -121,6 +121,11 @@ export default function NotificationsPage() {
     setNotifications((prev) =>
       prev.map((n) => n.id === id ? { ...n, is_read: true } : n)
     );
+  };
+
+  const deleteOne = async (id: string) => {
+    await supabase.from("notifications").delete().eq("id", id);
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
   };
 
   const deleteAll = async () => {
@@ -375,7 +380,12 @@ export default function NotificationsPage() {
                         {dayjs(notification.created_at).fromNow()}
                       </p>
                     </div>
-                    {signalId && <ChevronRight className="w-4 h-4 text-[#8B95A5] shrink-0 self-center" />}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); deleteOne(notification.id); }}
+                      className="text-[#8B95A5]/40 hover:text-[#FF5252] shrink-0 self-center p-1"
+                    >
+                      <XIcon className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </Card>
               );
