@@ -108,7 +108,7 @@ export default function AdminUsersPage() {
           className="bg-[#1A1D26] border border-[#2A2D36] text-white text-base rounded-md px-3 py-2.5"
         >
           {tierOptions.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
+            <option key={o.value} value={o.value} className="text-base bg-[#1A1D26]" style={{ fontSize: "16px" }}>{o.label}</option>
           ))}
         </select>
         <select
@@ -117,7 +117,7 @@ export default function AdminUsersPage() {
           className="bg-[#1A1D26] border border-[#2A2D36] text-white text-base rounded-md px-3 py-2.5"
         >
           {roleOptions.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
+            <option key={o.value} value={o.value} className="text-base bg-[#1A1D26]" style={{ fontSize: "16px" }}>{o.label}</option>
           ))}
         </select>
       </div>
