@@ -54,7 +54,8 @@ export default function SignalCard({
       ? ((price - entryPrice) / entryPrice) * 100
       : ((entryPrice - price) / entryPrice) * 100;
   }
-  if (isCompleted && signal.result_pnl_percent != null) {
+  const hasResult = isCompleted && signal.result_pnl_percent != null;
+  if (hasResult) {
     pnlPercent = Number(signal.result_pnl_percent);
   }
 
@@ -215,7 +216,7 @@ export default function SignalCard({
         )}
 
         {/* Current price & PnL */}
-        {(price || isCompleted) && !isBlurred && (
+        {(price || (isCompleted && hasResult)) && !isBlurred && (
           <div className="mt-3 pt-3 border-t border-[#2A2D36]">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -224,9 +225,11 @@ export default function SignalCard({
                     현재가 {formatPrice(price)}
                   </span>
                 )}
+                {(price || hasResult) && (
                 <span className={cn("text-sm font-bold font-mono", pnlPercent >= 0 ? "text-[#00E676]" : "text-[#FF5252]")}>
                   ({pnlPercent >= 0 ? "+" : ""}{pnlPercent.toFixed(2)}%)
                 </span>
+                )}
               </div>
               <Badge className={cn("text-[10px] border-0", getStatusColor(signal.status))}>
                 {getStatusLabel(signal.status)}
@@ -246,7 +249,7 @@ export default function SignalCard({
         )}
 
         {/* Completed signal result (visible to ALL tiers) */}
-        {isCompleted && isBlurred && (
+        {isCompleted && isBlurred && hasResult && (
           <div className="mt-3 pt-3 border-t border-[#2A2D36]">
             <div className="flex items-center justify-between">
               <span className={cn("text-sm font-bold font-mono", pnlPercent >= 0 ? "text-[#00E676]" : "text-[#FF5252]")}>

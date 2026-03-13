@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import SignalCard from "@/components/signals/SignalCard";
 import TierUpgradeBanner from "@/components/signals/TierUpgradeBanner";
@@ -30,7 +30,7 @@ export default function SignalFeedPage() {
   const [viewedToday, setViewedToday] = useState(0);
   const [dailyLimit, setDailyLimit] = useState<number | null>(null);
 
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const fetchSignals = useCallback(async () => {
     setLoading(true);
