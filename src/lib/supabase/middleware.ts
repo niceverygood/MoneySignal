@@ -52,6 +52,15 @@ export async function updateSession(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
 
+    // Update last_active_at for authenticated users (fire-and-forget, no await)
+    if (user) {
+      supabase
+        .from("profiles")
+        .update({ last_active_at: new Date().toISOString() })
+        .eq("id", user.id)
+        .then(() => {}, () => {});
+    }
+
     // Protected routes — require authentication
     const isProtectedRoute =
       pathname.startsWith("/app") ||

@@ -20,6 +20,16 @@ export async function GET(request: Request) {
   try {
     const supabase = await createServiceClient();
 
+    // Skip if no active users in the last 24 hours (save API costs)
+    const { count: activeUsers } = await supabase
+      .from("profiles")
+      .select("*", { count: "exact", head: true })
+      .gte("last_active_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+
+    if (!activeUsers) {
+      return NextResponse.json({ skipped: true, reason: "no active users in 24h" });
+    }
+
     // Query today's signals
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
