@@ -6,6 +6,7 @@ import { Lock, Star, TrendingUp, TrendingDown } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import type { FilteredSignal } from "@/lib/tier-access";
 import type { TierKey } from "@/lib/tier-access";
+import { getInvestmentVerdict } from "@/lib/market-sentiment";
 import DelayBadge from "./DelayBadge";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -19,6 +20,7 @@ interface SignalCardProps {
   signal: FilteredSignal;
   tier: TierKey;
   currentPrice?: number;
+  buyWeight?: number;
   onUpgrade?: () => void;
 }
 
@@ -39,11 +41,16 @@ export default function SignalCard({
   signal,
   tier,
   currentPrice,
+  buyWeight,
 }: SignalCardProps) {
   const isLong = signal.direction === "long" || signal.direction === "buy";
   const isCompleted = signal.status !== "active";
   const isBlurred = signal._tier_info.isBlurred;
   const lockedFields = signal._tier_info.lockedFields;
+
+  // 투자 판정: buyWeight가 제공되면 가중 매수 점수 계산
+  const weightedScore = buyWeight != null ? signal.confidence * buyWeight : null;
+  const verdict = weightedScore != null ? getInvestmentVerdict(weightedScore) : null;
 
   // Calculate PnL
   const entryPrice = signal.entry_price ? Number(signal.entry_price) : 0;
@@ -117,6 +124,17 @@ export default function SignalCard({
           <span>·</span>
           <span>{dayjs(signal.created_at).fromNow()}</span>
           <DelayBadge tier={tier} />
+          {verdict && !isBlurred && signal.status === "active" && (
+            <>
+              <span>·</span>
+              <span
+                className="font-bold text-[10px] px-1.5 py-0.5 rounded-full"
+                style={{ color: verdict.color, backgroundColor: verdict.bgColor }}
+              >
+                {verdict.emoji} {verdict.label}
+              </span>
+            </>
+          )}
         </div>
 
         {/* Price Data */}

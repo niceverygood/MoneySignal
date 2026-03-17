@@ -199,6 +199,45 @@ export interface Notification {
 }
 
 // ============================================
+// Verdict (AI 합의 판정)
+// ============================================
+export interface Verdict {
+  id: string;
+  date: string;
+  top5: VerdictTop5Item[];
+  claude_top5: VerdictAITop5Item[];
+  gemini_top5: VerdictAITop5Item[];
+  gpt_top5: VerdictAITop5Item[];
+  theme_name: string;
+  theme_emoji: string;
+  sentiment_score: number;
+  sentiment_label: string;
+  buy_weight: number;
+  consensus_summary: string;
+  created_at: string;
+}
+
+export interface VerdictTop5Item {
+  rank: number;
+  symbol: string;
+  name: string;
+  totalScore: number;
+  avgScore: number;
+  votedBy: string[];
+  isUnanimous: boolean;
+  scores: Record<string, number>;
+  reasons: Record<string, string>;
+}
+
+export interface VerdictAITop5Item {
+  rank: number;
+  symbol: string;
+  name: string;
+  score: number;
+  reason: string;
+}
+
+// ============================================
 // API Response Types
 // ============================================
 

@@ -7,6 +7,8 @@ import TierUpgradeBanner from "@/components/signals/TierUpgradeBanner";
 import MissedProfitBanner from "@/components/signals/MissedProfitBanner";
 import LiveResultsFeed from "@/components/signals/LiveResultsFeed";
 import FreeSampleSignal from "@/components/signals/FreeSampleSignal";
+import MarketSentimentGauge from "@/components/signals/MarketSentimentGauge";
+import DailyVerdictCard from "@/components/signals/DailyVerdictCard";
 import { cn } from "@/lib/utils";
 import { Lock, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,6 +31,7 @@ export default function SignalFeedPage() {
   const [prices, setPrices] = useState<Record<string, number>>({});
   const [viewedToday, setViewedToday] = useState(0);
   const [dailyLimit, setDailyLimit] = useState<number | null>(null);
+  const [buyWeight, setBuyWeight] = useState<number | null>(null);
 
   const supabase = useMemo(() => createClient(), []);
 
@@ -57,6 +60,14 @@ export default function SignalFeedPage() {
   useEffect(() => {
     fetchSignals();
   }, [fetchSignals]);
+
+  // Fetch market sentiment buyWeight
+  useEffect(() => {
+    fetch("/api/market/sentiment")
+      .then((res) => res.json())
+      .then((d) => { if (d.buyWeight != null) setBuyWeight(d.buyWeight); })
+      .catch(() => {});
+  }, []);
 
   // Realtime subscription
   useEffect(() => {
@@ -149,6 +160,12 @@ export default function SignalFeedPage() {
         signal={signals.find((s) => s.status !== "active" && Number(s.result_pnl_percent || 0) > 3) || null}
       />
 
+      {/* Market Sentiment Gauge */}
+      <MarketSentimentGauge />
+
+      {/* AI Consensus Top 5 */}
+      <DailyVerdictCard />
+
       {/* Upgrade banner */}
       <TierUpgradeBanner tier={userTier} />
 
@@ -222,6 +239,7 @@ export default function SignalFeedPage() {
               signal={signal}
               tier={userTier}
               currentPrice={prices[signal.symbol]}
+              buyWeight={buyWeight ?? undefined}
             />
           ))}
         </div>
