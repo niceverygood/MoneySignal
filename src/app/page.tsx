@@ -381,13 +381,13 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="flex items-center gap-6 text-xs text-[#8B95A5]">
-              <Link href="#" className="hover:text-white transition-colors">
+              <Link href="/terms" className="hover:text-white transition-colors">
                 이용약관
               </Link>
-              <Link href="#" className="hover:text-white transition-colors">
+              <Link href="/privacy" className="hover:text-white transition-colors">
                 개인정보처리방침
               </Link>
-              <Link href="#" className="hover:text-white transition-colors">
+              <Link href="/disclaimer" className="hover:text-white transition-colors">
                 투자 주의사항
               </Link>
               <span>contact@moneysignal.io</span>
