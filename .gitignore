@@ -48,3 +48,7 @@ next-env.d.ts
 /android/build/
 /android/.idea/
 *.xcworkspace/xcuserdata/
+
+# Claude work logs
+CLAUDE.md
+CLAUDE_archive.md
