@@ -93,7 +93,7 @@ export default function SignalCard({
               )}
             />
             <span className="font-bold text-white text-sm">
-              {signal.symbol.replace("USDT", "/USDT")}
+              {signal.symbol_name || signal.symbol.replace("USDT", "/USDT")}
             </span>
             <Badge
               variant="outline"
