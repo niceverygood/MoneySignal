@@ -389,7 +389,7 @@ export default function SubscribePage() {
       </Card>
 
       {/* Plan Cards Grid */}
-      <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+      <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
         {PLANS.filter(p => p.tier !== "free").map((plan) => {
           const prices = PLAN_PRICES[plan.tier];
           const price = prices?.[billingCycle] || 0;
@@ -411,33 +411,33 @@ export default function SubscribePage() {
               )}
               style={{ borderColor: `${plan.color}30` }}
             >
-              {/* Badges */}
-              <div className="flex gap-2 mb-2 min-h-[24px]">
-                {plan.popular && (
-                  <Badge className="bg-[#F5B800] text-[#0D0F14] border-0 text-[10px]">
-                    <Star className="w-3 h-3 mr-0.5" /> 인기
-                  </Badge>
-                )}
-                {isFreeTrial && (
-                  <Badge className="bg-[#00E676] text-[#0D0F14] border-0 text-[10px] font-bold animate-pulse">
-                    첫 달 무료
-                  </Badge>
-                )}
-                {discount && !isFreeTrial && (
-                  <Badge className="bg-[#E040FB]/10 text-[#E040FB] border-0 text-[10px]">
-                    {discount}% 할인
-                  </Badge>
-                )}
-                {plan.tier === "bundle" && (
-                  <Badge className="bg-[#F5B800] text-[#0D0F14] border-0 text-[10px]">
-                    <Crown className="w-3 h-3 mr-0.5" /> VIP
-                  </Badge>
-                )}
-              </div>
-
-              {/* Name + Price */}
+              {/* Name + Badges */}
               <div className="mb-2">
-                <h3 className="text-lg font-bold text-white">{plan.name}</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-bold text-white">{plan.name}</h3>
+                  <div className="flex gap-1">
+                    {plan.popular && (
+                      <Badge className="bg-[#F5B800] text-[#0D0F14] border-0 text-[10px]">
+                        <Star className="w-3 h-3 mr-0.5" /> 인기
+                      </Badge>
+                    )}
+                    {isFreeTrial && (
+                      <Badge className="bg-[#00E676] text-[#0D0F14] border-0 text-[10px] font-bold animate-pulse">
+                        첫 달 무료
+                      </Badge>
+                    )}
+                    {discount && !isFreeTrial && (
+                      <Badge className="bg-[#E040FB]/10 text-[#E040FB] border-0 text-[10px]">
+                        {discount}% 할인
+                      </Badge>
+                    )}
+                    {plan.tier === "bundle" && (
+                      <Badge className="bg-[#F5B800] text-[#0D0F14] border-0 text-[10px]">
+                        <Crown className="w-3 h-3 mr-0.5" /> VIP
+                      </Badge>
+                    )}
+                  </div>
+                </div>
                 <p className="text-xs text-[#8B95A5]">{plan.desc}</p>
                 <div className="mt-2">
                   {isFreeTrial ? (
