@@ -390,7 +390,10 @@ export default function SubscribePage() {
 
       {/* Plan Cards Grid */}
       <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
-        {PLANS.filter(p => p.tier !== "free").map((plan) => {
+        {PLANS.filter(p => p.tier !== "free").filter((plan) => {
+          const prices = PLAN_PRICES[plan.tier];
+          return prices?.[billingCycle] != null;
+        }).map((plan) => {
           const prices = PLAN_PRICES[plan.tier];
           const price = prices?.[billingCycle] || 0;
           const monthlyEquiv = billingCycle === "monthly" ? price : billingCycle === "quarterly" ? Math.round(price / 3) : Math.round(price / 12);
