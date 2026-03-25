@@ -18,6 +18,9 @@ import {
   TrendingUp,
   TrendingDown,
   Pin,
+  Flag,
+  Ban,
+  MoreVertical,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -77,6 +80,10 @@ export default function PostDetailPage() {
     id: string; display_name: string; role: string; subscription_tier: string;
   } | null>(null);
   const commentsEndRef = useRef<HTMLDivElement>(null);
+  const [showMenu, setShowMenu] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{ type: string; id: string; userId: string } | null>(null);
+  const [reportReason, setReportReason] = useState("");
+  const [reporting, setReporting] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -176,6 +183,51 @@ export default function PostDetailPage() {
     }
   };
 
+  const handleReport = async () => {
+    if (!reportTarget || !reportReason.trim()) return;
+    setReporting(true);
+    try {
+      const res = await fetch("/api/community/report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          targetType: reportTarget.type,
+          targetId: reportTarget.id,
+          targetUserId: reportTarget.userId,
+          reason: reportReason.trim(),
+        }),
+      });
+      if (res.ok) {
+        toast.success("신고가 접수되었습니다. 24시간 내 검토됩니다.");
+      } else {
+        toast.error("신고 접수에 실패했습니다.");
+      }
+    } catch {
+      toast.error("신고 처리 중 오류가 발생했습니다.");
+    } finally {
+      setReporting(false);
+      setReportTarget(null);
+      setReportReason("");
+    }
+  };
+
+  const handleBlock = async (blockedId: string, displayName: string) => {
+    if (!confirm(`${displayName}님을 차단하시겠습니까? 차단하면 해당 유저의 게시글과 댓글이 보이지 않습니다.`)) return;
+    try {
+      const res = await fetch("/api/community/block", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ blockedId }),
+      });
+      if (res.ok) {
+        toast.success(`${displayName}님을 차단했습니다.`);
+        router.push("/app/community");
+      }
+    } catch {
+      toast.error("차단 처리에 실패했습니다.");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -225,6 +277,30 @@ export default function PostDetailPage() {
             <span className="text-[10px] text-[#8B95A5]">{dayjs(post.created_at).format("YYYY.MM.DD HH:mm")}</span>
           </div>
           {post.is_pinned && <Pin className="w-3.5 h-3.5 text-[#F5B800] ml-auto" />}
+          {/* 신고/차단 메뉴 */}
+          {userProfile && userProfile.id !== post.user_id && (
+            <div className="relative ml-auto">
+              <button onClick={() => setShowMenu(!showMenu)} className="p-1 text-[#8B95A5] hover:text-white">
+                <MoreVertical className="w-4 h-4" />
+              </button>
+              {showMenu && (
+                <div className="absolute right-0 top-6 z-10 bg-[#22262F] border border-[#2A2D36] rounded-lg shadow-xl py-1 w-36">
+                  <button
+                    onClick={() => { setReportTarget({ type: "post", id: post.id, userId: post.user_id }); setShowMenu(false); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[#FF5252] hover:bg-[#2A2D36]"
+                  >
+                    <Flag className="w-3.5 h-3.5" /> 게시글 신고
+                  </button>
+                  <button
+                    onClick={() => { handleBlock(post.user_id, post.display_name); setShowMenu(false); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[#FF5252] hover:bg-[#2A2D36]"
+                  >
+                    <Ban className="w-3.5 h-3.5" /> 사용자 차단
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Signal badge */}
@@ -295,6 +371,15 @@ export default function PostDetailPage() {
                   </span>
                   {cTier.label && <Badge className={cn("border-0 text-[7px] px-1 py-0", cTier.color)}>{cTier.label}</Badge>}
                   <span className="text-[9px] text-[#8B95A5]/50 ml-auto">{dayjs(comment.created_at).fromNow()}</span>
+                  {userProfile && userProfile.id !== comment.user_id && (
+                    <button
+                      onClick={() => setReportTarget({ type: "comment", id: comment.id, userId: comment.user_id })}
+                      className="ml-1 p-0.5 text-[#8B95A5]/40 hover:text-[#FF5252]"
+                      title="신고"
+                    >
+                      <Flag className="w-3 h-3" />
+                    </button>
+                  )}
                 </div>
                 <p className="text-sm text-[#E0E0E0] pl-8">{comment.message}</p>
               </Card>
@@ -326,6 +411,49 @@ export default function PostDetailPage() {
           </form>
         </div>
       </div>
+
+      {/* 신고 모달 */}
+      {reportTarget && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center px-4" onClick={() => setReportTarget(null)}>
+          <Card className="bg-[#1A1D26] border-[#2A2D36] p-5 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-sm font-bold text-white mb-3">
+              {reportTarget.type === "post" ? "게시글" : "댓글"} 신고
+            </h3>
+            <div className="space-y-2 mb-3">
+              {["욕설/비방", "허위 투자 정보", "스팸/광고", "개인정보 유포", "기타"].map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setReportReason(r)}
+                  className={cn(
+                    "w-full text-left px-3 py-2 rounded-lg text-xs transition-colors",
+                    reportReason === r
+                      ? "bg-[#FF5252]/10 text-[#FF5252] border border-[#FF5252]/30"
+                      : "bg-[#22262F] text-[#8B95A5] hover:bg-[#2A2D36]"
+                  )}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => { setReportTarget(null); setReportReason(""); }}
+                className="flex-1 border-[#2A2D36] text-[#8B95A5] text-xs"
+              >
+                취소
+              </Button>
+              <Button
+                onClick={handleReport}
+                disabled={!reportReason || reporting}
+                className="flex-1 bg-[#FF5252] text-white hover:bg-[#FF5252]/80 text-xs"
+              >
+                {reporting ? <Loader2 className="w-3 h-3 animate-spin" /> : "신고하기"}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

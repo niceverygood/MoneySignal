@@ -67,51 +67,52 @@ function LoginForm() {
     }
   };
 
-  const handleKakaoLogin = async () => {
-    setKakaoLoading(true);
+  const handleOAuthLogin = async (provider: "kakao" | "apple") => {
+    const setLoading = provider === "kakao" ? setKakaoLoading : setAppleLoading;
+    const providerLabel = provider === "kakao" ? "카카오" : "Apple";
+    setLoading(true);
+
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "kakao",
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
         options: {
           redirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
+          skipBrowserRedirect: true,
         },
       });
 
       if (error) {
         if (error.message.includes("not enabled") || error.message.includes("unsupported")) {
-          toast.error("카카오 로그인 준비 중입니다. 이메일로 로그인해주세요.");
+          toast.error(`${providerLabel} 로그인 준비 중입니다. 이메일로 로그인해주세요.`);
         } else {
           toast.error(error.message);
         }
-        setKakaoLoading(false);
+        setLoading(false);
+        return;
       }
-    } catch {
-      toast.error("카카오 로그인 연결에 실패했습니다.");
-      setKakaoLoading(false);
-    }
-  };
 
-  const handleAppleLogin = async () => {
-    setAppleLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "apple",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
-        },
-      });
+      if (data?.url) {
+        // 네이티브 앱: 인앱 브라우저, 웹: 직접 이동
+        const { Capacitor } = await import("@capacitor/core");
+        if (Capacitor.isNativePlatform()) {
+          const { Browser } = await import("@capacitor/browser");
+          await Browser.open({ url: data.url, presentationStyle: "popover" });
 
-      if (error) {
-        if (error.message.includes("not enabled") || error.message.includes("unsupported")) {
-          toast.error("Apple 로그인 준비 중입니다. 이메일로 로그인해주세요.");
+          // 인앱 브라우저 닫힌 후 세션 확인
+          Browser.addListener("browserFinished", async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+              window.location.href = redirectTo;
+            }
+            setLoading(false);
+          });
         } else {
-          toast.error(error.message);
+          window.location.href = data.url;
         }
-        setAppleLoading(false);
       }
     } catch {
-      toast.error("Apple 로그인 연결에 실패했습니다.");
-      setAppleLoading(false);
+      toast.error(`${providerLabel} 로그인 연결에 실패했습니다.`);
+      setLoading(false);
     }
   };
 
@@ -142,7 +143,7 @@ function LoginForm() {
         <Card className="bg-[#1A1D26] border-[#2A2D36] p-6">
           {/* Apple Login */}
           <Button
-            onClick={handleAppleLogin}
+            onClick={() => handleOAuthLogin("apple")}
             disabled={appleLoading}
             className="w-full bg-white text-black hover:bg-white/90 font-semibold h-11"
           >
@@ -156,7 +157,7 @@ function LoginForm() {
 
           {/* Kakao Login */}
           <Button
-            onClick={handleKakaoLogin}
+            onClick={() => handleOAuthLogin("kakao")}
             disabled={kakaoLoading}
             className="w-full bg-[#FEE500] text-[#191919] hover:bg-[#FEE500]/90 font-semibold h-11 mt-2"
           >

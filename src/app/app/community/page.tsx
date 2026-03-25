@@ -78,6 +78,8 @@ export default function CommunityPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState("all");
+  const [eulaAgreed, setEulaAgreed] = useState<boolean | null>(null);
+  const [blockedIds, setBlockedIds] = useState<string[]>([]);
 
   const fetchPosts = useCallback(async () => {
     const { data } = await supabase
@@ -92,6 +94,24 @@ export default function CommunityPage() {
   }, [supabase]);
 
   useEffect(() => {
+    // EULA 동의 여부 + 차단 목록 확인
+    async function checkEulaAndBlocks() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("community_eula_agreed_at")
+        .eq("id", user.id)
+        .single();
+      setEulaAgreed(!!profile?.community_eula_agreed_at);
+
+      const { data: blocks } = await supabase
+        .from("community_blocks")
+        .select("blocked_id")
+        .eq("blocker_id", user.id);
+      if (blocks) setBlockedIds(blocks.map((b: { blocked_id: string }) => b.blocked_id));
+    }
+    checkEulaAndBlocks();
     fetchPosts();
 
     const channel = supabase
@@ -104,12 +124,67 @@ export default function CommunityPage() {
     return () => { supabase.removeChannel(channel); };
   }, [supabase, fetchPosts]);
 
-  const filtered = selectedTab === "all"
+  const handleAgreeEula = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase
+      .from("profiles")
+      .update({ community_eula_agreed_at: new Date().toISOString() })
+      .eq("id", user.id);
+    setEulaAgreed(true);
+  };
+
+  const filtered = (selectedTab === "all"
     ? posts
-    : posts.filter((p) => p.message_type === selectedTab);
+    : posts.filter((p) => p.message_type === selectedTab)
+  ).filter((p) => !blockedIds.includes(p.user_id));
 
   const pinnedPosts = filtered.filter((p) => p.is_pinned);
   const regularPosts = filtered.filter((p) => !p.is_pinned);
+
+  // EULA 미동의 시 동의 화면
+  if (eulaAgreed === false) {
+    return (
+      <div className="py-4 space-y-4">
+        <Card className="bg-[#1A1D26] border-[#2A2D36] p-5">
+          <h2 className="text-lg font-bold text-white mb-3">커뮤니티 이용약관</h2>
+          <div className="text-xs text-[#8B95A5] space-y-2 mb-4 max-h-60 overflow-y-auto">
+            <p>머니시그널 커뮤니티는 건전한 투자 정보 교류를 위한 공간입니다. 아래 규칙에 동의해야 커뮤니티를 이용할 수 있습니다.</p>
+            <p className="font-semibold text-white">금지 행위:</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li>욕설, 비방, 혐오 발언 등 부적절한 콘텐츠 게시</li>
+              <li>다른 사용자에 대한 괴롭힘, 협박, 스토킹</li>
+              <li>허위 투자 정보, 사기성 콘텐츠 유포</li>
+              <li>스팸, 광고, 홍보 목적의 반복 게시</li>
+              <li>개인정보 무단 수집 및 유포</li>
+              <li>저작권 침해 콘텐츠 게시</li>
+            </ul>
+            <p className="font-semibold text-white">운영 정책:</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li>부적절한 콘텐츠는 신고 접수 후 24시간 내 검토 및 조치됩니다.</li>
+              <li>규칙 위반 시 게시글 삭제 및 계정 이용 제한 조치가 취해집니다.</li>
+              <li>신고 및 차단 기능을 통해 불쾌한 콘텐츠와 사용자를 관리할 수 있습니다.</li>
+            </ul>
+            <p>자세한 내용은 <a href="/terms" className="text-[#F5B800] underline">이용약관</a>을 참고하세요.</p>
+          </div>
+          <Button
+            onClick={handleAgreeEula}
+            className="w-full bg-[#F5B800] text-[#0D0F14] hover:bg-[#FFD54F] font-semibold"
+          >
+            동의하고 커뮤니티 시작하기
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  if (eulaAgreed === null) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 text-[#F5B800] animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="py-4 space-y-4">
