@@ -67,6 +67,60 @@ export async function hapticNotification(type: 'success' | 'warning' | 'error' =
   await Haptics.notification({ type: typeMap[type] });
 }
 
+/** 딥링크 — 푸시 알림 탭 시 해당 페이지로 이동 */
+export function setupPushDeepLinks() {
+  if (!isNative) return;
+
+  import('@capacitor/push-notifications').then(({ PushNotifications }) => {
+    // 앱이 열린 상태에서 푸시 수신
+    PushNotifications.addListener('pushNotificationReceived', (notification) => {
+      console.log('[Push] Received:', notification);
+    });
+
+    // 푸시 탭하여 앱 진입
+    PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+      const data = action.notification.data;
+      if (data?.signalId) {
+        window.location.href = `/app/signals/${data.signalId}`;
+      } else if (data?.type === 'new_signal') {
+        window.location.href = '/app';
+      }
+    });
+  });
+}
+
+/** 네트워크 상태 감지 */
+export async function setupNetworkListener(
+  onStatusChange: (connected: boolean) => void
+) {
+  if (!isNative) return;
+  const { Network } = await import('@capacitor/network');
+
+  const status = await Network.getStatus();
+  onStatusChange(status.connected);
+
+  Network.addListener('networkStatusChange', (s) => {
+    onStatusChange(s.connected);
+  });
+}
+
+/** 앱 리뷰 요청 (StoreKit) */
+export async function requestAppReview() {
+  if (!isNative) return;
+  try {
+    const { App } = await import('@capacitor/app');
+    // Capacitor App 플러그인은 직접 리뷰 API가 없음
+    // iOS에서는 SKStoreReviewController를 웹뷰 JS로 트리거할 수 없으므로
+    // App Store URL로 이동
+    if (platform === 'ios') {
+      window.open('https://apps.apple.com/app/id(앱ID)?action=write-review', '_blank');
+    }
+    console.log('[App] Review requested', App);
+  } catch {
+    console.error('[App] Review request failed');
+  }
+}
+
 /** 생체인증 (Face ID / Touch ID) */
 export async function checkBiometric(): Promise<boolean> {
   if (!isNative) return false;
