@@ -51,3 +51,44 @@ export async function registerPushNotifications(): Promise<string | null> {
     });
   });
 }
+
+/** 햅틱 피드백 */
+export async function haptic(style: 'light' | 'medium' | 'heavy' = 'medium') {
+  if (!isNative) return;
+  const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
+  const styleMap = { light: ImpactStyle.Light, medium: ImpactStyle.Medium, heavy: ImpactStyle.Heavy };
+  await Haptics.impact({ style: styleMap[style] });
+}
+
+export async function hapticNotification(type: 'success' | 'warning' | 'error' = 'success') {
+  if (!isNative) return;
+  const { Haptics, NotificationType } = await import('@capacitor/haptics');
+  const typeMap = { success: NotificationType.Success, warning: NotificationType.Warning, error: NotificationType.Error };
+  await Haptics.notification({ type: typeMap[type] });
+}
+
+/** 생체인증 (Face ID / Touch ID) */
+export async function checkBiometric(): Promise<boolean> {
+  if (!isNative) return false;
+  try {
+    const { NativeBiometric } = await import('capacitor-native-biometric');
+    const result = await NativeBiometric.isAvailable();
+    return result.isAvailable;
+  } catch {
+    return false;
+  }
+}
+
+export async function authenticateWithBiometric(): Promise<boolean> {
+  if (!isNative) return true; // 웹에서는 항상 통과
+  try {
+    const { NativeBiometric } = await import('capacitor-native-biometric');
+    await NativeBiometric.verifyIdentity({
+      reason: '머니시그널 앱 잠금 해제',
+      title: '인증 필요',
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}

@@ -17,6 +17,7 @@ import {
 import { scanTopStocks } from "@/lib/kis";
 import { sendTelegramMessage, formatSignalMessage } from "@/lib/telegram";
 import { sendBulkAlimtalk, formatSignalAlimtalk } from "@/lib/aligo";
+import { sendPushToUsers } from "@/lib/push";
 import type { SignalCategory, Signal } from "@/types";
 
 // ============================================
@@ -89,6 +90,32 @@ async function sendSignalAlerts(
           await sendBulkAlimtalk("UF_6812", recipients, supabase).catch((err) =>
             console.error("[Signal Engine] Alimtalk error:", err)
           );
+        }
+      }
+
+      // 앱 푸시 발송 (basic 이상 유저)
+      const { data: pushUsers } = await supabase
+        .from("profiles")
+        .select("id, subscription_tier, subscription_expires_at")
+        .gte("last_active_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+
+      if (pushUsers) {
+        const eligibleIds = pushUsers
+          .filter((u: { subscription_tier: string; subscription_expires_at: string | null }) => {
+            const tier = u.subscription_tier || "free";
+            const expires = u.subscription_expires_at;
+            const isExpired = expires && new Date(expires) < new Date();
+            return TIER_ORDER[tier] >= minTierOrder && !isExpired;
+          })
+          .map((u: { id: string }) => u.id);
+
+        if (eligibleIds.length > 0) {
+          const symbolName = signal.symbol_name || signal.symbol;
+          await sendPushToUsers(supabase, eligibleIds, {
+            title: `새 시그널: ${symbolName}`,
+            body: `${signal.direction === "buy" ? "매수" : "매도"} · 진입가 ${signal.entry_price}`,
+            data: { signalId: signal.id, type: "new_signal" },
+          }).catch((err) => console.error("[Signal Engine] Push error:", err));
         }
       }
     }

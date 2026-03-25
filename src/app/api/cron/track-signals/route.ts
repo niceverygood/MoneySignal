@@ -5,6 +5,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { getMultipleSpotPrices } from "@/lib/binance";
 import { sendTelegramMessage, formatTPHitMessage, formatSLHitMessage } from "@/lib/telegram";
 import { sendBulkAlimtalk, formatTPHitAlimtalk, formatSLHitAlimtalk } from "@/lib/aligo";
+import { sendPushToUsers } from "@/lib/push";
 import type { Signal } from "@/types";
 
 const TIER_ORDER: Record<string, number> = { free: 0, basic: 1, pro: 2, premium: 3, bundle: 4 };
@@ -88,6 +89,39 @@ async function sendTPSLAlerts(
           await sendBulkAlimtalk(tplCode, recipients, supabase).catch((err) =>
             console.error("[Track Signals] Alimtalk error:", err)
           );
+        }
+      }
+
+      // 앱 푸시 발송
+      const { data: pushUsers } = await supabase
+        .from("profiles")
+        .select("id, subscription_tier, subscription_expires_at")
+        .gte("last_active_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+
+      if (pushUsers) {
+        const eligibleIds = pushUsers
+          .filter((u: { subscription_tier: string; subscription_expires_at: string | null }) => {
+            const tier = u.subscription_tier || "free";
+            const expires = u.subscription_expires_at;
+            const isExpired = expires && new Date(expires) < new Date();
+            return TIER_ORDER[tier] >= tpMinTierOrder && !isExpired;
+          })
+          .map((u: { id: string }) => u.id);
+
+        if (eligibleIds.length > 0) {
+          const symbolName = signal.symbol_name || signal.symbol;
+          const pushTitle = isTP
+            ? `TP${tpLevel} 도달! ${symbolName}`
+            : `손절 도달: ${symbolName}`;
+          const pushBody = isTP
+            ? `+${pnl.toFixed(1)}% 수익 달성`
+            : `${pnl.toFixed(1)}% 손절`;
+
+          await sendPushToUsers(supabase, eligibleIds, {
+            title: pushTitle,
+            body: pushBody,
+            data: { signalId: signal.id, type: isTP ? "tp_hit" : "sl_hit" },
+          }).catch((err) => console.error("[Track Signals] Push error:", err));
         }
       }
     }

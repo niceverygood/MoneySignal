@@ -47,5 +47,7 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSFaceIDUsageDescription</key>
+	<string>앱 잠금 해제를 위해 Face ID를 사용합니다.</string>
 </dict>
 </plist>
