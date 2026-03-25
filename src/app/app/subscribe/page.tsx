@@ -614,12 +614,25 @@ export default function SubscribePage() {
         </div>
       </Card>
 
-      {/* Footer */}
-      <div className="p-3 rounded-lg bg-[#1A1D26] border border-[#2A2D36]">
-        <p className="text-[10px] text-[#8B95A5] leading-relaxed text-center">
-          구독은 선택한 주기에 따라 자동 갱신됩니다. 언제든 해지 가능합니다.
-          <br />결제 관련 문의: contact@moneysignal.io
+      {/* Subscription Info & Legal */}
+      <div className="p-4 rounded-lg bg-[#1A1D26] border border-[#2A2D36] space-y-2">
+        <p className="text-[11px] text-[#8B95A5] leading-relaxed">
+          <span className="text-white font-semibold">머니시그널 - AI 매수 시그널</span> 자동갱신 구독 안내
         </p>
+        <ul className="text-[10px] text-[#8B95A5] leading-relaxed space-y-1 list-disc list-inside">
+          <li>구독 기간: 월간(1개월) / 분기(3개월) / 연간(12개월)</li>
+          <li>구독은 선택한 주기에 따라 자동 갱신되며, 현재 구독 기간 종료 최소 24시간 전에 자동 갱신을 해제하지 않으면 구독이 자동으로 갱신됩니다.</li>
+          <li>결제는 구매 확인 시 iTunes 계정으로 청구됩니다.</li>
+          <li>구독 관리 및 자동갱신 해제는 구매 후 계정 설정에서 가능합니다.</li>
+        </ul>
+        <div className="flex items-center gap-3 pt-1">
+          <a href="/terms" className="text-[10px] text-[#F5B800] hover:underline">이용약관</a>
+          <span className="text-[#2A2D36]">|</span>
+          <a href="/privacy" className="text-[10px] text-[#F5B800] hover:underline">개인정보처리방침</a>
+          <span className="text-[#2A2D36]">|</span>
+          <a href="/disclaimer" className="text-[10px] text-[#F5B800] hover:underline">투자 주의사항</a>
+        </div>
+        <p className="text-[10px] text-[#8B95A5]">결제 관련 문의: contact@moneysignal.io</p>
       </div>
     </div>
   );

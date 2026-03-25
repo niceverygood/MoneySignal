@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, MessageCircle, Check, X, Mail } from "lucide-react";
+import { Loader2, MessageCircle, Check, X, Mail, Apple } from "lucide-react";
 import { toast } from "sonner";
 
 function generateKoreanNickname(): string {
@@ -52,6 +52,7 @@ function SignupForm() {
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
   const [kakaoLoading, setKakaoLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
 
   // 닉네임 중복검사
   const [nicknameStatus, setNicknameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
@@ -272,6 +273,30 @@ function SignupForm() {
     }
   };
 
+  const handleAppleLogin = async () => {
+    setAppleLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "apple",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
+        },
+      });
+
+      if (error) {
+        if (error.message.includes("not enabled") || error.message.includes("unsupported")) {
+          toast.error("Apple 로그인 준비 중입니다. 이메일로 가입해주세요.");
+        } else {
+          toast.error(error.message);
+        }
+        setAppleLoading(false);
+      }
+    } catch {
+      toast.error("Apple 로그인 연결에 실패했습니다.");
+      setAppleLoading(false);
+    }
+  };
+
   // 닉네임/이메일 변경 시 검사 상태 초기화
   const handleNicknameChange = (value: string) => {
     setDisplayName(value);
@@ -301,11 +326,25 @@ function SignupForm() {
         </div>
 
         <Card className="bg-[#1A1D26] border-[#2A2D36] p-6">
-          {/* Kakao Login First (primary) */}
+          {/* Apple Login */}
+          <Button
+            onClick={handleAppleLogin}
+            disabled={appleLoading}
+            className="w-full bg-white text-black hover:bg-white/90 font-semibold h-11"
+          >
+            {appleLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            ) : (
+              <Apple className="w-5 h-5 mr-2" />
+            )}
+            Apple로 시작하기
+          </Button>
+
+          {/* Kakao Login */}
           <Button
             onClick={handleKakaoLogin}
             disabled={kakaoLoading}
-            className="w-full bg-[#FEE500] text-[#191919] hover:bg-[#FEE500]/90 font-semibold h-11"
+            className="w-full bg-[#FEE500] text-[#191919] hover:bg-[#FEE500]/90 font-semibold h-11 mt-2"
           >
             {kakaoLoading ? (
               <Loader2 className="w-4 h-4 animate-spin mr-2" />
