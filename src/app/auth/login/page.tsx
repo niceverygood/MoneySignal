@@ -68,16 +68,15 @@ function LoginForm() {
   };
 
   const handleOAuthLogin = async (provider: "kakao" | "apple") => {
-    const setLoading = provider === "kakao" ? setKakaoLoading : setAppleLoading;
+    const setLoadingState = provider === "kakao" ? setKakaoLoading : setAppleLoading;
     const providerLabel = provider === "kakao" ? "카카오" : "Apple";
-    setLoading(true);
+    setLoadingState(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
-          skipBrowserRedirect: true,
         },
       });
 
@@ -87,32 +86,11 @@ function LoginForm() {
         } else {
           toast.error(error.message);
         }
-        setLoading(false);
-        return;
-      }
-
-      if (data?.url) {
-        // 네이티브 앱: 인앱 브라우저, 웹: 직접 이동
-        const { Capacitor } = await import("@capacitor/core");
-        if (Capacitor.isNativePlatform()) {
-          const { Browser } = await import("@capacitor/browser");
-          await Browser.open({ url: data.url, presentationStyle: "popover" });
-
-          // 인앱 브라우저 닫힌 후 세션 확인
-          Browser.addListener("browserFinished", async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-              window.location.href = redirectTo;
-            }
-            setLoading(false);
-          });
-        } else {
-          window.location.href = data.url;
-        }
+        setLoadingState(false);
       }
     } catch {
       toast.error(`${providerLabel} 로그인 연결에 실패했습니다.`);
-      setLoading(false);
+      setLoadingState(false);
     }
   };
 
