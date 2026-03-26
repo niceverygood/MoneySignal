@@ -151,8 +151,21 @@ export default function PostDetailPage() {
     setLiked(true);
   };
 
+  const BLOCKED_WORDS = [
+    "시발", "씨발", "ㅅㅂ", "씹", "좆", "ㅈㄹ", "병신", "ㅂㅅ",
+    "개새끼", "미친놈", "미친년", "꺼져", "닥쳐", "죽어",
+    "사기", "먹튀", "원금보장", "수익보장", "100%수익",
+  ];
+
   const handleComment = async () => {
     if (!newComment.trim() || !userProfile || !post) return;
+
+    const lower = newComment.toLowerCase().replace(/\s/g, "");
+    if (BLOCKED_WORDS.some((w) => lower.includes(w))) {
+      toast.error("부적절한 표현이 포함되어 있습니다.");
+      return;
+    }
+
     setSending(true);
     try {
       const { error } = await supabase.from("community_comments").insert({

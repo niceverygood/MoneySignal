@@ -180,8 +180,12 @@ export default function SubscribePage() {
   const [subscribing, setSubscribing] = useState<string | null>(null);
   const [showComparison, setShowComparison] = useState(false);
   const [displayName, setDisplayName] = useState<string>("사용자");
+  const [isNativeApp, setIsNativeApp] = useState(false);
 
   useEffect(() => {
+    import("@capacitor/core").then(({ Capacitor }) => {
+      setIsNativeApp(Capacitor.isNativePlatform());
+    });
     async function fetchTier() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -362,31 +366,33 @@ export default function SubscribePage() {
         </div>
       </div>
 
-      {/* Referral Code */}
-      <Card className="bg-[#1A1D26] border-[#2A2D36] p-4">
-        <p className="text-sm text-white mb-2">운영자 추천코드 (선택)</p>
-        <div className="flex gap-2">
-          <Input
-            value={referralCode}
-            onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-            placeholder="6자리 코드 입력"
-            maxLength={6}
-            className="bg-[#22262F] border-[#2A2D36] text-white font-mono uppercase tracking-widest"
-          />
-          <Button
-            onClick={handleReferralCheck}
-            variant="outline"
-            className="border-[#2A2D36] text-[#8B95A5] shrink-0"
-          >
-            확인
-          </Button>
-        </div>
-        {referralPartner && (
-          <p className="text-xs text-[#00E676] mt-2">
-            {referralPartner} 운영자와 연결됩니다
-          </p>
-        )}
-      </Card>
+      {/* Referral Code — 네이티브 앱(iOS/Android)에서는 숨김 (App Store 3.1.1) */}
+      {!isNativeApp && (
+        <Card className="bg-[#1A1D26] border-[#2A2D36] p-4">
+          <p className="text-sm text-white mb-2">운영자 추천코드 (선택)</p>
+          <div className="flex gap-2">
+            <Input
+              value={referralCode}
+              onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+              placeholder="6자리 코드 입력"
+              maxLength={6}
+              className="bg-[#22262F] border-[#2A2D36] text-white font-mono uppercase tracking-widest"
+            />
+            <Button
+              onClick={handleReferralCheck}
+              variant="outline"
+              className="border-[#2A2D36] text-[#8B95A5] shrink-0"
+            >
+              확인
+            </Button>
+          </div>
+          {referralPartner && (
+            <p className="text-xs text-[#00E676] mt-2">
+              {referralPartner} 운영자와 연결됩니다
+            </p>
+          )}
+        </Card>
+      )}
 
       {/* Plan Cards Grid */}
       <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">

@@ -255,10 +255,11 @@ function SignupForm() {
     setLoadingState(true);
 
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
+          skipBrowserRedirect: true,
         },
       });
 
@@ -269,6 +270,11 @@ function SignupForm() {
           toast.error(error.message);
         }
         setLoadingState(false);
+        return;
+      }
+
+      if (data?.url) {
+        window.location.href = data.url;
       }
     } catch {
       toast.error(`${providerLabel} 로그인 연결에 실패했습니다.`);

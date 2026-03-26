@@ -51,6 +51,17 @@ export default function CommunityWritePage() {
     init();
   }, [supabase]);
 
+  const BLOCKED_WORDS = [
+    "시발", "씨발", "ㅅㅂ", "씹", "좆", "ㅈㄹ", "병신", "ㅂㅅ",
+    "개새끼", "미친놈", "미친년", "꺼져", "닥쳐", "죽어",
+    "사기", "먹튀", "원금보장", "수익보장", "100%수익",
+  ];
+
+  const containsBlockedWord = (text: string): boolean => {
+    const lower = text.toLowerCase().replace(/\s/g, "");
+    return BLOCKED_WORDS.some((w) => lower.includes(w));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title.trim() || !form.message.trim()) {
@@ -59,6 +70,12 @@ export default function CommunityWritePage() {
     }
     if (!profile) {
       toast.error("로그인이 필요합니다");
+      return;
+    }
+
+    // 비속어 필터
+    if (containsBlockedWord(form.title) || containsBlockedWord(form.message)) {
+      toast.error("부적절한 표현이 포함되어 있습니다. 수정 후 다시 시도해주세요.");
       return;
     }
 

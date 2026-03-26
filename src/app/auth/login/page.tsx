@@ -73,10 +73,11 @@ function LoginForm() {
     setLoadingState(true);
 
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
+          skipBrowserRedirect: true,
         },
       });
 
@@ -87,6 +88,12 @@ function LoginForm() {
           toast.error(error.message);
         }
         setLoadingState(false);
+        return;
+      }
+
+      // 웹뷰 내에서 직접 이동 (외부 Safari 방지)
+      if (data?.url) {
+        window.location.href = data.url;
       }
     } catch {
       toast.error(`${providerLabel} 로그인 연결에 실패했습니다.`);
