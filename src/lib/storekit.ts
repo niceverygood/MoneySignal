@@ -52,20 +52,21 @@ export default StoreKit;
 
 const APP_BUNDLE_ID = "app.moneysignal.kr";
 
+// App Store Connect에 등록된 실제 제품 ID (변경 불가)
 export const IAP_PRODUCT_IDS: Record<string, Record<string, string>> = {
   basic: {
-    monthly: `${APP_BUNDLE_ID}.basic.monthly`,
+    monthly: "app.moneysinal.kr.basic.monthly", // App Store Connect 오타 (moneysinal)
     quarterly: `${APP_BUNDLE_ID}.basic.quarterly`,
-    yearly: `${APP_BUNDLE_ID}.basic.yearly`,
+    yearly: `${APP_BUNDLE_ID}.basic.annual`,
   },
   pro: {
     monthly: `${APP_BUNDLE_ID}.pro.monthly`,
     quarterly: `${APP_BUNDLE_ID}.pro.quarterly`,
-    yearly: `${APP_BUNDLE_ID}.pro.yearly`,
+    yearly: `${APP_BUNDLE_ID}.pro.annual`,
   },
   premium: {
     monthly: `${APP_BUNDLE_ID}.premium.monthly`,
-    quarterly: `${APP_BUNDLE_ID}.premium.quarterly`,
+    quarterly: `${APP_BUNDLE_ID}.premium.Quarterly`, // App Store Connect 대문자 Q
   },
   bundle: {
     monthly: `${APP_BUNDLE_ID}.bundle.monthly`,
