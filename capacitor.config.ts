@@ -7,6 +7,14 @@ const config: CapacitorConfig = {
   server: {
     url: 'https://money-signal.vercel.app',
     cleartext: false,
+    allowNavigation: [
+      'efgjkkywysbxebfwmlbj.supabase.co',
+      '*.supabase.co',
+      'kauth.kakao.com',
+      'accounts.kakao.com',
+      'appleid.apple.com',
+      'money-signal.vercel.app',
+    ],
   },
   plugins: {
     SplashScreen: {

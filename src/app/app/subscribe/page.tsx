@@ -21,6 +21,8 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { SubscriptionTier } from "@/types";
 import { PLAN_PRICES } from "@/lib/portone";
+import type { StoreKitProduct } from "@/lib/storekit";
+import { IAP_PRODUCT_IDS, getAllProductIds, parseTierFromProductId } from "@/lib/storekit";
 
 // ============================================
 // Plan definitions
@@ -181,10 +183,29 @@ export default function SubscribePage() {
   const [showComparison, setShowComparison] = useState(false);
   const [displayName, setDisplayName] = useState<string>("사용자");
   const [isNativeApp, setIsNativeApp] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+  const [iapProducts, setIapProducts] = useState<StoreKitProduct[]>([]);
+  const [iapLoading, setIapLoading] = useState(false);
+  const [restoring, setRestoring] = useState(false);
 
   useEffect(() => {
-    import("@capacitor/core").then(({ Capacitor }) => {
-      setIsNativeApp(Capacitor.isNativePlatform());
+    import("@capacitor/core").then(async ({ Capacitor }) => {
+      const isNative = Capacitor.isNativePlatform();
+      const platform = Capacitor.getPlatform();
+      setIsNativeApp(isNative);
+      setIsIOS(platform === "ios");
+
+      // iOS 네이티브 앱이면 StoreKit 상품 로드
+      if (isNative && platform === "ios") {
+        try {
+          const { default: StoreKit } = await import("@/lib/storekit");
+          const productIds = getAllProductIds();
+          const { products } = await StoreKit.getProducts({ productIds });
+          setIapProducts(products);
+        } catch (err) {
+          console.error("StoreKit products load error:", err);
+        }
+      }
     });
     async function fetchTier() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -219,44 +240,129 @@ export default function SubscribePage() {
     }
   };
 
-  const handleSubscribe = async (tier: string, price: number) => {
+  // iOS StoreKit IAP 결제
+  const handleIAPSubscribe = async (tier: string) => {
     setSubscribing(tier);
-
-    if (price === 0) {
-      try {
-        if (referralCode && referralPartner) {
-          await fetch("/api/partner/referral", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ referralCode }),
-          });
-        }
-        const res = await fetch("/api/subscribe", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            tier,
-            amount: 0,
-            referralCode: referralCode || null,
-            billingCycle: "monthly",
-            paymentMethod: "free_trial",
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) { toast.error(data.error); return; }
-        toast.success(`${tier.toUpperCase()} 무료 체험이 시작되었습니다!`);
-        router.push("/app");
+    try {
+      const iapProductId = IAP_PRODUCT_IDS[tier]?.[billingCycle];
+      if (!iapProductId) {
+        toast.error("해당 플랜은 현재 이용할 수 없습니다");
         return;
-      } catch { toast.error("처리 중 오류"); } finally { setSubscribing(null); }
-      return;
-    }
+      }
 
+      const { default: StoreKit } = await import("@/lib/storekit");
+      const result = await StoreKit.purchase({ productId: iapProductId });
+
+      if (result.cancelled) {
+        toast.error("구매가 취소되었습니다");
+        return;
+      }
+      if (result.pending) {
+        toast.info("구매 승인 대기 중입니다");
+        return;
+      }
+      if (!result.success) {
+        toast.error("구매에 실패했습니다");
+        return;
+      }
+
+      toast.loading("구독 처리 중...");
+
+      // 서버에 트랜잭션 검증 + 구독 활성화 요청
+      const verifyRes = await fetch("/api/iap/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId: result.productId,
+          transactionId: result.transactionId,
+          originalTransactionId: result.originalTransactionId,
+          purchaseDate: result.purchaseDate,
+          expirationDate: result.expirationDate,
+          jwsRepresentation: result.jwsRepresentation,
+          tier,
+          billingCycle,
+        }),
+      });
+
+      const verifyData = await verifyRes.json();
+      toast.dismiss();
+
+      if (!verifyRes.ok) {
+        toast.error(verifyData.error || "구독 처리 실패");
+        return;
+      }
+
+      toast.success(`${tier.toUpperCase()} 구독이 시작되었습니다!`);
+      router.push("/app");
+    } catch (err) {
+      console.error("IAP error:", err);
+      toast.dismiss();
+      toast.error("결제 처리 중 오류가 발생했습니다");
+    } finally {
+      setSubscribing(null);
+    }
+  };
+
+  // 구매 복원 (iOS)
+  const handleRestore = async () => {
+    setRestoring(true);
+    try {
+      const { default: StoreKit } = await import("@/lib/storekit");
+      const { transactions } = await StoreKit.restorePurchases();
+
+      if (transactions.length === 0) {
+        toast.info("복원할 구독이 없습니다");
+        return;
+      }
+
+      // 가장 최근 트랜잭션으로 구독 복원
+      const latest = transactions[0];
+      const parsed = parseTierFromProductId(latest.productId);
+      if (!parsed) {
+        toast.error("알 수 없는 상품입니다");
+        return;
+      }
+
+      toast.loading("구독 복원 중...");
+      const verifyRes = await fetch("/api/iap/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId: latest.productId,
+          transactionId: latest.transactionId,
+          originalTransactionId: latest.originalTransactionId,
+          purchaseDate: latest.purchaseDate,
+          expirationDate: latest.expirationDate,
+          tier: parsed.tier,
+          billingCycle: parsed.billingCycle,
+        }),
+      });
+
+      const data = await verifyRes.json();
+      toast.dismiss();
+
+      if (verifyRes.ok) {
+        toast.success("구독이 복원되었습니다!");
+        router.push("/app");
+      } else {
+        toast.error(data.error || "구독 복원 실패");
+      }
+    } catch (err) {
+      console.error("Restore error:", err);
+      toast.dismiss();
+      toast.error("복원 중 오류가 발생했습니다");
+    } finally {
+      setRestoring(false);
+    }
+  };
+
+  // 웹/Android PortOne 결제
+  const handlePortOneSubscribe = async (tier: string, price: number) => {
     try {
       const { default: PortOne } = await import("@portone/browser-sdk/v2");
       const tierNames: Record<string, string> = { basic: "Basic", pro: "Pro", premium: "Premium", bundle: "VIP Bundle" };
       const { data: { user: authUser } } = await supabase.auth.getUser();
 
-      // 빌링키 발급 요청 (정기결제용 카드 등록)
       const response = await PortOne.requestIssueBillingKey({
         storeId: process.env.NEXT_PUBLIC_PORTONE_STORE_ID || "",
         channelKey: process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY || "",
@@ -296,7 +402,6 @@ export default function SubscribePage() {
         });
       }
 
-      // 빌링키로 첫 결제 + 구독 생성
       const issueRes = await fetch("/api/billing/issue", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -327,6 +432,49 @@ export default function SubscribePage() {
     } finally {
       setSubscribing(null);
     }
+  };
+
+  const handleSubscribe = async (tier: string, price: number) => {
+    setSubscribing(tier);
+
+    // 무료 체험
+    if (price === 0) {
+      try {
+        if (referralCode && referralPartner) {
+          await fetch("/api/partner/referral", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ referralCode }),
+          });
+        }
+        const res = await fetch("/api/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tier,
+            amount: 0,
+            referralCode: referralCode || null,
+            billingCycle: "monthly",
+            paymentMethod: "free_trial",
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) { toast.error(data.error); return; }
+        toast.success(`${tier.toUpperCase()} 무료 체험이 시작되었습니다!`);
+        router.push("/app");
+        return;
+      } catch { toast.error("처리 중 오류"); } finally { setSubscribing(null); }
+      return;
+    }
+
+    // iOS 네이티브 → Apple IAP
+    if (isIOS) {
+      await handleIAPSubscribe(tier);
+      return;
+    }
+
+    // 웹/Android → PortOne
+    await handlePortOneSubscribe(tier, price);
   };
 
   const tierOrder = ["free", "basic", "pro", "premium", "bundle"];
@@ -394,15 +542,40 @@ export default function SubscribePage() {
         </Card>
       )}
 
+      {/* iOS 구매 복원 버튼 */}
+      {isIOS && (
+        <div className="flex justify-center">
+          <button
+            onClick={handleRestore}
+            disabled={restoring}
+            className="text-xs text-[#8B95A5] hover:text-white underline transition-colors"
+          >
+            {restoring ? "복원 중..." : "이전 구매 복원"}
+          </button>
+        </div>
+      )}
+
       {/* Plan Cards Grid */}
       <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
         {PLANS.filter(p => p.tier !== "free").filter((plan) => {
           const prices = PLAN_PRICES[plan.tier];
+          // iOS에서는 IAP 상품이 등록된 플랜만 표시
+          if (isIOS) {
+            const iapId = IAP_PRODUCT_IDS[plan.tier]?.[billingCycle];
+            return iapId && iapProducts.some(p => p.id === iapId);
+          }
           return prices?.[billingCycle] != null;
         }).map((plan) => {
           const prices = PLAN_PRICES[plan.tier];
           const price = prices?.[billingCycle] || 0;
-          const monthlyEquiv = billingCycle === "monthly" ? price : billingCycle === "quarterly" ? Math.round(price / 3) : Math.round(price / 12);
+
+          // iOS에서는 App Store 실제 가격 표시
+          const iapProduct = isIOS
+            ? iapProducts.find(p => p.id === IAP_PRODUCT_IDS[plan.tier]?.[billingCycle])
+            : null;
+          const displayPrice = iapProduct ? iapProduct.price : price;
+
+          const monthlyEquiv = billingCycle === "monthly" ? displayPrice : billingCycle === "quarterly" ? Math.round(displayPrice / 3) : Math.round(displayPrice / 12);
           const discount = getDiscountPercent(plan.tier, billingCycle);
           const planIdx = tierOrder.indexOf(plan.tier);
           const isCurrent = plan.tier === currentTier;
@@ -460,12 +633,21 @@ export default function SubscribePage() {
                     </>
                   ) : (
                     <>
-                      <span className="text-xl sm:text-2xl font-bold text-white">{formatPrice(monthlyEquiv)}</span>
-                      <span className="text-xs text-[#8B95A5]">원/월</span>
-                      {billingCycle !== "monthly" && (
-                        <p className="text-[10px] text-[#8B95A5]">
-                          {billingCycle === "quarterly" ? "3개월" : "12개월"} 합계 {formatPrice(price)}원
-                        </p>
+                      {iapProduct ? (
+                        <>
+                          <span className="text-xl sm:text-2xl font-bold text-white">{iapProduct.displayPrice}</span>
+                          <span className="text-xs text-[#8B95A5]">/{billingCycle === "monthly" ? "월" : billingCycle === "quarterly" ? "분기" : "연"}</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-xl sm:text-2xl font-bold text-white">{formatPrice(monthlyEquiv)}</span>
+                          <span className="text-xs text-[#8B95A5]">원/월</span>
+                          {billingCycle !== "monthly" && (
+                            <p className="text-[10px] text-[#8B95A5]">
+                              {billingCycle === "quarterly" ? "3개월" : "12개월"} 합계 {formatPrice(price)}원
+                            </p>
+                          )}
+                        </>
                       )}
                     </>
                   )}
@@ -628,8 +810,17 @@ export default function SubscribePage() {
         <ul className="text-[10px] text-[#8B95A5] leading-relaxed space-y-1 list-disc list-inside">
           <li>구독 기간: 월간(1개월) / 분기(3개월) / 연간(12개월)</li>
           <li>구독은 선택한 주기에 따라 자동 갱신되며, 현재 구독 기간 종료 최소 24시간 전에 자동 갱신을 해제하지 않으면 구독이 자동으로 갱신됩니다.</li>
-          <li>결제는 구매 확인 시 iTunes 계정으로 청구됩니다.</li>
-          <li>구독 관리 및 자동갱신 해제는 구매 후 계정 설정에서 가능합니다.</li>
+          {isIOS ? (
+            <>
+              <li>결제는 구매 확인 시 Apple ID 계정으로 청구됩니다.</li>
+              <li>구독 관리 및 자동갱신 해제는 iPhone 설정 &gt; Apple ID &gt; 구독에서 가능합니다.</li>
+            </>
+          ) : (
+            <>
+              <li>결제는 구매 확인 시 등록된 결제 수단으로 청구됩니다.</li>
+              <li>구독 관리 및 자동갱신 해제는 구매 후 계정 설정에서 가능합니다.</li>
+            </>
+          )}
         </ul>
         <div className="flex items-center gap-3 pt-1">
           <a href="/terms" className="text-[10px] text-[#F5B800] hover:underline">이용약관</a>
