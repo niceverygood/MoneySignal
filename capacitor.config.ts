@@ -13,6 +13,7 @@ const config: CapacitorConfig = {
       'kauth.kakao.com',
       'accounts.kakao.com',
       'appleid.apple.com',
+      '*.apple.com',
       'money-signal.vercel.app',
     ],
   },

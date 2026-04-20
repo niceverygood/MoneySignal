@@ -65,9 +65,21 @@ public class StoreKitPlugin: CAPPlugin, CAPBridgedPlugin {
                     }
                     return dict
                 }
-                call.resolve(["products": products])
+                let foundIds = Set(storeProducts.map { $0.id })
+                let missingIds = productIds.filter { !foundIds.contains($0) }
+                call.resolve([
+                    "products": products,
+                    "requestedCount": productIds.count,
+                    "foundCount": storeProducts.count,
+                    "missingIds": missingIds,
+                ])
             } catch {
-                call.reject("Failed to fetch products: \(error.localizedDescription)")
+                let nsErr = error as NSError
+                call.reject(
+                    "Failed to fetch products: \(error.localizedDescription)",
+                    "\(nsErr.domain):\(nsErr.code)",
+                    error
+                )
             }
         }
     }

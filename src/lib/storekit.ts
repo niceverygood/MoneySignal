@@ -35,7 +35,12 @@ export interface PurchaseResult {
 }
 
 interface StoreKitPluginInterface {
-  getProducts(options: { productIds: string[] }): Promise<{ products: StoreKitProduct[] }>;
+  getProducts(options: { productIds: string[] }): Promise<{
+    products: StoreKitProduct[];
+    requestedCount?: number;
+    foundCount?: number;
+    missingIds?: string[];
+  }>;
   purchase(options: { productId: string }): Promise<PurchaseResult>;
   restorePurchases(): Promise<{ transactions: StoreKitTransaction[] }>;
   getCurrentEntitlements(): Promise<{ entitlements: (StoreKitTransaction & { isExpired: boolean })[] }>;

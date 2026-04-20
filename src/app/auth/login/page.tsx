@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -24,6 +24,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirectTo") || "/app";
   const message = searchParams.get("message");
+  const authError = searchParams.get("error");
   const supabase = createClient();
 
   const [email, setEmail] = useState(searchParams.get("email") || "");
@@ -31,6 +32,13 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [kakaoLoading, setKakaoLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
+  const [isNativeIOS, setIsNativeIOS] = useState(false);
+
+  useEffect(() => {
+    import("@capacitor/core").then(({ Capacitor }) => {
+      setIsNativeIOS(Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios");
+    });
+  }, []);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,14 +75,54 @@ function LoginForm() {
     }
   };
 
-  const handleOAuthLogin = async (provider: "kakao" | "apple") => {
-    const setLoadingState = provider === "kakao" ? setKakaoLoading : setAppleLoading;
-    const providerLabel = provider === "kakao" ? "카카오" : "Apple";
-    setLoadingState(true);
+  const handleAppleLogin = async () => {
+    setAppleLoading(true);
 
+    // iOS 네이티브: AuthenticationServices 프레임워크 사용
+    if (isNativeIOS) {
+      try {
+        const { signInWithAppleNative } = await import("@/lib/apple-signin");
+        const res = await signInWithAppleNative();
+        if (!res.ok) {
+          toast.error(res.error || "Apple 로그인에 실패했습니다");
+          setAppleLoading(false);
+          return;
+        }
+        toast.success("로그인 성공!");
+        window.location.href = redirectTo;
+      } catch (err) {
+        console.error("Apple native sign-in error:", err);
+        toast.error("Apple 로그인 연결에 실패했습니다");
+        setAppleLoading(false);
+      }
+      return;
+    }
+
+    // 웹/Android: 기존 OAuth 리다이렉트
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
-        provider,
+        provider: "apple",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
+        },
+      });
+      if (error) {
+        toast.error(error.message);
+        setAppleLoading(false);
+        return;
+      }
+      if (data?.url) window.location.href = data.url;
+    } catch {
+      toast.error("Apple 로그인 연결에 실패했습니다");
+      setAppleLoading(false);
+    }
+  };
+
+  const handleKakaoLogin = async () => {
+    setKakaoLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "kakao",
         options: {
           redirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
           skipBrowserRedirect: true,
@@ -83,21 +131,20 @@ function LoginForm() {
 
       if (error) {
         if (error.message.includes("not enabled") || error.message.includes("unsupported")) {
-          toast.error(`${providerLabel} 로그인 준비 중입니다. 이메일로 로그인해주세요.`);
+          toast.error("카카오 로그인 준비 중입니다. 이메일로 로그인해주세요.");
         } else {
           toast.error(error.message);
         }
-        setLoadingState(false);
+        setKakaoLoading(false);
         return;
       }
 
-      // 웹뷰 내에서 직접 이동 (외부 Safari 방지)
       if (data?.url) {
         window.location.href = data.url;
       }
     } catch {
-      toast.error(`${providerLabel} 로그인 연결에 실패했습니다.`);
-      setLoadingState(false);
+      toast.error("카카오 로그인 연결에 실패했습니다.");
+      setKakaoLoading(false);
     }
   };
 
@@ -112,6 +159,15 @@ function LoginForm() {
             AI 매수 시그널 서비스에 로그인
           </p>
         </div>
+
+        {/* Auth error message */}
+        {authError && (
+          <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+            <p className="text-xs text-red-400">
+              로그인에 실패했습니다. 다시 시도해주세요.
+            </p>
+          </div>
+        )}
 
         {/* Email confirmation message */}
         {message === "confirm_email" && (
@@ -128,7 +184,7 @@ function LoginForm() {
         <Card className="bg-[#1A1D26] border-[#2A2D36] p-6">
           {/* Apple Login */}
           <Button
-            onClick={() => handleOAuthLogin("apple")}
+            onClick={handleAppleLogin}
             disabled={appleLoading}
             className="w-full bg-white text-black hover:bg-white/90 font-semibold h-11"
           >
@@ -142,7 +198,7 @@ function LoginForm() {
 
           {/* Kakao Login */}
           <Button
-            onClick={() => handleOAuthLogin("kakao")}
+            onClick={handleKakaoLogin}
             disabled={kakaoLoading}
             className="w-full bg-[#FEE500] text-[#191919] hover:bg-[#FEE500]/90 font-semibold h-11 mt-2"
           >

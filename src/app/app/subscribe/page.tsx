@@ -186,7 +186,43 @@ export default function SubscribePage() {
   const [isIOS, setIsIOS] = useState(false);
   const [iapProducts, setIapProducts] = useState<StoreKitProduct[]>([]);
   const [iapLoading, setIapLoading] = useState(false);
+  const [iapError, setIapError] = useState<string | null>(null);
   const [restoring, setRestoring] = useState(false);
+
+  const loadIapProducts = async () => {
+    setIapError(null);
+    setIapLoading(true);
+    try {
+      const { default: StoreKit } = await import("@/lib/storekit");
+      const productIds = getAllProductIds();
+      let lastErr: unknown = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const res = await StoreKit.getProducts({ productIds });
+          setIapProducts(res.products);
+          if (res.products.length === 0) {
+            setIapError(
+              `구독 상품을 불러올 수 없습니다. (요청 ${res.requestedCount ?? productIds.length}개, 수신 0개)`
+            );
+          } else if (res.missingIds && res.missingIds.length > 0) {
+            console.warn("StoreKit missing product IDs:", res.missingIds);
+          }
+          return;
+        } catch (err) {
+          lastErr = err;
+          if (attempt < 2) await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+        }
+      }
+      console.error("StoreKit products load error (all retries failed):", lastErr);
+      setIapError(
+        lastErr instanceof Error
+          ? `구독 상품 로드 실패: ${lastErr.message}`
+          : "구독 상품을 불러올 수 없습니다"
+      );
+    } finally {
+      setIapLoading(false);
+    }
+  };
 
   useEffect(() => {
     import("@capacitor/core").then(async ({ Capacitor }) => {
@@ -195,16 +231,8 @@ export default function SubscribePage() {
       setIsNativeApp(isNative);
       setIsIOS(platform === "ios");
 
-      // iOS 네이티브 앱이면 StoreKit 상품 로드
       if (isNative && platform === "ios") {
-        try {
-          const { default: StoreKit } = await import("@/lib/storekit");
-          const productIds = getAllProductIds();
-          const { products } = await StoreKit.getProducts({ productIds });
-          setIapProducts(products);
-        } catch (err) {
-          console.error("StoreKit products load error:", err);
-        }
+        await loadIapProducts();
       }
     });
     async function fetchTier() {
@@ -555,14 +583,38 @@ export default function SubscribePage() {
         </div>
       )}
 
+      {/* IAP 로딩 상태 */}
+      {isIOS && iapLoading && (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="w-6 h-6 animate-spin text-[#F5B800] mr-2" />
+          <span className="text-sm text-[#8B95A5]">구독 상품을 불러오는 중...</span>
+        </div>
+      )}
+
+      {/* IAP 에러 + 재시도 */}
+      {isIOS && !iapLoading && iapError && (
+        <Card className="bg-[#1A1D26] border-red-500/30 p-4">
+          <p className="text-sm text-red-400 mb-2">⚠️ {iapError}</p>
+          <p className="text-xs text-[#8B95A5] mb-3">
+            네트워크를 확인하거나 잠시 후 다시 시도해주세요. 계속 실패하면 재설치 후 시도해주세요.
+          </p>
+          <Button
+            onClick={loadIapProducts}
+            className="bg-[#F5B800] text-[#0D0F14] hover:bg-[#FFD54F] font-semibold"
+          >
+            다시 시도
+          </Button>
+        </Card>
+      )}
+
       {/* Plan Cards Grid */}
       <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
         {PLANS.filter(p => p.tier !== "free").filter((plan) => {
           const prices = PLAN_PRICES[plan.tier];
-          // iOS에서는 IAP 상품이 등록된 플랜만 표시
+          // iOS에서도 IAP 상품 ID가 정의된 플랜은 항상 표시 (로드 실패해도)
           if (isIOS) {
             const iapId = IAP_PRODUCT_IDS[plan.tier]?.[billingCycle];
-            return iapId && iapProducts.some(p => p.id === iapId);
+            return !!iapId;
           }
           return prices?.[billingCycle] != null;
         }).map((plan) => {
@@ -693,10 +745,10 @@ export default function SubscribePage() {
               {/* CTA */}
               <Button
                 onClick={() => handleSubscribe(plan.tier, isFreeTrial ? 0 : price)}
-                disabled={isCurrent || isDowngrade || subscribing === plan.tier}
+                disabled={isCurrent || isDowngrade || subscribing === plan.tier || (isIOS && !iapProduct && !iapLoading)}
                 className={cn(
                   "w-full font-semibold h-11 text-xs sm:text-sm",
-                  isCurrent
+                  isCurrent || (isIOS && !iapProduct && !iapLoading)
                     ? "bg-[#22262F] text-[#8B95A5] cursor-default"
                     : isFreeTrial
                       ? "bg-[#00E676] text-[#0D0F14] hover:bg-[#00E676]/90"
@@ -708,13 +760,17 @@ export default function SubscribePage() {
                 )}
               >
                 {subscribing === plan.tier && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                {isCurrent
+                {iapLoading && isIOS
+                  ? "불러오는 중..."
+                  : isCurrent
                   ? "현재 구독중"
                   : isDowngrade
                     ? "다운그레이드 불가"
-                    : isFreeTrial
-                      ? "무료 시작"
-                      : "구독하기"}
+                    : isIOS && !iapProduct
+                      ? "일시적으로 이용 불가"
+                      : isFreeTrial
+                        ? "무료 시작"
+                        : "구독하기"}
               </Button>
             </Card>
           );
