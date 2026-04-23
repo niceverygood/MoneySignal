@@ -1,9 +1,22 @@
-import { Capacitor } from "@capacitor/core";
-import { SignInWithApple, type SignInWithAppleResponse } from "@capacitor-community/apple-sign-in";
+import { Capacitor, registerPlugin } from "@capacitor/core";
 import { createClient } from "@/lib/supabase/client";
 
-const CLIENT_ID = "app.moneysignal.kr";
-const REDIRECT_URI = "https://money-signal.vercel.app/auth/callback";
+interface AppleAuthorizeResponse {
+  response: {
+    user?: string;
+    email?: string;
+    givenName?: string;
+    familyName?: string;
+    identityToken?: string;
+    authorizationCode?: string;
+  };
+}
+
+interface AppleSignInPluginInterface {
+  authorize(options: { scopes?: string; nonce?: string; state?: string }): Promise<AppleAuthorizeResponse>;
+}
+
+const AppleSignIn = registerPlugin<AppleSignInPluginInterface>("AppleSignIn");
 
 function generateNonce(length = 32): string {
   const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -28,17 +41,17 @@ export async function signInWithAppleNative(): Promise<{ ok: boolean; error?: st
   const rawNonce = generateNonce();
   const hashedNonce = await sha256Hex(rawNonce);
 
-  let result: SignInWithAppleResponse;
+  let result: AppleAuthorizeResponse;
   try {
-    result = await SignInWithApple.authorize({
-      clientId: CLIENT_ID,
-      redirectURI: REDIRECT_URI,
+    result = await AppleSignIn.authorize({
       scopes: "email name",
       nonce: hashedNonce,
     });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    if (msg.toLowerCase().includes("canceled") || msg.toLowerCase().includes("cancelled")) {
+    const e = err as { code?: string; message?: string };
+    const msg = e?.message || String(err);
+    const code = e?.code;
+    if (code === "USER_CANCELED" || msg.toLowerCase().includes("cancel")) {
       return { ok: false, error: "로그인이 취소되었습니다" };
     }
     return { ok: false, error: `Apple 로그인 실패: ${msg}` };

@@ -2,7 +2,6 @@ import Foundation
 import Capacitor
 import StoreKit
 
-@available(iOS 15.0, *)
 @objc(StoreKitPlugin)
 public class StoreKitPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "StoreKit"
