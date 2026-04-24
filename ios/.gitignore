@@ -9,5 +9,7 @@ xcuserdata
 capacitor-cordova-ios-plugins
 
 # Generated Config files
-App/App/capacitor.config.json
+# NOTE: App/App/capacitor.config.json is tracked because packageClassList
+# contains app-target plugins (AppleSignInPlugin, StoreKitPlugin) that
+# `cap sync` cannot auto-generate. Re-add entries if cap sync wipes them.
 App/App/config.xml

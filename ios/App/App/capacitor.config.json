@@ -1,0 +1,64 @@
+{
+	"appId": "app.moneysignal.kr",
+	"appName": "MoneySignal",
+	"server": {
+		"url": "https://money-signal.vercel.app",
+		"cleartext": false,
+		"allowNavigation": [
+			"efgjkkywysbxebfwmlbj.supabase.co",
+			"*.supabase.co",
+			"kauth.kakao.com",
+			"accounts.kakao.com",
+			"appleid.apple.com",
+			"*.apple.com",
+			"money-signal.vercel.app"
+		]
+	},
+	"plugins": {
+		"SplashScreen": {
+			"launchAutoHide": true,
+			"launchShowDuration": 2000,
+			"backgroundColor": "#000000",
+			"showSpinner": false
+		},
+		"StatusBar": {
+			"style": "DARK",
+			"backgroundColor": "#000000"
+		},
+		"Keyboard": {
+			"resize": "body",
+			"resizeOnFullScreen": true
+		},
+		"PushNotifications": {
+			"presentationOptions": [
+				"badge",
+				"sound",
+				"alert"
+			]
+		}
+	},
+	"ios": {
+		"contentInset": "always",
+		"preferredContentMode": "mobile",
+		"scheme": "MoneySignal",
+		"backgroundColor": "#000000"
+	},
+	"android": {
+		"allowMixedContent": false,
+		"backgroundColor": "#000000"
+	},
+	"packageClassList": [
+		"AppPlugin",
+		"CAPBrowserPlugin",
+		"HapticsPlugin",
+		"KeyboardPlugin",
+		"LocalNotificationsPlugin",
+		"CAPNetworkPlugin",
+		"PushNotificationsPlugin",
+		"SplashScreenPlugin",
+		"StatusBarPlugin",
+		"NativeBiometric",
+		"AppleSignInPlugin",
+		"StoreKitPlugin"
+	]
+}

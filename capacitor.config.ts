@@ -40,6 +40,7 @@ const config: CapacitorConfig = {
     contentInset: 'always',
     preferredContentMode: 'mobile',
     scheme: 'MoneySignal',
+    backgroundColor: '#000000',
   },
   android: {
     allowMixedContent: false,
