@@ -52,7 +52,6 @@ const PLANS = [
     color: "#448AFF",
     frequency: "1시간",
     frequencyBar: 25,
-    freeTrial: true,
     features: {
       signal: ["코인 현물 시그널", "1일 3개", "30분 딜레이", "TP1 공개"],
       analysis: ["AI 분석 요약 (100자)", "백테스트 30일", "기본 대시보드"],
@@ -69,7 +68,6 @@ const PLANS = [
     popular: true,
     frequency: "30분",
     frequencyBar: 50,
-    freeTrial: true,
     features: {
       signal: ["코인 현물+선물", "1일 10개", "10분 딜레이", "TP1~2 공개", "보수적 레버리지"],
       analysis: ["AI 상세 분석", "AI 질문 3회/일", "백테스트 180일", "상세 대시보드", "주간 리포트"],
@@ -465,36 +463,6 @@ export default function SubscribePage() {
   const handleSubscribe = async (tier: string, price: number) => {
     setSubscribing(tier);
 
-    // 무료 체험
-    if (price === 0) {
-      try {
-        if (referralCode && referralPartner) {
-          await fetch("/api/partner/referral", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ referralCode }),
-          });
-        }
-        const res = await fetch("/api/subscribe", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            tier,
-            amount: 0,
-            referralCode: referralCode || null,
-            billingCycle: "monthly",
-            paymentMethod: "free_trial",
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) { toast.error(data.error); return; }
-        toast.success(`${tier.toUpperCase()} 무료 체험이 시작되었습니다!`);
-        router.push("/app");
-        return;
-      } catch { toast.error("처리 중 오류"); } finally { setSubscribing(null); }
-      return;
-    }
-
     // iOS 네이티브 → Apple IAP
     if (isIOS) {
       await handleIAPSubscribe(tier);
@@ -632,7 +600,6 @@ export default function SubscribePage() {
           const planIdx = tierOrder.indexOf(plan.tier);
           const isCurrent = plan.tier === currentTier;
           const isDowngrade = planIdx <= currentIdx && currentTier !== "free";
-          const isFreeTrial = plan.freeTrial && currentTier === "free" && billingCycle === "monthly";
 
           return (
             <Card
@@ -655,12 +622,7 @@ export default function SubscribePage() {
                         <Star className="w-3 h-3 mr-0.5" /> 인기
                       </Badge>
                     )}
-                    {isFreeTrial && (
-                      <Badge className="bg-[#00E676] text-[#0D0F14] border-0 text-[10px] font-bold animate-pulse">
-                        첫 달 무료
-                      </Badge>
-                    )}
-                    {discount && !isFreeTrial && (
+                    {discount && (
                       <Badge className="bg-[#E040FB]/10 text-[#E040FB] border-0 text-[10px]">
                         {discount}% 할인
                       </Badge>
@@ -674,32 +636,19 @@ export default function SubscribePage() {
                 </div>
                 <p className="text-xs text-[#8B95A5]">{plan.desc}</p>
                 <div className="mt-2">
-                  {isFreeTrial ? (
+                  {iapProduct ? (
                     <>
-                      <span className="text-2xl font-bold text-[#00E676]">0</span>
-                      <span className="text-xs text-[#8B95A5]">원/첫 달</span>
-                      <p className="text-[10px] text-[#8B95A5]">
-                        <span className="line-through">{formatPrice(prices?.monthly || 0)}원</span>
-                        <span className="text-[#F5B800] ml-1">다음 달부터</span>
-                      </p>
+                      <span className="text-xl sm:text-2xl font-bold text-white">{iapProduct.displayPrice}</span>
+                      <span className="text-xs text-[#8B95A5]">/{billingCycle === "monthly" ? "월" : billingCycle === "quarterly" ? "분기" : "연"}</span>
                     </>
                   ) : (
                     <>
-                      {iapProduct ? (
-                        <>
-                          <span className="text-xl sm:text-2xl font-bold text-white">{iapProduct.displayPrice}</span>
-                          <span className="text-xs text-[#8B95A5]">/{billingCycle === "monthly" ? "월" : billingCycle === "quarterly" ? "분기" : "연"}</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-xl sm:text-2xl font-bold text-white">{formatPrice(monthlyEquiv)}</span>
-                          <span className="text-xs text-[#8B95A5]">원/월</span>
-                          {billingCycle !== "monthly" && (
-                            <p className="text-[10px] text-[#8B95A5]">
-                              {billingCycle === "quarterly" ? "3개월" : "12개월"} 합계 {formatPrice(price)}원
-                            </p>
-                          )}
-                        </>
+                      <span className="text-xl sm:text-2xl font-bold text-white">{formatPrice(monthlyEquiv)}</span>
+                      <span className="text-xs text-[#8B95A5]">원/월</span>
+                      {billingCycle !== "monthly" && (
+                        <p className="text-[10px] text-[#8B95A5]">
+                          {billingCycle === "quarterly" ? "3개월" : "12개월"} 합계 {formatPrice(price)}원
+                        </p>
                       )}
                     </>
                   )}
@@ -744,19 +693,17 @@ export default function SubscribePage() {
 
               {/* CTA */}
               <Button
-                onClick={() => handleSubscribe(plan.tier, isFreeTrial ? 0 : price)}
+                onClick={() => handleSubscribe(plan.tier, price)}
                 disabled={isCurrent || isDowngrade || subscribing === plan.tier || (isIOS && !iapProduct && !iapLoading)}
                 className={cn(
                   "w-full font-semibold h-11 text-xs sm:text-sm",
                   isCurrent || (isIOS && !iapProduct && !iapLoading)
                     ? "bg-[#22262F] text-[#8B95A5] cursor-default"
-                    : isFreeTrial
-                      ? "bg-[#00E676] text-[#0D0F14] hover:bg-[#00E676]/90"
-                      : plan.popular
-                        ? "bg-[#F5B800] text-[#0D0F14] hover:bg-[#FFD54F]"
-                        : plan.tier === "bundle"
-                          ? "bg-gradient-to-r from-[#F5B800] to-[#FF8F00] text-[#0D0F14] hover:opacity-90"
-                          : "bg-[#22262F] text-white hover:bg-[#2A2D36]"
+                    : plan.popular
+                      ? "bg-[#F5B800] text-[#0D0F14] hover:bg-[#FFD54F]"
+                      : plan.tier === "bundle"
+                        ? "bg-gradient-to-r from-[#F5B800] to-[#FF8F00] text-[#0D0F14] hover:opacity-90"
+                        : "bg-[#22262F] text-white hover:bg-[#2A2D36]"
                 )}
               >
                 {subscribing === plan.tier && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
@@ -768,9 +715,7 @@ export default function SubscribePage() {
                     ? "다운그레이드 불가"
                     : isIOS && !iapProduct
                       ? "일시적으로 이용 불가"
-                      : isFreeTrial
-                        ? "무료 시작"
-                        : "구독하기"}
+                      : "구독하기"}
               </Button>
             </Card>
           );
@@ -860,21 +805,21 @@ export default function SubscribePage() {
 
       {/* Subscription Info & Legal */}
       <div className="p-4 rounded-lg bg-[#1A1D26] border border-[#2A2D36] space-y-2">
-        <p className="text-[11px] text-[#8B95A5] leading-relaxed">
-          <span className="text-white font-semibold">머니시그널 - AI 매수 시그널</span> 자동갱신 구독 안내
+        <p className="text-[11px] text-white font-semibold leading-relaxed">
+          자동 갱신 구독 안내
         </p>
         <ul className="text-[10px] text-[#8B95A5] leading-relaxed space-y-1 list-disc list-inside">
           <li>구독 기간: 월간(1개월) / 분기(3개월) / 연간(12개월)</li>
-          <li>구독은 선택한 주기에 따라 자동 갱신되며, 현재 구독 기간 종료 최소 24시간 전에 자동 갱신을 해제하지 않으면 구독이 자동으로 갱신됩니다.</li>
+          <li>구독은 선택한 주기에 따라 자동으로 갱신되며, 현재 구독 기간 종료 최소 24시간 전에 자동 갱신을 해제하지 않으면 동일 금액이 자동으로 청구됩니다.</li>
           {isIOS ? (
             <>
               <li>결제는 구매 확인 시 Apple ID 계정으로 청구됩니다.</li>
-              <li>구독 관리 및 자동갱신 해제는 iPhone 설정 &gt; Apple ID &gt; 구독에서 가능합니다.</li>
+              <li>구독 관리 및 자동 갱신 해제는 iPhone 설정 &gt; Apple ID &gt; 구독에서 가능합니다.</li>
             </>
           ) : (
             <>
               <li>결제는 구매 확인 시 등록된 결제 수단으로 청구됩니다.</li>
-              <li>구독 관리 및 자동갱신 해제는 구매 후 계정 설정에서 가능합니다.</li>
+              <li>구독 관리 및 자동 갱신 해제는 구매 후 계정 설정에서 가능합니다.</li>
             </>
           )}
         </ul>

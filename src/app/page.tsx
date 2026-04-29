@@ -35,7 +35,7 @@ export default function LandingPage() {
             </Link>
             <Link href="/auth/signup">
               <Button className="bg-[#F5B800] text-[#0D0F14] hover:bg-[#FFD54F] font-semibold">
-                무료 시작하기
+                회원가입
               </Button>
             </Link>
           </div>
@@ -65,7 +65,7 @@ export default function LandingPage() {
                 size="lg"
                 className="bg-[#F5B800] text-[#0D0F14] hover:bg-[#FFD54F] font-bold text-lg px-8 h-14"
               >
-                무료 시작하기
+                회원가입
                 <ChevronRight className="w-5 h-5 ml-1" />
               </Button>
             </Link>
