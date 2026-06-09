@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, TrendingUp, Bell, User, BrainCircuit, MessageSquare } from "lucide-react";
+import { BarChart3, TrendingUp, Bell, User, BrainCircuit } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const tabs = [
   { href: "/app", label: "시그널", icon: TrendingUp },
   { href: "/app/ask", label: "AI질문", icon: BrainCircuit },
   { href: "/app/backtest", label: "백테스트", icon: BarChart3 },
-  { href: "/app/community", label: "커뮤니티", icon: MessageSquare },
   { href: "/app/my", label: "내정보", icon: User },
 ];
 
@@ -19,7 +18,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[#0D0F14] flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-[#0D0F14]/95 backdrop-blur-sm border-b border-[#2A2D36]">
+      <header className="sticky top-0 z-50 bg-[#0D0F14]/95 backdrop-blur-sm border-b border-[#2A2D36] pt-[env(safe-area-inset-top)]">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/app" className="text-lg font-bold text-gold-gradient">
             MONEY SIGNAL
@@ -36,12 +35,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Main content */}
-      <main className="flex-1 max-w-2xl mx-auto w-full px-4 pb-20">
+      <main className="flex-1 max-w-2xl mx-auto w-full px-4 pb-[calc(5rem+env(safe-area-inset-bottom))]">
         {children}
       </main>
 
       {/* Bottom tab bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0D0F14]/95 backdrop-blur-sm border-t border-[#2A2D36]">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0D0F14]/95 backdrop-blur-sm border-t border-[#2A2D36] pb-[env(safe-area-inset-bottom)]">
         <div className="max-w-2xl mx-auto flex">
           {tabs.map((tab) => {
             const isActive =

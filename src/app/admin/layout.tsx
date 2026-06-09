@@ -6,10 +6,8 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
   Users,
-  UserCog,
   TrendingUp,
   DollarSign,
-  Wallet,
   BarChart3,
   ArrowLeft,
   Shield,
@@ -17,11 +15,9 @@ import {
 
 const sidebarItems = [
   { href: "/admin", label: "대시보드", mobileLabel: "홈", icon: LayoutDashboard },
-  { href: "/admin/partners", label: "파트너 관리", mobileLabel: "파트너", icon: UserCog },
   { href: "/admin/users", label: "유저 관리", mobileLabel: "유저", icon: Users },
   { href: "/admin/signals", label: "시그널 관리", mobileLabel: "시그널", icon: TrendingUp },
   { href: "/admin/revenue", label: "전체 매출", mobileLabel: "매출", icon: DollarSign },
-  { href: "/admin/withdrawals", label: "출금 처리", mobileLabel: "출금", icon: Wallet },
   { href: "/admin/backtest", label: "백테스트", mobileLabel: "백테스트", icon: BarChart3 },
 ];
 
@@ -35,7 +31,7 @@ export default function AdminLayout({
   return (
     <div className="min-h-screen bg-[#0D0F14] flex">
       {/* Sidebar */}
-      <aside className="hidden md:flex w-64 border-r border-[#2A2D36] flex-col bg-[#0D0F14] fixed h-full">
+      <aside className="hidden md:flex w-64 border-r border-[#2A2D36] flex-col bg-[#0D0F14] fixed h-full pt-[env(safe-area-inset-top)]">
         <div className="p-4 border-b border-[#2A2D36]">
           <Link href="/" className="text-lg font-bold text-gold-gradient">
             MONEY SIGNAL
@@ -82,7 +78,7 @@ export default function AdminLayout({
       </aside>
 
       {/* Mobile header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-[#0D0F14]/95 backdrop-blur-sm border-b border-[#2A2D36]">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-[#0D0F14]/95 backdrop-blur-sm border-b border-[#2A2D36] pt-[env(safe-area-inset-top)]">
         <div className="px-4 h-14 flex items-center justify-between">
           <Link href="/admin" className="text-lg font-bold text-gold-gradient">
             MONEY SIGNAL
@@ -117,7 +113,7 @@ export default function AdminLayout({
         </div>
       </div>
 
-      <main className="flex-1 md:ml-64 pt-[100px] md:pt-0">
+      <main className="flex-1 md:ml-64 pt-[calc(100px+env(safe-area-inset-top))] md:pt-0">
         <div className="max-w-7xl mx-auto p-4 md:p-8">{children}</div>
       </main>
     </div>

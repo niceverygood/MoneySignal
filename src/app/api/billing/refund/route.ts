@@ -93,7 +93,6 @@ export async function POST(request: NextRequest) {
     await serviceClient.from("transactions").insert({
       type: "refund",
       user_id: transaction.user_id,
-      partner_id: transaction.partner_id,
       amount: transaction.amount,
       currency: transaction.currency || "KRW",
       status: "completed",

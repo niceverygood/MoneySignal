@@ -7,9 +7,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Users, DollarSign, UserCog,
-  Activity, Signal, Wallet,
-  Crown, ChevronRight, BarChart3, Calendar,
+  Users, DollarSign,
+  Activity, Signal,
+  ChevronRight, BarChart3, Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import dayjs from "dayjs";
@@ -22,7 +22,6 @@ interface Transaction {
   created_at: string;
   status: string;
   user_id: string | null;
-  partner_id: string | null;
 }
 
 interface UserRow {
@@ -33,35 +32,21 @@ interface UserRow {
   created_at: string;
 }
 
-interface PartnerRow {
-  id: string;
-  brand_name: string;
-  referral_code: string | null;
-  tier: string;
-  total_revenue: number;
-  available_balance: number;
-  subscriber_count: number;
-  is_active: boolean;
-}
-
 export default function AdminDashboardPage() {
   const router = useRouter();
   const supabase = createClient();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [users, setUsers] = useState<UserRow[]>([]);
-  const [partners, setPartners] = useState<PartnerRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchAll() {
-      const [txRes, userRes, partnerRes] = await Promise.all([
+      const [txRes, userRes] = await Promise.all([
         supabase.from("transactions").select("*").order("created_at", { ascending: false }).limit(100),
         supabase.from("profiles").select("id, display_name, role, subscription_tier, created_at").order("created_at", { ascending: false }).limit(200),
-        supabase.from("partners").select("*").order("created_at", { ascending: false }),
       ]);
       if (txRes.data) setTransactions(txRes.data as Transaction[]);
       if (userRes.data) setUsers(userRes.data as UserRow[]);
-      if (partnerRes.data) setPartners(partnerRes.data as PartnerRow[]);
       setLoading(false);
     }
     fetchAll();
@@ -76,8 +61,6 @@ export default function AdminDashboardPage() {
   // Calculate stats
   const completedPayments = transactions.filter((t) => t.type === "subscription_payment" && t.status === "completed");
   const totalRevenue = completedPayments.reduce((s, t) => s + t.amount, 0);
-  const platformRevenue = Math.round(totalRevenue * 0.2);
-  const partnerRevenue = totalRevenue - platformRevenue;
 
   const today = dayjs().format("YYYY-MM-DD");
   const todayPayments = completedPayments.filter((t) => dayjs(t.created_at).format("YYYY-MM-DD") === today);
@@ -87,8 +70,6 @@ export default function AdminDashboardPage() {
   const monthlyPayments = completedPayments.filter((t) => dayjs(t.created_at).format("YYYY-MM") === thisMonth);
   const monthlyRevenue = monthlyPayments.reduce((s, t) => s + t.amount, 0);
 
-  const pendingPartners = partners.filter((p) => !p.is_active);
-  const activePartners = partners.filter((p) => p.is_active);
   const paidUsers = users.filter((u) => u.subscription_tier !== "free");
   const conversionRate = users.length > 0 ? (paidUsers.length / users.length) * 100 : 0;
 
@@ -119,15 +100,13 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* === 매출 KPI === */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <KPICard label="오늘 매출" value={fmt(todayRevenue)} icon={Calendar} color="text-[#F5B800]"
           sub={`${todayPayments.length}건`} />
         <KPICard label="이번달 매출" value={fmt(monthlyRevenue)} icon={BarChart3} color="text-[#00E676]"
           sub={`${monthlyPayments.length}건`} />
         <KPICard label="총 매출" value={fmt(totalRevenue)} icon={DollarSign} color="text-white"
-          sub={`플랫폼 ${fmt(platformRevenue)}`} />
-        <KPICard label="파트너 지급" value={fmt(partnerRevenue)} icon={Wallet} color="text-[#E040FB]"
-          sub={`수수료 80%`} />
+          sub={`${completedPayments.length}건`} />
       </div>
 
       {/* === 일별 매출 차트 (최근 7일) === */}
@@ -155,7 +134,7 @@ export default function AdminDashboardPage() {
         </div>
       </Card>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid gap-6">
         {/* === 유저 현황 === */}
         <Card className="bg-[#1A1D26] border-[#2A2D36] p-4">
           <div className="flex items-center justify-between mb-3">
@@ -203,7 +182,6 @@ export default function AdminDashboardPage() {
                 <span className="text-white truncate max-w-[120px]">{u.display_name}</span>
                 <Badge className={cn("text-[8px] border-0 px-1 py-0",
                   u.role === "admin" ? "bg-[#FF5252]/10 text-[#FF5252]" :
-                  u.role === "partner" ? "bg-[#F5B800]/10 text-[#F5B800]" :
                   "bg-[#22262F] text-[#8B95A5]"
                 )}>
                   {u.subscription_tier}
@@ -211,58 +189,6 @@ export default function AdminDashboardPage() {
                 <span className="text-[#8B95A5]">{dayjs(u.created_at).format("MM.DD")}</span>
               </div>
             ))}
-          </div>
-        </Card>
-
-        {/* === 운영자 현황 === */}
-        <Card className="bg-[#1A1D26] border-[#2A2D36] p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-              <Crown className="w-4 h-4 text-[#F5B800]" /> 운영자 현황
-            </h3>
-            <Button size="sm" variant="ghost" onClick={() => router.push("/admin/partners")} className="text-[#8B95A5] text-[10px] h-7">
-              전체보기 <ChevronRight className="w-3 h-3 ml-1" />
-            </Button>
-          </div>
-
-          {/* Pending approvals */}
-          {pendingPartners.length > 0 && (
-            <div className="p-2.5 rounded-lg bg-[#F5B800]/5 border border-[#F5B800]/20 mb-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-[#F5B800] font-bold">승인 대기 {pendingPartners.length}건</span>
-                <Button size="sm" onClick={() => router.push("/admin/partners")}
-                  className="bg-[#F5B800] text-[#0D0F14] text-[10px] h-6 px-2">
-                  처리하기
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Active partners list */}
-          <div className="space-y-2">
-            {activePartners.slice(0, 5).map((p) => (
-              <div key={p.id} className="flex items-center justify-between text-xs bg-[#22262F] rounded-lg p-2">
-                <div>
-                  <span className="text-white font-medium">{p.brand_name}</span>
-                  {p.referral_code && (
-                    <span className="text-[#F5B800] font-mono text-[10px] ml-1.5">{p.referral_code}</span>
-                  )}
-                </div>
-                <div className="flex items-center gap-3 text-[10px]">
-                  <span className="text-[#8B95A5]">{p.subscriber_count}명</span>
-                  <span className="text-[#00E676] font-mono">{fmt(Number(p.total_revenue))}</span>
-                </div>
-              </div>
-            ))}
-            {activePartners.length === 0 && (
-              <p className="text-xs text-[#8B95A5] text-center py-4">활성 운영자 없음</p>
-            )}
-          </div>
-
-          <div className="flex justify-between text-xs text-[#8B95A5] mt-3 pt-2 border-t border-[#2A2D36]">
-            <span>활성 <strong className="text-[#00E676]">{activePartners.length}</strong></span>
-            <span>대기 <strong className="text-[#F5B800]">{pendingPartners.length}</strong></span>
-            <span>총 구독자 <strong className="text-white">{activePartners.reduce((s, p) => s + p.subscriber_count, 0)}</strong></span>
           </div>
         </Card>
       </div>
@@ -286,9 +212,9 @@ export default function AdminDashboardPage() {
               <span className="text-[#8B95A5]">{dayjs(tx.created_at).format("MM.DD HH:mm")}</span>
               <span className="text-white truncate">{tx.description || tx.type}</span>
               <span className={cn("text-right font-mono",
-                tx.type === "partner_payout" ? "text-[#FF5252]" : "text-[#00E676]"
+                tx.type === "refund" ? "text-[#FF5252]" : "text-[#00E676]"
               )}>
-                {tx.type === "partner_payout" ? "-" : "+"}{tx.amount.toLocaleString()}
+                {tx.type === "refund" ? "-" : "+"}{tx.amount.toLocaleString()}
               </span>
               <Badge className={cn("text-[8px] border-0 justify-center",
                 tx.status === "completed" ? "bg-[#00E676]/10 text-[#00E676]" : "bg-[#F5B800]/10 text-[#F5B800]"
@@ -304,15 +230,13 @@ export default function AdminDashboardPage() {
       </Card>
 
       {/* === 빠른 메뉴 === */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <QuickLink label="운영자 승인" count={pendingPartners.length} icon={UserCog} color="text-[#F5B800]"
-          onClick={() => router.push("/admin/partners")} />
-        <QuickLink label="출금 처리" icon={Wallet} color="text-[#E040FB]"
-          onClick={() => router.push("/admin/withdrawals")} />
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <QuickLink label="시그널 관리" icon={Signal} color="text-[#00E676]"
           onClick={() => router.push("/admin/signals")} />
         <QuickLink label="유저 관리" icon={Users} color="text-[#448AFF]"
           onClick={() => router.push("/admin/users")} />
+        <QuickLink label="전체 매출" icon={DollarSign} color="text-[#F5B800]"
+          onClick={() => router.push("/admin/revenue")} />
       </div>
     </div>
   );

@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
   const serviceClient = await createServiceClient();
 
   // 2. 입력 검증
-  const { billingKey, tier, billingCycle, referralCode, cardName, cardNumberMasked } =
+  const { billingKey, tier, billingCycle, cardName, cardNumberMasked } =
     await request.json();
 
   if (!billingKey || !tier) {
@@ -69,40 +69,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 4. 파트너 수익 분배
-  const { data: profile } = await serviceClient
-    .from("profiles")
-    .select("referred_by, email, display_name")
-    .eq("id", user.id)
-    .single();
-
-  let partnerId: string | null = null;
-  let partnerUserId: string | null = null;
-  let partnerShare = 0;
-  let platformShare = amount;
-  const partnerRef = referralCode || profile?.referred_by;
-
-  if (partnerRef) {
-    let partnerQuery = serviceClient
-      .from("partners")
-      .select("id, user_id, revenue_share_rate, is_active")
-      .eq("is_active", true);
-
-    if (referralCode) {
-      partnerQuery = partnerQuery.eq("referral_code", referralCode.toUpperCase());
-    } else {
-      partnerQuery = partnerQuery.eq("user_id", partnerRef);
-    }
-
-    const { data: partner } = await partnerQuery.single();
-    if (partner) {
-      partnerId = partner.id;
-      partnerUserId = partner.user_id;
-      partnerShare = Math.round(amount * partner.revenue_share_rate);
-      platformShare = amount - partnerShare;
-    }
-  }
-
   try {
     const now = new Date();
     const periodEnd = calculatePeriodEnd(cycle, now);
@@ -126,7 +92,6 @@ export async function POST(request: NextRequest) {
     await serviceClient.from("transactions").insert({
       type: "subscription_payment",
       user_id: user.id,
-      partner_id: partnerId,
       amount,
       currency: "KRW",
       status: "completed",
@@ -145,13 +110,9 @@ export async function POST(request: NextRequest) {
 
     const subscriptionData = {
       user_id: user.id,
-      product_id: null as string | null,
-      partner_id: partnerId,
       status: "active" as const,
       billing_cycle: cycle,
       amount_paid: amount,
-      partner_share: partnerShare,
-      platform_share: platformShare,
       current_period_start: now.toISOString(),
       current_period_end: periodEnd.toISOString(),
       auto_renew: true,
@@ -162,19 +123,6 @@ export async function POST(request: NextRequest) {
       billing_retry_count: 0,
       billing_failed_at: null as string | null,
     };
-
-    // 파트너 상품 연결
-    if (partnerId) {
-      const { data: product } = await serviceClient
-        .from("products")
-        .select("id")
-        .eq("partner_id", partnerId)
-        .limit(1)
-        .single();
-      if (product) {
-        subscriptionData.product_id = product.id;
-      }
-    }
 
     if (existingSub) {
       await serviceClient
@@ -191,41 +139,10 @@ export async function POST(request: NextRequest) {
       .update({
         subscription_tier: tier,
         subscription_expires_at: periodEnd.toISOString(),
-        referred_by: partnerUserId || profile?.referred_by,
       })
       .eq("id", user.id);
 
-    // 9. 파트너 수익 업데이트
-    if (partnerId) {
-      const { data: partnerData } = await serviceClient
-        .from("partners")
-        .select("total_revenue, available_balance, subscriber_count")
-        .eq("id", partnerId)
-        .single();
-
-      if (partnerData) {
-        await serviceClient
-          .from("partners")
-          .update({
-            total_revenue: Number(partnerData.total_revenue) + amount,
-            available_balance: Number(partnerData.available_balance) + partnerShare,
-            subscriber_count: partnerData.subscriber_count + 1,
-          })
-          .eq("id", partnerId);
-      }
-
-      // 파트너 알림
-      if (partnerUserId) {
-        await serviceClient.from("notifications").insert({
-          user_id: partnerUserId,
-          type: "subscription",
-          title: "새 구독자 등록",
-          body: `${profile?.display_name || profile?.email || "사용자"}님이 ${tier.toUpperCase()} 구독을 시작했습니다. (수익: ${partnerShare.toLocaleString()}원)`,
-        });
-      }
-    }
-
-    // 10. 사용자 알림
+    // 9. 사용자 알림
     await serviceClient.from("notifications").insert({
       user_id: user.id,
       type: "subscription",
@@ -240,8 +157,6 @@ export async function POST(request: NextRequest) {
       billingCycle: cycle,
       expiresAt: periodEnd.toISOString(),
       nextBillingAt: periodEnd.toISOString(),
-      partnerShare,
-      platformShare,
     });
   } catch (error) {
     console.error("[billing/issue] Error:", error);

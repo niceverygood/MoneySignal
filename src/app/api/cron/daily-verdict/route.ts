@@ -17,6 +17,28 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // dryRun: DB 저장 없이 토론 결과만 반환 (마이그레이션/활성유저 체크 스킵 — 테스트·미리보기용)
+  const dryRunUrl = new URL(request.url);
+  if (dryRunUrl.searchParams.get("dryRun") === "true") {
+    let dryMarketData: string;
+    try {
+      const { formatted } = await scanTopStocks();
+      dryMarketData = formatted;
+    } catch (e) {
+      console.error("[DailyVerdict dryRun] KIS failed:", e);
+      dryMarketData = "KIS 데이터를 가져올 수 없습니다. 최근 시장 상황 기반으로 분석해주세요.";
+    }
+    const dryVerdict = await generateDailyVerdict(dryMarketData);
+    return NextResponse.json({
+      dryRun: true,
+      openRouterActive: !!process.env.OPENROUTER_API_KEY,
+      theme: dryVerdict.theme,
+      consensusSummary: dryVerdict.consensusSummary,
+      top5: dryVerdict.top5,
+      debateRounds: dryVerdict.debateRounds,
+    });
+  }
+
   const supabase = await createServiceClient();
 
   // 활성 유저 체크 (비용 절감)
@@ -78,6 +100,7 @@ export async function GET(request: Request) {
         sentiment_label: verdict.sentiment.label,
         buy_weight: verdict.sentiment.buyWeight,
         consensus_summary: verdict.consensusSummary,
+        debate_rounds: verdict.debateRounds,
       })
       .select()
       .single();

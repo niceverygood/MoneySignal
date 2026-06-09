@@ -129,7 +129,6 @@ export async function GET(request: Request) {
       await supabase.from("transactions").insert({
         type: "subscription_payment",
         user_id: sub.user_id,
-        partner_id: sub.partner_id,
         amount,
         currency: "KRW",
         status: "completed",
@@ -137,26 +136,6 @@ export async function GET(request: Request) {
         pg_transaction_id: chargeResult.pgTransactionId || paymentId,
         description: `${tier.toUpperCase()} ${cycleLabels[cycle] || cycle} 자동결제`,
       });
-
-      // 파트너 수익 업데이트
-      if (sub.partner_id) {
-        const { data: partner } = await supabase
-          .from("partners")
-          .select("revenue_share_rate, total_revenue, available_balance")
-          .eq("id", sub.partner_id)
-          .single();
-
-        if (partner) {
-          const partnerShare = Math.round(amount * partner.revenue_share_rate);
-          await supabase
-            .from("partners")
-            .update({
-              total_revenue: Number(partner.total_revenue) + amount,
-              available_balance: Number(partner.available_balance) + partnerShare,
-            })
-            .eq("id", sub.partner_id);
-        }
-      }
 
       // 결제 성공 알림
       await supabase.from("notifications").insert({

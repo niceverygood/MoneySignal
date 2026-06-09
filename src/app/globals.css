@@ -137,6 +137,30 @@
   }
 }
 
+/* ============================================
+   화면 맞춤 (모바일 일반 앱처럼)
+   - 가로 넘침(엣지 오버플로) 차단
+   - 노치/홈바 등 안전영역(safe-area) 확보
+   레이어 밖에 둬서 항상 우선 적용되게 함
+   ============================================ */
+html {
+  /* clip: scroll 컨테이너를 만들지 않아 sticky 헤더 유지하면서 가로 넘침만 차단 */
+  overflow-x: clip;
+}
+body {
+  overflow-x: clip;
+  max-width: 100%;
+  /* 가로모드 노치 등 좌우 안전영역 */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+/* 미디어/임베드가 컨테이너를 넘지 않도록 */
+img,
+video,
+iframe {
+  max-width: 100%;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

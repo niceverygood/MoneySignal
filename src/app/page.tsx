@@ -11,15 +11,13 @@ import {
   Star,
   CheckCircle2,
   BarChart3,
-  Users,
-  DollarSign,
 } from "lucide-react";
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#0D0F14]">
       {/* Nav */}
-      <nav className="sticky top-0 z-50 bg-[#0D0F14]/95 backdrop-blur-sm border-b border-[#2A2D36]">
+      <nav className="sticky top-0 z-50 bg-[#0D0F14]/95 backdrop-blur-sm border-b border-[#2A2D36] pt-[env(safe-area-inset-top)]">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <span className="text-xl font-bold text-gold-gradient">
             MONEY SIGNAL
@@ -330,42 +328,6 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
-      </section>
-
-      {/* Partner CTA */}
-      <section className="max-w-4xl mx-auto px-4 py-16">
-        <Card className="bg-gradient-to-r from-[#F5B800]/10 to-[#FFD54F]/5 border-[#F5B800]/20 p-8 md:p-12 text-center">
-          <Users className="w-10 h-10 text-[#F5B800] mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-white mb-3">
-            리딩방 운영자라면? 파트너로 합류하세요
-          </h2>
-          <p className="text-[#8B95A5] mb-2">
-            매출의 80~88% 수익 · 자동 결제·정산·대시보드 제공
-          </p>
-          <div className="flex items-center justify-center gap-4 my-6 text-sm text-[#8B95A5]">
-            <span className="flex items-center gap-1">
-              <DollarSign className="w-4 h-4 text-[#00E676]" />
-              매출 80~88% 수익
-            </span>
-            <span className="flex items-center gap-1">
-              <BarChart3 className="w-4 h-4 text-[#448AFF]" />
-              자동 대시보드
-            </span>
-            <span className="flex items-center gap-1">
-              <Zap className="w-4 h-4 text-[#F5B800]" />
-              AI 시그널 자동 제공
-            </span>
-          </div>
-          <Link href="/partner/apply">
-            <Button
-              size="lg"
-              className="bg-[#F5B800] text-[#0D0F14] hover:bg-[#FFD54F] font-bold"
-            >
-              파트너 신청하기
-              <ChevronRight className="w-5 h-5 ml-1" />
-            </Button>
-          </Link>
-        </Card>
       </section>
 
       {/* Footer */}

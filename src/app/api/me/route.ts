@@ -25,7 +25,6 @@ export async function GET() {
       subscription_tier: "free",
       avatar_url: user.user_metadata?.avatar_url || null,
       subscription_expires_at: null,
-      referred_by: null,
       created_at: user.created_at,
       updated_at: user.created_at,
     });

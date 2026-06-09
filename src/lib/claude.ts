@@ -3,7 +3,9 @@
 // ============================================
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-opus-4-20250514";
+// 폴백 전용(OpenRouter 키가 없을 때만 사용). 정확한 최신 Anthropic SDK 모델 ID는
+// ANTHROPIC_MODEL 환경변수로 오버라이드 가능. 기본값은 검증된 안정 모델로 유지해 폴백이 깨지지 않게 함.
+const MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-4-20250514";
 
 interface Message {
   role: "user" | "assistant";

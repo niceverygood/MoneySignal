@@ -10,7 +10,6 @@ export interface PaymentRequest {
   totalAmount: number;
   tier: string;
   billingCycle: string;
-  referralCode?: string;
 }
 
 export function generateOrderId(): string {

@@ -37,7 +37,9 @@ const config: CapacitorConfig = {
     },
   },
   ios: {
-    contentInset: 'always',
+    // CSS의 env(safe-area-inset-*) 로 안전영역을 직접 관리하므로
+    // 네이티브 자동 인셋은 끔(이중 여백 방지). viewport-fit=cover 와 짝.
+    contentInset: 'never',
     preferredContentMode: 'mobile',
     scheme: 'MoneySignal',
     backgroundColor: '#000000',

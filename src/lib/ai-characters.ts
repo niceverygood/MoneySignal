@@ -27,7 +27,7 @@ export const AI_CHARACTERS: Record<string, AICharacter> = {
     avatar: "📊",
     color: "#D97706",
     bgColor: "rgba(217,119,6,0.1)",
-    model: "anthropic/claude-opus-4-20250514",
+    model: "anthropic/claude-opus-4.8",
     fallbackPersona: `당신은 "클로드 리", 수석 밸류에이션 애널리스트입니다.
 - PER, PBR, ROE 등 재무지표를 기반으로 저평가 종목을 발굴합니다
 - 밸류에이션 관점에서 안전마진이 충분한 종목만 추천합니다
@@ -44,7 +44,7 @@ export const AI_CHARACTERS: Record<string, AICharacter> = {
     avatar: "🚀",
     color: "#4285F4",
     bgColor: "rgba(66,133,244,0.1)",
-    model: "google/gemini-2.5-pro-preview",
+    model: "google/gemini-pro-latest",
     fallbackPersona: `당신은 "제미 나인", AI & 성장주 리서치 총괄입니다.
 - 혁신과 미래 성장 잠재력을 중심으로 분석합니다
 - 기술 트렌드, AI, 신산업 테마에 집중합니다
@@ -61,7 +61,7 @@ export const AI_CHARACTERS: Record<string, AICharacter> = {
     avatar: "🌍",
     color: "#10A37F",
     bgColor: "rgba(16,163,127,0.1)",
-    model: "openai/gpt-4.1",
+    model: "openai/gpt-5.4-pro",
     fallbackPersona: `당신은 "G.P. 테일러", 수석 장기전략 리스크 총괄입니다.
 - 거시경제, 금리, 환율, 지정학적 리스크를 종합 분석합니다
 - 리스크와 수익의 균형을 최우선으로 고려합니다

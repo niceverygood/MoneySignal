@@ -13,7 +13,7 @@ import dayjs from "dayjs";
 import { toast } from "sonner";
 
 type TierFilter = "all" | "free" | "basic" | "pro" | "premium" | "bundle";
-type RoleFilter = "all" | "user" | "partner" | "admin";
+type RoleFilter = "all" | "user" | "admin";
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<Profile[]>([]);
@@ -84,7 +84,6 @@ export default function AdminUsersPage() {
   const roleOptions: { value: RoleFilter; label: string }[] = [
     { value: "all", label: "전체 역할" },
     { value: "user", label: "유저" },
-    { value: "partner", label: "파트너" },
     { value: "admin", label: "관리자" },
   ];
 
@@ -159,7 +158,6 @@ export default function AdminUsersPage() {
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge variant="outline" className={
                   user.role === "admin" ? "border-[#FF5252] text-[#FF5252] text-[10px]"
-                    : user.role === "partner" ? "border-[#F5B800] text-[#F5B800] text-[10px]"
                     : "border-[#2A2D36] text-[#8B95A5] text-[10px]"
                 }>{user.role}</Badge>
                 <Badge className="bg-[#22262F] text-[#8B95A5] border-0 text-[10px]">{TIER_LABELS[user.subscription_tier]}</Badge>
@@ -197,7 +195,6 @@ export default function AdminUsersPage() {
                     <td className="p-3">
                       <Badge variant="outline" className={
                         user.role === "admin" ? "border-[#FF5252] text-[#FF5252] text-[10px]"
-                          : user.role === "partner" ? "border-[#F5B800] text-[#F5B800] text-[10px]"
                           : "border-[#2A2D36] text-[#8B95A5] text-[10px]"
                       }>{user.role}</Badge>
                     </td>

@@ -38,7 +38,7 @@
 		}
 	},
 	"ios": {
-		"contentInset": "always",
+		"contentInset": "never",
 		"preferredContentMode": "mobile",
 		"scheme": "MoneySignal",
 		"backgroundColor": "#000000"

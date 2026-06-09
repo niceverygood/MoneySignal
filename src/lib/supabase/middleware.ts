@@ -15,9 +15,7 @@ export async function updateSession(request: NextRequest) {
   // Public routes that don't need any auth processing
   const isPublicRoute =
     pathname === "/" ||
-    pathname.startsWith("/p/") ||
     pathname.startsWith("/auth/") ||
-    pathname.startsWith("/partner/apply") ||
     pathname.startsWith("/api/") ||
     pathname.startsWith("/sw.js") ||
     pathname.startsWith("/manifest.json");
@@ -64,7 +62,6 @@ export async function updateSession(request: NextRequest) {
     // Protected routes — require authentication
     const isProtectedRoute =
       pathname.startsWith("/app") ||
-      pathname.startsWith("/partner") ||
       pathname.startsWith("/admin");
 
     if (!user && isProtectedRoute) {
@@ -74,26 +71,15 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    // Role-based access control
-    if (user && (pathname.startsWith("/partner") || pathname.startsWith("/admin"))) {
+    // Role-based access control — admin 전용
+    if (user && pathname.startsWith("/admin")) {
       const { data: profile } = await supabase
         .from("profiles")
         .select("role")
         .eq("id", user.id)
         .single();
 
-      if (pathname.startsWith("/admin") && profile?.role !== "admin") {
-        const url = request.nextUrl.clone();
-        url.pathname = "/app";
-        return NextResponse.redirect(url);
-      }
-
-      if (
-        pathname.startsWith("/partner") &&
-        !pathname.startsWith("/partner/apply") &&
-        profile?.role !== "partner" &&
-        profile?.role !== "admin"
-      ) {
+      if (profile?.role !== "admin") {
         const url = request.nextUrl.clone();
         url.pathname = "/app";
         return NextResponse.redirect(url);

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   CheckCircle2,
@@ -15,7 +14,6 @@ import {
   Lock,
   ChevronDown,
   ChevronUp,
-  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -175,12 +173,10 @@ export default function SubscribePage() {
   const supabase = createClient();
   const [currentTier, setCurrentTier] = useState<SubscriptionTier>("free");
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
-  const [referralCode, setReferralCode] = useState("");
-  const [referralPartner, setReferralPartner] = useState<string | null>(null);
+  const [payMethod, setPayMethod] = useState<"card" | "kakaopay">("card");
   const [subscribing, setSubscribing] = useState<string | null>(null);
   const [showComparison, setShowComparison] = useState(false);
   const [displayName, setDisplayName] = useState<string>("사용자");
-  const [isNativeApp, setIsNativeApp] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [iapProducts, setIapProducts] = useState<StoreKitProduct[]>([]);
   const [iapLoading, setIapLoading] = useState(false);
@@ -226,7 +222,6 @@ export default function SubscribePage() {
     import("@capacitor/core").then(async ({ Capacitor }) => {
       const isNative = Capacitor.isNativePlatform();
       const platform = Capacitor.getPlatform();
-      setIsNativeApp(isNative);
       setIsIOS(platform === "ios");
 
       if (isNative && platform === "ios") {
@@ -238,7 +233,7 @@ export default function SubscribePage() {
       if (!user) return;
       const { data } = await supabase
         .from("profiles")
-        .select("subscription_tier, referred_by, display_name")
+        .select("subscription_tier, display_name")
         .eq("id", user.id)
         .single();
       if (data) {
@@ -248,23 +243,6 @@ export default function SubscribePage() {
     }
     fetchTier();
   }, [supabase]);
-
-  const handleReferralCheck = async () => {
-    if (!referralCode) return;
-    try {
-      const res = await fetch(`/api/partner/referral?code=${referralCode}`);
-      const data = await res.json();
-      if (res.ok) {
-        setReferralPartner(data.partner.brand_name);
-        toast.success(`${data.partner.brand_name} 운영자 확인!`);
-      } else {
-        toast.error(data.error);
-        setReferralPartner(null);
-      }
-    } catch {
-      toast.error("코드 확인 실패");
-    }
-  };
 
   // iOS StoreKit IAP 결제
   const handleIAPSubscribe = async (tier: string) => {
@@ -382,24 +360,49 @@ export default function SubscribePage() {
     }
   };
 
-  // 웹/Android PortOne 결제
-  const handlePortOneSubscribe = async (tier: string, price: number) => {
+  // 웹/Android PortOne 결제 (카드 / 카카오페이 정기결제 빌링키 발급)
+  const handlePortOneSubscribe = async (
+    tier: string,
+    price: number,
+    method: "card" | "kakaopay" = "card"
+  ) => {
     try {
       const { default: PortOne } = await import("@portone/browser-sdk/v2");
       const tierNames: Record<string, string> = { basic: "Basic", pro: "Pro", premium: "Premium", bundle: "VIP Bundle" };
       const { data: { user: authUser } } = await supabase.auth.getUser();
 
-      const response = await PortOne.requestIssueBillingKey({
-        storeId: process.env.NEXT_PUBLIC_PORTONE_STORE_ID || "",
-        channelKey: process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY || "",
-        billingKeyMethod: "CARD",
-        customer: {
-          customerId: authUser?.id || undefined,
-          fullName: displayName,
-          email: authUser?.email || undefined,
-          phoneNumber: authUser?.phone || "01000000000",
-        },
-      });
+      const storeId = process.env.NEXT_PUBLIC_PORTONE_STORE_ID || "";
+      const cardChannelKey = process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY || "";
+      // 카카오페이 정기결제는 PortOne에 별도 카카오페이 채널이 필요합니다.
+      // 전용 채널 키가 없으면 기본 채널로 폴백합니다.
+      const kakaopayChannelKey =
+        process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY_KAKAOPAY || cardChannelKey;
+
+      const customer = {
+        customerId: authUser?.id || undefined,
+        fullName: displayName,
+        email: authUser?.email || undefined,
+        phoneNumber: authUser?.phone || "01000000000",
+      };
+      const issueName = `머니시그널 ${tierNames[tier] || tier} 정기구독`;
+
+      const response =
+        method === "kakaopay"
+          ? await PortOne.requestIssueBillingKey({
+              storeId,
+              channelKey: kakaopayChannelKey,
+              billingKeyMethod: "EASY_PAY",
+              easyPay: { easyPayProvider: "KAKAOPAY" },
+              issueName,
+              customer,
+            })
+          : await PortOne.requestIssueBillingKey({
+              storeId,
+              channelKey: cardChannelKey,
+              billingKeyMethod: "CARD",
+              issueName,
+              customer,
+            });
 
       if (response?.code) {
         console.error("PortOne response:", JSON.stringify(response));
@@ -420,14 +423,6 @@ export default function SubscribePage() {
 
       toast.loading("결제 처리 중...");
 
-      if (referralCode && referralPartner) {
-        await fetch("/api/partner/referral", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ referralCode }),
-        });
-      }
-
       const issueRes = await fetch("/api/billing/issue", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -435,8 +430,7 @@ export default function SubscribePage() {
           billingKey: response.billingKey,
           tier,
           billingCycle,
-          referralCode: referralCode || null,
-          cardName: null,
+          cardName: method === "kakaopay" ? "카카오페이" : null,
           cardNumberMasked: null,
         }),
       });
@@ -469,8 +463,8 @@ export default function SubscribePage() {
       return;
     }
 
-    // 웹/Android → PortOne
-    await handlePortOneSubscribe(tier, price);
+    // 웹/Android → PortOne (카드 / 카카오페이)
+    await handlePortOneSubscribe(tier, price, payMethod);
   };
 
   const tierOrder = ["free", "basic", "pro", "premium", "bundle"];
@@ -510,32 +504,36 @@ export default function SubscribePage() {
         </div>
       </div>
 
-      {/* Referral Code — 네이티브 앱(iOS/Android)에서는 숨김 (App Store 3.1.1) */}
-      {!isNativeApp && (
-        <Card className="bg-[#1A1D26] border-[#2A2D36] p-4">
-          <p className="text-sm text-white mb-2">운영자 추천코드 (선택)</p>
-          <div className="flex gap-2">
-            <Input
-              value={referralCode}
-              onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-              placeholder="6자리 코드 입력"
-              maxLength={6}
-              className="bg-[#22262F] border-[#2A2D36] text-white font-mono uppercase tracking-widest"
-            />
-            <Button
-              onClick={handleReferralCheck}
-              variant="outline"
-              className="border-[#2A2D36] text-[#8B95A5] shrink-0"
-            >
-              확인
-            </Button>
+      {/* 결제 수단 선택 (웹/Android — iOS는 Apple 인앱결제 사용) */}
+      {!isIOS && (
+        <div className="flex flex-col items-center gap-1.5">
+          <div className="inline-flex bg-[#1A1D26] rounded-lg border border-[#2A2D36] p-1">
+            {([
+              { key: "card", label: "카드" },
+              { key: "kakaopay", label: "카카오페이" },
+            ] as const).map((m) => (
+              <button
+                key={m.key}
+                onClick={() => setPayMethod(m.key)}
+                className={cn(
+                  "px-5 py-2 rounded-md text-sm font-medium transition-all",
+                  payMethod === m.key
+                    ? m.key === "kakaopay"
+                      ? "bg-[#FEE500] text-[#191600]"
+                      : "bg-[#F5B800] text-[#0D0F14]"
+                    : "text-[#8B95A5] hover:text-white"
+                )}
+              >
+                {m.label}
+              </button>
+            ))}
           </div>
-          {referralPartner && (
-            <p className="text-xs text-[#00E676] mt-2">
-              {referralPartner} 운영자와 연결됩니다
-            </p>
-          )}
-        </Card>
+          <p className="text-[10px] text-[#8B95A5]">
+            {payMethod === "kakaopay"
+              ? "카카오페이로 자동 정기결제됩니다"
+              : "등록한 카드로 자동 정기결제됩니다"}
+          </p>
+        </div>
       )}
 
       {/* iOS 구매 복원 버튼 */}
@@ -772,36 +770,6 @@ export default function SubscribePage() {
           </table>
         </div>
       )}
-
-      {/* Partner Revenue Simulation */}
-      <Card className="bg-[#1A1D26] border-[#2A2D36] p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <TrendingUp className="w-5 h-5 text-[#F5B800]" />
-          <h3 className="text-sm font-bold text-white">파트너 수익 시뮬레이션</h3>
-        </div>
-        <p className="text-[11px] text-[#8B95A5] mb-4">
-          파트너(리딩방 운영자)로 등록하면 구독자 수에 따라 수익을 분배받습니다
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {[
-            { subs: 30, tier: "starter", rate: 80 },
-            { subs: 100, tier: "pro", rate: 83 },
-            { subs: 300, tier: "elite", rate: 85 },
-            { subs: 700, tier: "legend", rate: 88 },
-          ].map((s) => {
-            const monthlyRev = s.subs * 99000 * (s.rate / 100);
-            return (
-              <div key={s.tier} className="bg-[#22262F] rounded-lg p-3 text-center">
-                <p className="text-[10px] text-[#8B95A5]">{s.subs}명 구독</p>
-                <p className="text-lg font-bold text-[#F5B800]">
-                  {Math.round(monthlyRev / 10000).toLocaleString()}만원
-                </p>
-                <p className="text-[10px] text-[#8B95A5]">/월 (수수료 {s.rate}%)</p>
-              </div>
-            );
-          })}
-        </div>
-      </Card>
 
       {/* Subscription Info & Legal */}
       <div className="p-4 rounded-lg bg-[#1A1D26] border border-[#2A2D36] space-y-2">

@@ -2,19 +2,16 @@
 // MoneySignal Type Definitions
 // ============================================
 
-export type UserRole = "user" | "partner" | "admin";
+export type UserRole = "user" | "admin";
 export type SubscriptionTier = "free" | "basic" | "pro" | "premium" | "bundle";
-export type PartnerTier = "starter" | "pro" | "elite" | "legend";
 export type SignalCategory = "coin_spot" | "coin_futures" | "overseas_futures" | "kr_stock";
 export type SignalDirection = "long" | "short" | "buy" | "sell";
 export type SignalStatus = "active" | "hit_tp1" | "hit_tp2" | "hit_tp3" | "hit_sl" | "expired" | "cancelled";
 export type SubscriptionStatus = "active" | "expired" | "cancelled" | "pending";
 export type BillingCycle = "monthly" | "quarterly" | "yearly";
-export type TransactionType = "subscription_payment" | "partner_payout" | "refund";
+export type TransactionType = "subscription_payment" | "refund";
 export type TransactionStatus = "pending" | "completed" | "failed" | "cancelled";
-export type WithdrawalStatus = "pending" | "processing" | "completed" | "rejected";
-export type NotificationType = "signal" | "subscription" | "payout" | "system";
-export type ProductCategory = "coin_spot" | "coin_futures" | "overseas_futures" | "kr_stock" | "bundle";
+export type NotificationType = "signal" | "subscription" | "system";
 
 export interface Profile {
   id: string;
@@ -25,7 +22,6 @@ export interface Profile {
   role: UserRole;
   subscription_tier: SubscriptionTier;
   subscription_expires_at: string | null;
-  referred_by: string | null;
   phone: string | null;
   kakao_alimtalk_enabled: boolean;
   is_suspended: boolean;
@@ -33,50 +29,12 @@ export interface Profile {
   updated_at: string;
 }
 
-export interface Partner {
-  id: string;
-  user_id: string;
-  brand_name: string;
-  brand_slug: string;
-  tier: PartnerTier;
-  revenue_share_rate: number;
-  total_revenue: number;
-  total_withdrawn: number;
-  available_balance: number;
-  subscriber_count: number;
-  bio: string | null;
-  profile_image_url: string | null;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Product {
-  id: string;
-  partner_id: string;
-  name: string;
-  slug: string;
-  category: ProductCategory;
-  price_monthly: number;
-  price_quarterly: number | null;
-  price_yearly: number | null;
-  description: string;
-  features: string[];
-  max_signals_per_day: number;
-  is_active: boolean;
-  created_at: string;
-}
-
 export interface Subscription {
   id: string;
   user_id: string;
-  product_id: string | null;
-  partner_id: string | null;
   status: SubscriptionStatus;
   billing_cycle: BillingCycle;
   amount_paid: number;
-  partner_share: number;
-  platform_share: number;
   current_period_start: string;
   current_period_end: string;
   auto_renew: boolean;
@@ -163,7 +121,6 @@ export interface Transaction {
   id: string;
   type: TransactionType;
   user_id: string | null;
-  partner_id: string | null;
   subscription_id: string | null;
   amount: number;
   currency: string;
@@ -171,19 +128,6 @@ export interface Transaction {
   payment_method: string | null;
   pg_transaction_id: string | null;
   description: string | null;
-  created_at: string;
-}
-
-export interface WithdrawalRequest {
-  id: string;
-  partner_id: string;
-  amount: number;
-  bank_name: string;
-  account_number: string;
-  account_holder: string;
-  status: WithdrawalStatus;
-  processed_at: string | null;
-  admin_note: string | null;
   created_at: string;
 }
 
@@ -201,6 +145,12 @@ export interface Notification {
 // ============================================
 // Verdict (AI 합의 판정)
 // ============================================
+export interface VerdictDebateRound {
+  round: number; // 1 | 2 | 3
+  label: string; // "독립 분석" | "상호 토론" | "최종 합의"
+  comments: { characterId: string; comment: string }[];
+}
+
 export interface Verdict {
   id: string;
   date: string;
@@ -214,6 +164,7 @@ export interface Verdict {
   sentiment_label: string;
   buy_weight: number;
   consensus_summary: string;
+  debate_rounds?: VerdictDebateRound[]; // 멀티턴 토론 과정 (옵셔널 — 구버전 row 호환)
   created_at: string;
 }
 
@@ -277,18 +228,4 @@ export const TIER_ACCESS: Record<SubscriptionTier, SignalCategory[]> = {
   pro: ["coin_spot", "coin_futures"],
   premium: ["coin_spot", "coin_futures", "overseas_futures", "kr_stock"],
   bundle: ["coin_spot", "coin_futures", "overseas_futures", "kr_stock"],
-};
-
-export const PARTNER_TIER_RATES: Record<PartnerTier, number> = {
-  starter: 0.8,
-  pro: 0.83,
-  elite: 0.85,
-  legend: 0.88,
-};
-
-export const PARTNER_TIER_THRESHOLDS: Record<PartnerTier, number> = {
-  starter: 0,
-  pro: 51,
-  elite: 201,
-  legend: 501,
 };

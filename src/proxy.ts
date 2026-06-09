@@ -10,12 +10,10 @@ export const config = {
     /*
      * Match paths that need auth processing:
      * - /app/* (subscriber area)
-     * - /partner/* (partner area)
      * - /admin/* (admin area)
      * Exclude static files, images, API routes, auth routes, and public routes.
      */
     "/app/:path*",
-    "/partner/:path*",
     "/admin/:path*",
   ],
 };

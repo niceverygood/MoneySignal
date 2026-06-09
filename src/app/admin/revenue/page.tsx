@@ -174,7 +174,7 @@ export default function AdminRevenuePage() {
                   </td>
                   <td className="p-3">
                     <Badge variant="outline" className="border-[#2A2D36] text-[#8B95A5] text-[10px]">
-                      {tx.type === "subscription_payment" ? "구독" : tx.type === "partner_payout" ? "출금" : "환불"}
+                      {tx.type === "subscription_payment" ? "구독" : "환불"}
                     </Badge>
                   </td>
                   <td className="p-3 text-sm text-white">{tx.description || "-"}</td>

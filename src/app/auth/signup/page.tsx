@@ -43,7 +43,6 @@ function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirectTo") || "/app";
-  const referredBy = searchParams.get("ref");
   const supabase = createClient();
 
   const [email, setEmail] = useState("");
@@ -241,11 +240,6 @@ function SignupForm() {
           .eq("id", user.id);
       }
 
-      // referredBy 처리
-      if (referredBy) {
-        localStorage.setItem("moneysignal_referred_by", referredBy);
-      }
-
       toast.success("가입 완료! 환영합니다.");
       router.push(redirectTo);
     } catch (err) {
@@ -267,9 +261,6 @@ function SignupForm() {
           toast.error(res.error || "Apple 로그인에 실패했습니다");
           setAppleLoading(false);
           return;
-        }
-        if (referredBy) {
-          localStorage.setItem("moneysignal_referred_by", referredBy);
         }
         toast.success("가입 완료! 환영합니다.");
         router.push(redirectTo);

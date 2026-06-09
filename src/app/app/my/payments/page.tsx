@@ -28,7 +28,6 @@ const STATUS_COLOR: Record<string, string> = {
 
 const TYPE_LABEL: Record<string, string> = {
   subscription_payment: "구독 결제",
-  partner_payout: "파트너 정산",
   refund: "환불",
 };
 
