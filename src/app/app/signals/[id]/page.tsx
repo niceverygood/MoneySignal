@@ -12,6 +12,7 @@ import type { Signal, SignalTracking } from "@/types";
 import { CATEGORY_LABELS } from "@/types";
 import { filterSignalByTier } from "@/lib/tier-access";
 import type { TierKey, FilteredSignal } from "@/lib/tier-access";
+import SignalPriceChart from "@/components/signals/SignalPriceChart";
 import dayjs from "dayjs";
 import "dayjs/locale/ko";
 dayjs.locale("ko");
@@ -150,6 +151,16 @@ export default function SignalDetailPage() {
           </div>
         </div>
       </Card>
+
+      {/* 가격 차트 — 진입/TP/SL 라인 (티어로 잠긴 레벨은 자동 미표시) */}
+      <SignalPriceChart
+        signalId={signal.id}
+        entryPrice={signal.entry_price}
+        takeProfit1={signal.take_profit_1}
+        takeProfit2={signal.take_profit_2}
+        takeProfit3={signal.take_profit_3}
+        stopLoss={signal.stop_loss}
+      />
 
       {/* Price Levels (tier-filtered) */}
       <Card className="bg-[#1A1D26] border-[#2A2D36] p-4 space-y-3">
