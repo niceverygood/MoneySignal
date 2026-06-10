@@ -13,14 +13,17 @@ import {
 } from "@/lib/portone";
 
 function verifyCronSecret(request: Request): boolean {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return false; // CRON_SECRET 미설정 시 거부 (실수 배포 방어)
   const authHeader = request.headers.get("authorization");
-  if (authHeader === `Bearer ${process.env.CRON_SECRET}`) return true;
+  if (authHeader === `Bearer ${secret}`) return true;
   const url = new URL(request.url);
-  return url.searchParams.get("secret") === process.env.CRON_SECRET;
+  return url.searchParams.get("secret") === secret;
 }
 
 export async function GET(request: Request) {
-  if (process.env.NODE_ENV === "production" && !verifyCronSecret(request)) {
+  // 환경 무관 항상 검증 — 자동결제는 돈이 오가므로 dev 우회 금지
+  if (!verifyCronSecret(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
