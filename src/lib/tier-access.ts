@@ -36,6 +36,8 @@ export const TIER_CONFIG = {
     // AI 종목 질문
     aiAskLimit: 0,                  // 무료 → AI질문 불가
     aiAskHistory: false,
+    // 내 종목 AI 진단
+    diagnoseLimit: 1,               // 1회/일 — 무료 체험 훅(매일 재방문 유도)
     // 알림
     pushNotification: false,
     telegramEnabled: false,
@@ -65,6 +67,7 @@ export const TIER_CONFIG = {
     csvExport: false,
     aiAskLimit: 1,                  // Basic → 1회/일
     aiAskHistory: false,
+    diagnoseLimit: 3,               // 내 종목 AI 진단 3회/일
     pushNotification: true,         // 앱 푸시 ✓
     telegramEnabled: false,
     kakaoNotification: false,
@@ -92,6 +95,7 @@ export const TIER_CONFIG = {
     csvExport: false,
     aiAskLimit: 3,                  // 3회/일
     aiAskHistory: true,             // 이력 저장 ✓
+    diagnoseLimit: 10,              // 내 종목 AI 진단 10회/일
     pushNotification: true,
     telegramEnabled: true,          // 텔레그램 ✓
     kakaoNotification: false,
@@ -119,6 +123,7 @@ export const TIER_CONFIG = {
     csvExport: true,                // CSV ✓
     aiAskLimit: 10,                 // 10회/일
     aiAskHistory: true,
+    diagnoseLimit: 30,              // 내 종목 AI 진단 30회/일
     pushNotification: true,
     telegramEnabled: true,
     kakaoNotification: false,       // coming soon
@@ -146,6 +151,7 @@ export const TIER_CONFIG = {
     csvExport: true,
     aiAskLimit: Infinity,           // 무제한
     aiAskHistory: true,
+    diagnoseLimit: Infinity,        // 내 종목 AI 진단 무제한
     pushNotification: true,
     telegramEnabled: true,
     kakaoNotification: false,       // coming soon
