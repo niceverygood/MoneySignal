@@ -129,6 +129,7 @@ export default function SignalFeedPage() {
 
   return (
     <div className="py-4 space-y-4">
+      {/* ── 핵심 (모든 티어, 우선 노출) ── */}
       {/* Live results ticker */}
       <LiveResultsFeed
         results={signals
@@ -141,33 +142,11 @@ export default function SignalFeedPage() {
           }))}
       />
 
-      {/* Missed profit banner (free/basic only) */}
-      <MissedProfitBanner
-        tier={userTier}
-        completedSignals={signals
-          .filter((s) => s.status !== "active")
-          .map((s) => ({
-            symbol_name: s.symbol_name,
-            result_pnl_percent: s.result_pnl_percent,
-            status: s.status,
-            direction: s.direction,
-          }))}
-      />
-
-      {/* Free sample signal (free only) */}
-      <FreeSampleSignal
-        tier={userTier}
-        signal={signals.find((s) => s.status !== "active" && Number(s.result_pnl_percent || 0) > 3) || null}
-      />
-
       {/* Market Sentiment Gauge */}
       <MarketSentimentGauge />
 
       {/* AI Consensus Top 5 */}
       <DailyVerdictCard />
-
-      {/* Upgrade banner */}
-      <TierUpgradeBanner tier={userTier} />
 
       {/* Daily limit warning */}
       {dailyLimit !== null && viewedToday >= dailyLimit && (
@@ -244,6 +223,29 @@ export default function SignalFeedPage() {
           ))}
         </div>
       )}
+
+      {/* ── 전환 유도 (후순위 · 티어별 · 중복 CTA 제거) ── */}
+      {/* free: 무료 맛보기 시그널 */}
+      <FreeSampleSignal
+        tier={userTier}
+        signal={signals.find((s) => s.status !== "active" && Number(s.result_pnl_percent || 0) > 3) || null}
+      />
+
+      {/* free/basic: 놓친 수익 (실적 기반) */}
+      <MissedProfitBanner
+        tier={userTier}
+        completedSignals={signals
+          .filter((s) => s.status !== "active")
+          .map((s) => ({
+            symbol_name: s.symbol_name,
+            result_pnl_percent: s.result_pnl_percent,
+            status: s.status,
+            direction: s.direction,
+          }))}
+      />
+
+      {/* basic+: 업그레이드 (free는 위 배너로 충분 → 중복 제거) */}
+      {userTier !== "free" && <TierUpgradeBanner tier={userTier} />}
 
       {/* Investment disclaimer */}
       <div className="mt-8 p-3 rounded-lg bg-[#1A1D26] border border-[#2A2D36]">

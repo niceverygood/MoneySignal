@@ -234,6 +234,9 @@ export default function PerformancePage() {
               color={stats.avgPnl >= 0 ? "text-[#00E676]" : "text-[#FF5252]"}
             />
           </div>
+          <p className="text-[10px] text-[#8B95A5]/70 -mt-1">
+            * 승률·수익률은 결과가 확정된 시그널 기준입니다 (진행 중 시그널 제외).
+          </p>
 
           {/* Total PnL Banner */}
           <Card className="bg-[#1A1D26] border-[#2A2D36] p-4">

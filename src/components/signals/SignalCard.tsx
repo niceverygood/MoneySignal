@@ -76,7 +76,7 @@ export default function SignalCard({
   }
 
   return (
-    <Link href={tier === "free" && !isCompleted ? "#" : `/app/signals/${signal.id}`}>
+    <Link href={tier === "free" && !isCompleted ? "/app/subscribe" : `/app/signals/${signal.id}`}>
       <div
         className={cn(
           "relative rounded-xl border border-[#2A2D36] bg-[#1A1D26] p-5 transition-all hover:border-[#3A3D46]",
@@ -200,12 +200,12 @@ export default function SignalCard({
           )}
         </div>
 
-        {/* Free overlay */}
-        {isBlurred && !isCompleted && (
+        {/* Free/blur overlay — free는 진입가만 맛보기 후 구독 유도 (탭하면 구독 페이지로) */}
+        {(isBlurred || tier === "free") && !isCompleted && (
           <div className="mt-3 flex items-center justify-center gap-2 p-3 rounded-lg bg-[#F5B800]/5 border border-[#F5B800]/20">
             <Lock className="w-4 h-4 text-[#F5B800]" />
             <span className="text-xs text-[#F5B800] font-medium">
-              {signal._tier_info.upgradeMessage || "구독하고 시그널 확인하기"}
+              {signal._tier_info.upgradeMessage || "구독하고 목표가·AI 분석까지 확인하기"}
             </span>
           </div>
         )}

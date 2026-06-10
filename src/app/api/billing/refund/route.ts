@@ -57,6 +57,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (!transaction.user_id) {
+    return NextResponse.json(
+      { error: "거래에 사용자 정보가 없어 환불할 수 없습니다" },
+      { status: 400 }
+    );
+  }
+
   console.log(`[AUDIT] Admin ${user.id} initiated refund for transaction ${transactionId}, reason: ${reason}`);
 
   // 감사 로그 DB 기록 (notifications 테이블 활용)

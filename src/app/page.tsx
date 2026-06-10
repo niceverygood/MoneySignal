@@ -12,8 +12,52 @@ import {
   CheckCircle2,
   BarChart3,
 } from "lucide-react";
+import { createServiceClient } from "@/lib/supabase/server";
+import { isOpenRouterAvailable } from "@/lib/openrouter";
 
-export default function LandingPage() {
+// 완료된 시그널을 카테고리별로 집계 — 랜딩 실적은 하드코딩이 아닌 실데이터만 표시
+async function getLandingStats() {
+  try {
+    const supabase = await createServiceClient();
+    const { data } = await supabase
+      .from("signals")
+      .select("category, result_pnl_percent")
+      .neq("status", "active")
+      .not("result_pnl_percent", "is", null);
+    if (!data || data.length === 0) return [];
+    const labels: Record<string, string> = {
+      coin_spot: "코인 현물",
+      coin_futures: "코인 선물",
+      overseas_futures: "해외주식",
+      kr_stock: "국내주식",
+    };
+    const map = new Map<string, { count: number; wins: number; pnl: number }>();
+    for (const s of data) {
+      const cat = s.category as string;
+      const pnl = Number(s.result_pnl_percent) || 0;
+      const e = map.get(cat) || { count: 0, wins: 0, pnl: 0 };
+      e.count += 1;
+      if (pnl > 0) e.wins += 1;
+      e.pnl += pnl;
+      map.set(cat, e);
+    }
+    return [...map.entries()]
+      .filter(([, v]) => v.count >= 5) // 최소 표본 미만은 미표시 (정직성)
+      .map(([cat, v]) => ({
+        label: labels[cat] || cat,
+        winRate: Math.round((v.wins / v.count) * 100),
+        pnl: Math.round(v.pnl),
+        signals: v.count,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+export default async function LandingPage() {
+  const landingStats = await getLandingStats();
+  // OpenRouter 키가 있을 때만 진짜 3개 모델(Claude·Gemini·GPT)이 도므로, 그때만 "3대장"을 명시
+  const aiActive = isOpenRouterAvailable();
   return (
     <div className="min-h-screen bg-[#0D0F14]">
       {/* Nav */}
@@ -54,7 +98,7 @@ export default function LandingPage() {
             <span className="text-gold-gradient">실시간으로 받아보세요</span>
           </h1>
           <p className="text-lg md:text-xl text-[#8B95A5] max-w-2xl mx-auto mb-10">
-            코인·선물·주식 — 3개 AI가 토론하여 도출한 매매 시그널을 구독자에게
+            코인·선물·주식 — {aiActive ? "Claude·Gemini·GPT 3개 AI가 토론하여" : "AI가 다관점으로 분석해"} 도출한 매매 시그널을 구독자에게
             실시간으로 제공합니다. 서버 기록 기반 투명한 실적 공개.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -88,7 +132,7 @@ export default function LandingPage() {
             실시간 AI 시그널 미리보기
           </h2>
           <p className="text-[#8B95A5]">
-            매 4시간마다 AI 3대장이 합의한 시그널이 발행됩니다
+            매 4시간마다 {aiActive ? "AI 3대장이 합의한" : "AI가 분석한"} 시그널이 발행됩니다
           </p>
         </div>
         <div className="grid md:grid-cols-3 gap-4">
@@ -161,7 +205,7 @@ export default function LandingPage() {
           ))}
         </div>
         <p className="text-center text-sm text-[#8B95A5] mt-4">
-          가입하면 실시간 시그널의 상세 정보를 확인할 수 있습니다
+          위 카드는 예시 화면입니다. 가입하면 실시간 시그널의 상세 정보를 확인할 수 있습니다.
         </p>
       </section>
 
@@ -170,46 +214,55 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
-              최근 6개월 실적
+              누적 시그널 실적
             </h2>
             <div className="flex items-center justify-center gap-2">
               <Shield className="w-4 h-4 text-[#F5B800]" />
               <p className="text-sm text-[#8B95A5]">
-                서버 타임스탬프 기록, 조작 불가능
+                서버 타임스탬프 기록 · 실제 완료된 시그널만 집계
               </p>
             </div>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { label: "코인 현물", winRate: "68%", pnl: "+156%", signals: "412" },
-              { label: "코인 선물", winRate: "71%", pnl: "+289%", signals: "328" },
-              { label: "해외주식", winRate: "65%", pnl: "+124%", signals: "215" },
-              { label: "국내주식 Top5", winRate: "74%", pnl: "+87%", signals: "196" },
-            ].map((stat, i) => (
-              <Card
-                key={i}
-                className="bg-[#1A1D26] border-[#2A2D36] p-4 text-center"
-              >
-                <p className="text-sm text-[#F5B800] font-medium mb-3">
-                  {stat.label}
-                </p>
-                <p className="text-3xl font-bold text-white mb-1">
-                  {stat.winRate}
-                </p>
-                <p className="text-xs text-[#8B95A5] mb-3">승률</p>
-                <div className="flex justify-between text-xs border-t border-[#2A2D36] pt-3">
-                  <div>
-                    <p className="text-[#00E676] font-bold">{stat.pnl}</p>
-                    <p className="text-[#8B95A5]">누적</p>
+          {landingStats.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {landingStats.map((stat, i) => (
+                <Card
+                  key={i}
+                  className="bg-[#1A1D26] border-[#2A2D36] p-4 text-center"
+                >
+                  <p className="text-sm text-[#F5B800] font-medium mb-3">
+                    {stat.label}
+                  </p>
+                  <p className="text-3xl font-bold text-white mb-1">
+                    {stat.winRate}%
+                  </p>
+                  <p className="text-xs text-[#8B95A5] mb-3">승률</p>
+                  <div className="flex justify-between text-xs border-t border-[#2A2D36] pt-3">
+                    <div>
+                      <p className={stat.pnl >= 0 ? "text-[#00E676] font-bold" : "text-[#FF5252] font-bold"}>
+                        {stat.pnl >= 0 ? "+" : ""}{stat.pnl}%
+                      </p>
+                      <p className="text-[#8B95A5]">누적</p>
+                    </div>
+                    <div>
+                      <p className="text-white font-bold">{stat.signals}</p>
+                      <p className="text-[#8B95A5]">시그널</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-white font-bold">{stat.signals}</p>
-                    <p className="text-[#8B95A5]">시그널</p>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="max-w-md mx-auto text-center p-8 rounded-xl bg-[#1A1D26] border border-[#2A2D36]">
+              <BarChart3 className="w-10 h-10 text-[#8B95A5]/40 mx-auto mb-3" />
+              <p className="text-sm text-white font-medium mb-1">
+                실적을 집계하고 있습니다
+              </p>
+              <p className="text-xs text-[#8B95A5]">
+                완료된 시그널이 충분히 쌓이면 카테고리별 실제 승률·수익률을 공개합니다.
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
@@ -310,10 +363,11 @@ export default function LandingPage() {
               <div className="w-14 h-14 rounded-full bg-[#F5B800]/10 flex items-center justify-center mx-auto mb-4">
                 <Brain className="w-6 h-6 text-[#F5B800]" />
               </div>
-              <h3 className="text-white font-semibold mb-2">AI 3대장 합의</h3>
+              <h3 className="text-white font-semibold mb-2">{aiActive ? "AI 3대장 합의" : "AI 다관점 분석"}</h3>
               <p className="text-sm text-[#8B95A5]">
-                Claude, Gemini, GPT-4가 3라운드 토론 후 합의된 시그널만
-                발행합니다.
+                {aiActive
+                  ? "Claude·Gemini·GPT가 3라운드 토론 후 합의한 시그널만 발행합니다."
+                  : "AI가 다관점에서 3라운드로 교차 검토한 시그널만 발행합니다."}
               </p>
             </div>
             <div className="text-center">

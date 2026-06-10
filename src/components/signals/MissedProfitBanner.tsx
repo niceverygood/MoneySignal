@@ -53,10 +53,6 @@ export default function MissedProfitBanner({ tier, completedSignals }: MissedPro
   if (tier !== "free" && tier !== "basic") return null;
   if (completedSignals.length === 0) return null;
 
-  // Calculate simulated money (if invested 100만원)
-  const simulatedInvestment = 1000000;
-  const simulatedProfit = Math.round((simulatedInvestment * totalProfit) / 100);
-
   return (
     <Card className="bg-gradient-to-r from-[#FF5252]/5 via-[#F5B800]/10 to-[#00E676]/5 border-[#F5B800]/30 p-4 relative overflow-hidden">
       {/* Animated fire background */}
@@ -77,17 +73,8 @@ export default function MissedProfitBanner({ tier, completedSignals }: MissedPro
           <span className="text-3xl font-bold text-[#00E676] font-mono">
             +{animatedProfit.toFixed(1)}%
           </span>
-          <span className="text-sm text-[#8B95A5]">누적 수익률</span>
+          <span className="text-sm text-[#8B95A5]">적중 시그널 누적</span>
         </div>
-
-        {/* Simulated money */}
-        <p className="text-sm text-[#8B95A5] mb-3">
-          100만원 투자 시{" "}
-          <span className="text-[#00E676] font-bold font-mono">
-            +{simulatedProfit.toLocaleString()}원
-          </span>{" "}
-          수익
-        </p>
 
         {/* Stats row */}
         <div className="flex gap-4 mb-3 text-xs">

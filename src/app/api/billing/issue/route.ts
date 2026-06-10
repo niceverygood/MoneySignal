@@ -31,11 +31,11 @@ export async function POST(request: NextRequest) {
 
   const cycle = billingCycle || "monthly";
   const prices = PLAN_PRICES[tier];
-  if (!prices || !prices[cycle]) {
-    return NextResponse.json({ error: "유효하지 않은 플랜" }, { status: 400 });
+  const amount = prices?.[cycle];
+  // 0원·undefined·비정상 금액 차단 (예: premium/bundle의 yearly 등 미존재 조합)
+  if (!prices || amount == null || !Number.isFinite(amount) || amount <= 0) {
+    return NextResponse.json({ error: "유효하지 않은 플랜입니다" }, { status: 400 });
   }
-
-  const amount = prices[cycle];
   if (amount > 5000000) {
     return NextResponse.json({ error: "결제 금액이 허용 범위를 초과합니다" }, { status: 400 });
   }

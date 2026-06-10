@@ -64,8 +64,8 @@ export async function POST(request: NextRequest) {
       ? new Date(body.expirationDate)
       : calculatePeriodEnd(billingCycle, now);
 
-    // 4. transactions 기록
-    await serviceClient.from("transactions").insert({
+    // 4. transactions 기록 (pg_transaction_id UNIQUE 제약 — 동시 요청/재전송 중복결제 방지)
+    const { error: txError } = await serviceClient.from("transactions").insert({
       type: "subscription_payment",
       user_id: user.id,
       amount,
@@ -75,6 +75,13 @@ export async function POST(request: NextRequest) {
       pg_transaction_id: `apple_${transactionId}`,
       description: `${tier.toUpperCase()} ${billingCycle} 구독 (Apple IAP)`,
     });
+    if (txError) {
+      // UNIQUE 위반(23505) = 이미 처리된 트랜잭션 (replay 체크와 insert 사이 race 포함) → 멱등 처리
+      if (txError.code === "23505") {
+        return NextResponse.json({ error: "이미 처리된 트랜잭션입니다" }, { status: 409 });
+      }
+      throw txError;
+    }
 
     // 5. subscriptions upsert
     const { data: existingSub } = await serviceClient

@@ -56,26 +56,6 @@ interface MonthlyData {
   pnl: number;
 }
 
-// Demo fallback data — shown when API returns no data
-const DEMO_STATS: AggregateStats = {
-  totalSignals: 1151,
-  winningSignals: 782,
-  winRate: 67.9,
-  avgProfit: 4.8,
-  avgLoss: -2.1,
-  totalPnl: 156.3,
-  profitFactor: 2.29,
-};
-
-const DEMO_MONTHLY: MonthlyData[] = [
-  { month: "2025-10", signals: 168, winRate: 65.5, pnl: 18.2 },
-  { month: "2025-11", signals: 195, winRate: 69.2, pnl: 28.7 },
-  { month: "2025-12", signals: 182, winRate: 66.5, pnl: 21.4 },
-  { month: "2026-01", signals: 210, winRate: 71.0, pnl: 34.6 },
-  { month: "2026-02", signals: 198, winRate: 68.7, pnl: 27.2 },
-  { month: "2026-03", signals: 198, winRate: 70.2, pnl: 26.2 },
-];
-
 export default function BacktestPage() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedPeriod, setSelectedPeriod] = useState("90");
@@ -95,9 +75,9 @@ export default function BacktestPage() {
       );
       const data = await res.json();
 
-      // Use demo fallback when API returns no meaningful data
+      // 실데이터만 표시 — 데이터 없으면 빈 상태 (가짜 폴백 없음)
       const hasStats = data.aggregateStats && data.aggregateStats.totalSignals > 0;
-      setStats(hasStats ? data.aggregateStats : DEMO_STATS);
+      setStats(hasStats ? data.aggregateStats : null);
       setRecentSignals(data.recentSignals || []);
 
       // Extract monthly data from backtest results
@@ -105,7 +85,6 @@ export default function BacktestPage() {
         const allMonthly = data.backtestResults.flatMap(
           (r: { monthly_breakdown: MonthlyData[] }) => r.monthly_breakdown || []
         );
-        // Merge by month
         const monthMap: Record<string, MonthlyData> = {};
         for (const m of allMonthly) {
           if (!monthMap[m.month]) {
@@ -118,9 +97,9 @@ export default function BacktestPage() {
         const sorted = Object.values(monthMap).sort((a, b) =>
           a.month.localeCompare(b.month)
         );
-        setMonthlyData(sorted.length > 0 ? sorted : DEMO_MONTHLY);
+        setMonthlyData(sorted);
       } else {
-        setMonthlyData(DEMO_MONTHLY);
+        setMonthlyData([]);
       }
     } catch (error) {
       console.error("Failed to fetch backtest data:", error);
@@ -195,6 +174,14 @@ export default function BacktestPage() {
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-6 h-6 text-[#F5B800] animate-spin" />
         </div>
+      ) : !stats ? (
+        <Card className="bg-[#1A1D26] border-[#2A2D36] p-8 text-center">
+          <BarChart3 className="w-10 h-10 text-[#8B95A5]/40 mx-auto mb-3" />
+          <p className="text-sm text-white font-medium mb-1">아직 집계된 실적이 없습니다</p>
+          <p className="text-xs text-[#8B95A5]">
+            시그널이 누적되면 실제 성과가 여기에 표시됩니다.
+          </p>
+        </Card>
       ) : (
         <>
           {/* Summary Cards */}

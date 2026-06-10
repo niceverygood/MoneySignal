@@ -93,9 +93,20 @@ export async function chargeBillingKey(params: {
 
     if (res.ok) {
       const data = await res.json();
+      // 방어적 검증: 응답에 결제 정보가 있으면 상태·금액 확인 (필드 없으면 기존대로 통과)
+      const payment = data?.payment ?? data;
+      const status = payment?.status as string | undefined;
+      const paidTotal = payment?.amount?.total as number | undefined;
+      if (status && ["FAILED", "CANCELLED", "PARTIAL_CANCELLED"].includes(status)) {
+        return { success: false, failureReason: `결제가 완료되지 않았습니다 (${status})` };
+      }
+      if (typeof paidTotal === "number" && paidTotal !== params.amount) {
+        console.error("[chargeBillingKey] 결제 금액 불일치", { requested: params.amount, paid: paidTotal });
+        return { success: false, failureReason: "결제 금액이 일치하지 않습니다" };
+      }
       return {
         success: true,
-        pgTransactionId: data.pgTxId || params.paymentId,
+        pgTransactionId: data.pgTxId || payment?.id || params.paymentId,
       };
     }
 
