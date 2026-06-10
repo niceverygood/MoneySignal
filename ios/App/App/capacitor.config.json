@@ -57,6 +57,8 @@
 		"PushNotificationsPlugin",
 		"SplashScreenPlugin",
 		"StatusBarPlugin",
-		"NativeBiometric"
+		"NativeBiometric",
+		"AppleSignInPlugin",
+		"StoreKitPlugin"
 	]
 }
