@@ -43,6 +43,9 @@ function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirectTo") || "/app";
+  // 가입 직후엔 온보딩(보유종목 등록 → 첫 무료 진단 → 알림)으로.
+  // 단, 딥링크로 특정 페이지 가입 유도된 경우엔 원래 목적지 우선.
+  const postSignupDest = redirectTo === "/app" ? "/app/onboarding" : redirectTo;
   const supabase = createClient();
 
   const [email, setEmail] = useState("");
@@ -241,7 +244,7 @@ function SignupForm() {
       }
 
       toast.success("가입 완료! 환영합니다.");
-      router.push(redirectTo);
+      router.push(postSignupDest);
     } catch (err) {
       console.error("Signup error:", err);
       toast.error("회원가입 중 오류가 발생했습니다. 다시 시도해주세요.");
@@ -263,7 +266,7 @@ function SignupForm() {
           return;
         }
         toast.success("가입 완료! 환영합니다.");
-        router.push(redirectTo);
+        router.push(postSignupDest);
       } catch (err) {
         console.error("Apple native sign-in error:", err);
         toast.error("Apple 로그인 연결에 실패했습니다");
