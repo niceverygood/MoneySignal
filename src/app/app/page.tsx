@@ -9,6 +9,7 @@ import LiveResultsFeed from "@/components/signals/LiveResultsFeed";
 import FreeSampleSignal from "@/components/signals/FreeSampleSignal";
 import MarketSentimentGauge from "@/components/signals/MarketSentimentGauge";
 import DailyVerdictCard from "@/components/signals/DailyVerdictCard";
+import PortfolioSummaryCard from "@/components/signals/PortfolioSummaryCard";
 import { cn } from "@/lib/utils";
 import { Lock, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -141,6 +142,9 @@ export default function SignalFeedPage() {
             status: s.status,
           }))}
       />
+
+      {/* 내 종목 손익 요약 — 앱 열자마자 "내 돈" 먼저 */}
+      <PortfolioSummaryCard />
 
       {/* Market Sentiment Gauge */}
       <MarketSentimentGauge />
