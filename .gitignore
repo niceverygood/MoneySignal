@@ -57,3 +57,7 @@ CLAUDE_archive.md
 MoneySignal_env.txt
 .pptx-build/
 .claude/
+
+# Android 서명 키스토어 (절대 커밋 금지)
+*.jks
+*.keystore
