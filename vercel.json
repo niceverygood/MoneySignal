@@ -35,6 +35,10 @@
     {
       "path": "/api/cron/score-verdicts",
       "schedule": "0 7 * * 1-5"
+    },
+    {
+      "path": "/api/cron/holdings-consensus-check",
+      "schedule": "30 7 * * 1-5"
     }
   ]
 }
