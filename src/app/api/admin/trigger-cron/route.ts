@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
   }
 
   const { action } = await request.json();
-  const validActions = ["generate-signals", "calculate-backtest", "track-signals", "weekly-report", "daily-briefing", "subscription-check", "auto-billing"];
+  const validActions = ["generate-signals", "calculate-backtest", "track-signals", "weekly-report", "daily-briefing", "subscription-check", "auto-billing", "daily-verdict", "score-verdicts"];
   if (!validActions.includes(action)) {
     return NextResponse.json({ error: "유효하지 않은 작업입니다" }, { status: 400 });
   }

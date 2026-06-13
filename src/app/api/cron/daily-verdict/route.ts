@@ -112,6 +112,33 @@ export async function GET(request: Request) {
 
     console.log(`[DailyVerdict] Saved verdict for ${today}: ${verdict.top5.map(t => t.name).join(", ")}`);
 
+    // ── 적중률 추적: Top5 픽을 발행가와 함께 기록 (실패해도 평결은 유지) ──
+    try {
+      const { getMultipleStockPrices } = await import("@/lib/kis");
+      const codes = verdict.top5
+        .map((t) => String(t.symbol))
+        .filter((s) => /^\d{6}$/.test(s));
+      const prices = codes.length ? await getMultipleStockPrices(codes) : [];
+      const priceMap: Record<string, number> = {};
+      for (const p of prices) priceMap[p.code] = p.currentPrice;
+
+      const pickRows = verdict.top5.map((t) => ({
+        verdict_date: today,
+        symbol: String(t.symbol),
+        name: t.name,
+        rank: t.rank,
+        avg_score: Number(t.avgScore.toFixed(1)),
+        is_unanimous: t.isUnanimous,
+        entry_price: priceMap[String(t.symbol)] ?? null,
+      }));
+      await supabase
+        .from("verdict_picks")
+        .upsert(pickRows, { onConflict: "verdict_date,symbol" });
+      console.log(`[DailyVerdict] Logged ${pickRows.length} picks for track record`);
+    } catch (e) {
+      console.error("[DailyVerdict] Pick logging failed (non-fatal):", e);
+    }
+
     return NextResponse.json({
       success: true,
       date: today,
