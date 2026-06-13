@@ -11,7 +11,7 @@ import MarketSentimentGauge from "@/components/signals/MarketSentimentGauge";
 import DailyVerdictCard from "@/components/signals/DailyVerdictCard";
 import PortfolioSummaryCard from "@/components/signals/PortfolioSummaryCard";
 import { cn } from "@/lib/utils";
-import { Lock, Loader2, RefreshCw } from "lucide-react";
+import { Lock, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -216,8 +216,27 @@ export default function SignalFeedPage() {
 
       {/* Signal list */}
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-6 h-6 text-[#F5B800] animate-spin" />
+        <div className="flex flex-col gap-5">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="rounded-xl border border-[#2A2D36] bg-[#1A1D26] p-4 animate-pulse"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="h-4 w-20 bg-[#22262F] rounded" />
+                  <div className="h-4 w-10 bg-[#22262F] rounded-full" />
+                </div>
+                <div className="h-4 w-12 bg-[#22262F] rounded" />
+              </div>
+              <div className="grid grid-cols-3 gap-2 mt-4">
+                <div className="h-8 bg-[#22262F] rounded" />
+                <div className="h-8 bg-[#22262F] rounded" />
+                <div className="h-8 bg-[#22262F] rounded" />
+              </div>
+              <div className="h-1.5 w-full bg-[#22262F] rounded-full mt-4" />
+            </div>
+          ))}
         </div>
       ) : signals.length === 0 ? (
         <div className="text-center py-20">
