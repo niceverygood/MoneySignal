@@ -400,6 +400,10 @@ export default function PortfolioPage() {
                         {diag.consensusLabel}
                       </p>
                       <p className="text-[10px] text-[#8B95A5] mt-0.5">{diag.consensusSummary}</p>
+                      <p className="text-[9px] text-[#8B95A5]/70 mt-1.5 leading-relaxed">
+                        ※ 종목에 대한 AI 합의를 회원님 평단가에 대입한 <strong>참고 시뮬레이션</strong>이며,
+                        개별 1:1 투자자문이 아닙니다.
+                      </p>
                     </div>
 
                     {/* 개별 AI 의견 */}
