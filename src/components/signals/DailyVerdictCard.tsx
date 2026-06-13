@@ -197,6 +197,18 @@ export default function DailyVerdictCard() {
           const investVerdict = getInvestmentVerdict(weightedScore);
           const isExpanded = expandedIdx === idx;
 
+          // AI 합의 지수(0~100): 몇 명이 추천했나(60%) + 평균 점수 강도(40%) — 투명한 규칙
+          const votedCount =
+            item.votedBy?.length ??
+            (["claude", "gemini", "gpt"] as const).filter((a) => item.scores?.[a]).length;
+          const consensusIndex = Math.min(
+            100,
+            Math.round((votedCount / 3) * 60 + (item.avgScore / 5) * 40)
+          );
+          const strengthColor =
+            consensusIndex >= 80 ? "#F5B800" : consensusIndex >= 55 ? "#448AFF" : "#8B95A5";
+          const consensusLabel = votedCount >= 3 ? "만장일치" : `${votedCount}/3 합의`;
+
           return (
             <div key={idx}>
               <button
@@ -222,12 +234,17 @@ export default function DailyVerdictCard() {
                     </span>
                     <span className="text-sm font-bold text-white">{item.name}</span>
                     <span className="text-[10px] text-[#8B95A5] font-mono">{item.symbol}</span>
-                    {item.isUnanimous && (
-                      <Badge className="text-[8px] bg-[#F5B800]/10 text-[#F5B800] border-0 px-1 py-0 gap-0.5">
-                        <Crown className="w-2.5 h-2.5" />
-                        만장일치
-                      </Badge>
-                    )}
+                    {/* 합의 강도 — 만장일치/2:1/1:2를 항상 명시 (어디서 갈렸는지 투명) */}
+                    <Badge
+                      className="text-[8px] border-0 px-1 py-0 gap-0.5"
+                      style={{
+                        backgroundColor: votedCount >= 3 ? "rgba(245,184,0,0.1)" : "rgba(139,149,165,0.12)",
+                        color: votedCount >= 3 ? "#F5B800" : "#8B95A5",
+                      }}
+                    >
+                      {votedCount >= 3 && <Crown className="w-2.5 h-2.5" />}
+                      {consensusLabel}
+                    </Badge>
                   </div>
                   <span
                     className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
@@ -262,6 +279,23 @@ export default function DailyVerdictCard() {
                     가중 <span className="font-mono font-bold" style={{ color: investVerdict.color }}>
                       {weightedScore.toFixed(1)}
                     </span>
+                  </span>
+                </div>
+
+                {/* Row 3: AI 합의 지수 (0~100) — 한 눈에 보이는 합의 강도 */}
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="text-[9px] text-[#8B95A5] shrink-0">AI 합의 지수</span>
+                  <div className="flex-1 h-1.5 bg-[#22262F] rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{ width: `${consensusIndex}%`, backgroundColor: strengthColor }}
+                    />
+                  </div>
+                  <span
+                    className="text-[10px] font-bold font-mono shrink-0"
+                    style={{ color: strengthColor }}
+                  >
+                    {consensusIndex}
                   </span>
                 </div>
               </button>
