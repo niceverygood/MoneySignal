@@ -13,8 +13,10 @@ import PortfolioSummaryCard from "@/components/signals/PortfolioSummaryCard";
 import { cn } from "@/lib/utils";
 import { Lock, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import type { FilteredSignal, TierKey } from "@/lib/tier-access";
-import { TIER_CONFIG } from "@/lib/tier-access";
+import { TIER_CONFIG, getMinTierForCategory, getTierLabel, getCategoryLabel } from "@/lib/tier-access";
 
 const categories = [
   { key: "all", label: "전체" },
@@ -35,6 +37,7 @@ export default function SignalFeedPage() {
   const [buyWeight, setBuyWeight] = useState<number | null>(null);
 
   const supabase = useMemo(() => createClient(), []);
+  const router = useRouter();
 
   const fetchSignals = useCallback(async () => {
     setLoading(true);
@@ -122,8 +125,15 @@ export default function SignalFeedPage() {
       setSelectedCategory(catKey);
       return;
     }
-    if (!(accessibleCategories as readonly string[]).includes(catKey) && userTier !== "free") {
-      // Show upgrade prompt could be added here
+    // 잠긴 카테고리: 무반응 대신 즉각 피드백 + 업그레이드 유도 (직관성)
+    const locked =
+      !(accessibleCategories as readonly string[]).includes(catKey) && userTier !== "free";
+    if (locked) {
+      const minTier = getMinTierForCategory(catKey);
+      toast(`${getCategoryLabel(catKey)}는 ${getTierLabel(minTier)} 이상부터 볼 수 있어요`, {
+        description: "업그레이드하면 이 카테고리 시그널이 바로 열립니다",
+        action: { label: "업그레이드", onClick: () => router.push("/app/subscribe") },
+      });
     }
     setSelectedCategory(catKey);
   };
