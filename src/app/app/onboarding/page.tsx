@@ -301,6 +301,9 @@ export default function OnboardingPage() {
                   </div>
                 );
               })}
+              <p className="text-[10px] text-[#8B95A5] leading-relaxed px-1 pt-0.5">
+                ※ 참고용 AI 분석 시뮬레이션이며, 개별 1:1 투자자문이 아닙니다. 투자 판단과 책임은 본인에게 있습니다.
+              </p>
             </div>
           )}
 

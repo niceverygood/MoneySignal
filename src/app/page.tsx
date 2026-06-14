@@ -297,7 +297,7 @@ export default async function LandingPage() {
             {
               name: "VIP Bundle",
               price: "49.9",
-              features: ["1분 주기 선공개", "1:1 상담 월 2회", "VIP 전용 채널"],
+              features: ["1분 주기 선공개", "내 종목 무제한 AI 진단", "VIP 전용 채널"],
             },
           ].map((product, i) => (
             <Card

@@ -37,7 +37,7 @@ const PLANS = [
     frequencyBar: 0,
     features: {
       signal: ["완료 시그널 결과 공개", "진입가/손절가 공개"],
-      analysis: ["AI 질문 3회/일 (맛보기)"],
+      analysis: ["내 종목 AI 진단 1일 1회 (무료 체험)"],
       alert: [],
       vip: [],
     },
@@ -100,7 +100,7 @@ const PLANS = [
       signal: ["Premium 전체 포함", "1시간 선공개", "AI 질문 무제한"],
       analysis: ["월간 종합 리포트", "전체 분석+모델 정보"],
       alert: ["전체 알림 + VIP 채널"],
-      vip: ["VIP 전용 텔레그램", "프리미엄 채팅방", "1:1 상담 월 2회"],
+      vip: ["VIP 전용 텔레그램", "프리미엄 채팅방", "신규 기능 우선 체험"],
     },
     locked: [],
   },
@@ -121,7 +121,8 @@ const COMPARISON_SECTIONS = [
     title: "AI 분석",
     rows: [
       { label: "AI 분석 근거", values: ["-", "요약", "상세", "전체", "전체+모델"] },
-      { label: "AI 종목 질문", values: ["3회", "-", "3회/일", "10회/일", "무제한"] },
+      { label: "내 종목 AI 진단", values: ["1회/일", "3회/일", "10회/일", "30회/일", "무제한"] },
+      { label: "AI 종목 질문", values: ["-", "1회/일", "3회/일", "10회/일", "무제한"] },
       { label: "백테스트", values: ["7일", "30일", "180일", "전체", "전체"] },
     ],
   },
@@ -147,7 +148,7 @@ const COMPARISON_SECTIONS = [
     rows: [
       { label: "VIP 채널", values: ["-", "-", "-", "-", "O"] },
       { label: "프리미엄 채팅", values: ["-", "-", "-", "-", "O"] },
-      { label: "1:1 상담", values: ["-", "-", "-", "-", "월 2회"] },
+      { label: "신규 기능 우선 체험", values: ["-", "-", "-", "-", "O"] },
     ],
   },
 ];

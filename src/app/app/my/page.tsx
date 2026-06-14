@@ -981,13 +981,6 @@ function TierServicesCard({ tier }: { tier: TierKey }) {
       available: config.premiumChat,
       unlockAt: "bundle",
     },
-    {
-      icon: User,
-      label: "1:1 파트너 상담",
-      value: config.partnerConsulting > 0 ? `월 ${config.partnerConsulting}회 (30분)` : "없음",
-      available: config.partnerConsulting > 0,
-      unlockAt: "bundle",
-    },
   ];
 
   return (

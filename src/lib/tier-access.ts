@@ -160,7 +160,7 @@ export const TIER_CONFIG = {
     cancelExpireAlert: true,
     vipChannel: true,               // VIP 텔레그램 채널 ✓
     premiumChat: true,              // 프리미엄 채팅방 ✓
-    partnerConsulting: 2,           // 1:1 상담 월 2회 (30분)
+    partnerConsulting: 0,           // (제거됨) 1:1 개별 상담은 투자자문업 리스크로 미제공
   },
 } as const;
 

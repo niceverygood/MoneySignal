@@ -140,27 +140,15 @@ export default function SignalFeedPage() {
 
   return (
     <div className="py-4 space-y-4">
-      {/* ── 핵심 (모든 티어, 우선 노출) ── */}
-      {/* Live results ticker */}
-      <LiveResultsFeed
-        results={signals
-          .filter((s) => s.status !== "active" && s.result_pnl_percent !== null)
-          .map((s) => ({
-            symbol_name: s.symbol_name,
-            direction: s.direction,
-            result_pnl_percent: Number(s.result_pnl_percent),
-            status: s.status,
-          }))}
-      />
-
+      {/* ── 핵심 위계: 내 돈 → AI 합의 → 시장 맥락 ── */}
       {/* 내 종목 손익 요약 — 앱 열자마자 "내 돈" 먼저 */}
       <PortfolioSummaryCard />
 
-      {/* Market Sentiment Gauge */}
-      <MarketSentimentGauge />
-
-      {/* AI Consensus Top 5 */}
+      {/* AI 합의 Top 5 — 가장 차별적인 자산을 전면에 */}
       <DailyVerdictCard />
+
+      {/* 시장 심리 지수 — 시장 맥락(보조) */}
+      <MarketSentimentGauge />
 
       {/* Daily limit warning */}
       {dailyLimit !== null && viewedToday >= dailyLimit && (
@@ -279,6 +267,18 @@ export default function SignalFeedPage() {
 
       {/* basic+: 업그레이드 (free는 위 배너로 충분 → 중복 제거) */}
       {userTier !== "free" && <TierUpgradeBanner tier={userTier} />}
+
+      {/* 실시간 체결 결과 티커 — 보조 정보로 하단 강등 */}
+      <LiveResultsFeed
+        results={signals
+          .filter((s) => s.status !== "active" && s.result_pnl_percent !== null)
+          .map((s) => ({
+            symbol_name: s.symbol_name,
+            direction: s.direction,
+            result_pnl_percent: Number(s.result_pnl_percent),
+            status: s.status,
+          }))}
+      />
 
       {/* Investment disclaimer */}
       <div className="mt-8 p-3 rounded-lg bg-[#1A1D26] border border-[#2A2D36]">

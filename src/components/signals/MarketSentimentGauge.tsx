@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { getMarketLevel, getInvestmentVerdict } from "@/lib/market-sentiment";
+import { getMarketLevel } from "@/lib/market-sentiment";
 import type { SentimentResult } from "@/lib/market-sentiment";
 import { Loader2, TrendingUp, TrendingDown, Minus } from "lucide-react";
 
@@ -35,15 +35,23 @@ export default function MarketSentimentGauge() {
   // 반원 게이지: 0점 = 180도(왼쪽), 100점 = 0도(오른쪽)
   const needleRad = Math.PI - (data.compositeScore / 100) * Math.PI;
 
-  // 예시 가중 매수 점수 (confidence 5점 기준)
-  const exampleWeighted = 5 * data.buyWeight;
-  const verdict = getInvestmentVerdict(exampleWeighted);
+  // 한 줄 해석 (참고용 시장 상태 설명 — 매매 지시 아님)
+  const LEVEL_HINT: Record<string, string> = {
+    extreme_fear: "시장에 극도의 공포 — 과매도 구간일 수 있어요",
+    fear: "시장에 공포가 큽니다 — 변동성에 주의하세요",
+    caution: "투자 심리가 위축돼 있어요",
+    neutral: "시장 심리는 중립이에요",
+    optimistic: "투자 심리가 살아나고 있어요",
+    greed: "시장에 탐욕이 큽니다 — 과열을 주의하세요",
+    extreme_greed: "극도의 탐욕 — 과열을 주의하세요",
+  };
+  const hint = LEVEL_HINT[level.level] ?? "";
 
   return (
     <div className="rounded-xl border border-[#2A2D36] bg-[#1A1D26] p-4 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-white">시장 타이밍 시그널</h3>
+        <h3 className="text-sm font-bold text-white">시장 심리 지수</h3>
         <span className="text-[10px] text-[#8B95A5]">
           5분마다 갱신
         </span>
@@ -96,26 +104,8 @@ export default function MarketSentimentGauge() {
               {level.label}
             </span>
           </div>
-          <p className="text-[10px] text-[#8B95A5] mt-1">
-            매수 가중치: <span className="text-white font-mono">{(data.buyWeight * 100).toFixed(0)}%</span>
-            <span className="mx-1">·</span>
-            매도 가중치: <span className="text-white font-mono">{(data.sellWeight * 100).toFixed(0)}%</span>
-          </p>
+          <p className="text-[11px] text-[#8B95A5] mt-1.5 leading-snug">{hint}</p>
         </div>
-      </div>
-
-      {/* Investment verdict example */}
-      <div
-        className="rounded-lg px-3 py-2 text-center"
-        style={{ backgroundColor: verdict.bgColor }}
-      >
-        <p className="text-[10px] text-[#8B95A5] mb-0.5">AI 최고점수(5점) 종목 기준</p>
-        <p className="text-sm font-bold" style={{ color: verdict.color }}>
-          {verdict.emoji} {verdict.label}
-          <span className="text-[#8B95A5] font-normal text-xs ml-2">
-            (가중 매수 점수: {exampleWeighted.toFixed(1)})
-          </span>
-        </p>
       </div>
 
       {/* Indicators */}
@@ -156,27 +146,6 @@ export default function MarketSentimentGauge() {
         ))}
       </div>
 
-      {/* Verdict scale */}
-      <div className="space-y-1.5">
-        <p className="text-[10px] text-[#8B95A5]">투자 판정 기준</p>
-        <div className="flex gap-1">
-          {[
-            { label: "적극 매수", score: "3.5+", color: "#00E676" },
-            { label: "분할 매수", score: "2.5~3.4", color: "#448AFF" },
-            { label: "관망", score: "1.5~2.4", color: "#FFD600" },
-            { label: "매수 금지", score: "<1.5", color: "#FF5252" },
-          ].map((v) => (
-            <div
-              key={v.label}
-              className="flex-1 rounded px-1.5 py-1 text-center"
-              style={{ backgroundColor: `${v.color}10` }}
-            >
-              <p className="text-[9px] font-bold" style={{ color: v.color }}>{v.label}</p>
-              <p className="text-[8px] text-[#8B95A5]">{v.score}</p>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
