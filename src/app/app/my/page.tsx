@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -457,6 +457,8 @@ function NotificationSettings({
     push_tp_hit: true,
     push_sl_hit: true,
   });
+  const [savingKeys, setSavingKeys] = useState<Record<string, boolean>>({});
+  const settingsDirty = useRef(false); // 사용자가 토글한 뒤에는 초기 로드가 덮어쓰지 않게
   const [telegramConnected, setTelegramConnected] = useState(false);
   const [phone, setPhone] = useState(initialPhone || "");
   const [alimtalkEnabled, setAlimtalkEnabled] = useState(initialAlimtalk);
@@ -467,15 +469,35 @@ function NotificationSettings({
     if (!userId) return;
     supabase.from("telegram_connections").select("id, is_active").eq("user_id", userId).maybeSingle()
       .then(({ data }) => setTelegramConnected(!!data?.is_active));
+    // 저장된 푸시 알림 선호 로드 (없으면 기본 켜짐). 사용자가 이미 토글했으면 덮어쓰지 않음.
+    supabase.from("profiles").select("push_new_signal, push_tp_hit, push_sl_hit").eq("id", userId).maybeSingle()
+      .then(({ data }) => {
+        if (data && !settingsDirty.current) setSettings({
+          push_new_signal: data.push_new_signal ?? true,
+          push_tp_hit: data.push_tp_hit ?? true,
+          push_sl_hit: data.push_sl_hit ?? true,
+        });
+      });
   }, [userId, supabase]);
 
   const canPush = tier !== "free";
   const canAlimtalk = ["basic", "pro", "premium", "bundle"].includes(tier);
   const canTelegram = tier === "pro" || tier === "premium" || tier === "bundle";
 
-  const toggleSetting = (key: string, value: boolean) => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
-    toast.success(value ? "알림 켜짐" : "알림 꺼짐");
+  const toggleSetting = async (key: string, value: boolean) => {
+    if (savingKeys[key]) return; // 인플라이트 중 연타 방지 (Switch도 disabled)
+    settingsDirty.current = true;
+    setSavingKeys((s) => ({ ...s, [key]: true }));
+    setSettings((prev) => ({ ...prev, [key]: value })); // 낙관적 업데이트
+    const { error } = await supabase.from("profiles").update({ [key]: value }).eq("id", userId);
+    setSavingKeys((s) => ({ ...s, [key]: false }));
+    if (error) {
+      // 저장 동안 Switch가 잠겨 동시 변경이 없으므로 직전값 = !value
+      setSettings((prev) => ({ ...prev, [key]: !value }));
+      toast.error("설정 저장에 실패했어요");
+    } else {
+      toast.success(value ? "알림 켜짐" : "알림 꺼짐");
+    }
   };
 
   const handleSavePhone = async () => {
@@ -637,6 +659,7 @@ function NotificationSettings({
                       ) : (
                         <Switch
                           checked={settings[item.key as keyof typeof settings] as boolean}
+                          disabled={!!savingKeys[item.key]}
                           onCheckedChange={(checked) => toggleSetting(item.key, checked)}
                         />
                       )}

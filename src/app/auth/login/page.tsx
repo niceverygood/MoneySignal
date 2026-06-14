@@ -89,7 +89,20 @@ function LoginForm() {
           return;
         }
         toast.success("로그인 성공!");
-        window.location.href = redirectTo;
+        // 네이티브 Apple은 /auth/callback을 거치지 않으므로 신규 유저 온보딩 게이트를 여기서 처리
+        let dest = redirectTo;
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data: prof } = await supabase
+              .from("profiles").select("onboarded").eq("id", user.id).maybeSingle();
+            if (prof && prof.onboarded === false) {
+              await supabase.from("profiles").update({ onboarded: true }).eq("id", user.id);
+              if (redirectTo === "/app") dest = "/app/onboarding";
+            }
+          }
+        } catch { /* 게이트 실패해도 로그인은 진행 */ }
+        window.location.href = dest;
       } catch (err) {
         console.error("Apple native sign-in error:", err);
         toast.error("Apple 로그인 연결에 실패했습니다");

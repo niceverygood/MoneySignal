@@ -93,19 +93,19 @@ async function sendSignalAlerts(
         }
       }
 
-      // 앱 푸시 발송 (basic 이상 유저)
+      // 앱 푸시 발송 (basic 이상 + '새 시그널 알림'을 끄지 않은 유저)
       const { data: pushUsers } = await supabase
         .from("profiles")
-        .select("id, subscription_tier, subscription_expires_at")
+        .select("id, subscription_tier, subscription_expires_at, push_new_signal")
         .gte("last_active_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
 
       if (pushUsers) {
         const eligibleIds = pushUsers
-          .filter((u: { subscription_tier: string; subscription_expires_at: string | null }) => {
+          .filter((u: { subscription_tier: string; subscription_expires_at: string | null; push_new_signal?: boolean }) => {
             const tier = u.subscription_tier || "free";
             const expires = u.subscription_expires_at;
             const isExpired = expires && new Date(expires) < new Date();
-            return TIER_ORDER[tier] >= minTierOrder && !isExpired;
+            return TIER_ORDER[tier] >= minTierOrder && !isExpired && u.push_new_signal !== false;
           })
           .map((u: { id: string }) => u.id);
 

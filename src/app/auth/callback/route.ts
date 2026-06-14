@@ -51,9 +51,25 @@ export async function GET(request: Request) {
         },
       });
 
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      const { data: exchangeData, error } = await supabase.auth.exchangeCodeForSession(code);
 
       if (!error) {
+        // 신규 유저면 온보딩 완료 플래그를 즉시 세우고(반복 라우팅 방지),
+        // 명시적 딥링크가 없을 때만 온보딩으로 유도. 딥링크면 플립만 하고 목적지는 유지.
+        // (response에 이미 세션 쿠키가 붙어 있으므로 Location 헤더만 바꿔 쿠키를 보존)
+        if (exchangeData?.user) {
+          const { data: prof } = await supabase
+            .from("profiles")
+            .select("onboarded")
+            .eq("id", exchangeData.user.id)
+            .maybeSingle();
+          if (prof && prof.onboarded === false) {
+            await supabase.from("profiles").update({ onboarded: true }).eq("id", exchangeData.user.id);
+            if (redirectTo === "/app") {
+              response.headers.set("Location", `${baseUrl}/app/onboarding`);
+            }
+          }
+        }
         return response;
       }
     }

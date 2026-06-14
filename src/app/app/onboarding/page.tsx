@@ -5,8 +5,9 @@
 // ① 보유종목 등록 → ② 첫 무료 AI 진단 → ③ 알림 허용
 // 모든 스텝 건너뛰기 가능. 끝나면 /app.
 // ============================================
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,6 +69,18 @@ export default function OnboardingPage() {
   const [diagnosis, setDiagnosis] = useState<DiagnosisResult | null>(null);
   const [pushBusy, setPushBusy] = useState(false);
   const [pushDone, setPushDone] = useState(false);
+
+  // 온보딩에 진입한 순간 완료로 표시 — 완료하든 건너뛰든 다음 로그인부터 재진입 안 함.
+  // (이메일 가입 경로는 콜백을 안 거치므로 여기서 플립. .then을 호출해야 실제 요청이 전송됨)
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        supabase.from("profiles").update({ onboarded: true }).eq("id", data.user.id)
+          .then(({ error }) => { if (error) console.error("[onboarding] onboarded 표시 실패:", error.message); });
+      }
+    });
+  }, []);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();

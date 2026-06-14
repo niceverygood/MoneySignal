@@ -92,19 +92,20 @@ async function sendTPSLAlerts(
         }
       }
 
-      // 앱 푸시 발송
+      // 앱 푸시 발송 (TP/SL 알림을 끄지 않은 유저만)
       const { data: pushUsers } = await supabase
         .from("profiles")
-        .select("id, subscription_tier, subscription_expires_at")
+        .select("id, subscription_tier, subscription_expires_at, push_tp_hit, push_sl_hit")
         .gte("last_active_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
 
       if (pushUsers) {
         const eligibleIds = pushUsers
-          .filter((u: { subscription_tier: string; subscription_expires_at: string | null }) => {
+          .filter((u: { subscription_tier: string; subscription_expires_at: string | null; push_tp_hit?: boolean; push_sl_hit?: boolean }) => {
             const tier = u.subscription_tier || "free";
             const expires = u.subscription_expires_at;
             const isExpired = expires && new Date(expires) < new Date();
-            return TIER_ORDER[tier] >= tpMinTierOrder && !isExpired;
+            const typeAllowed = isTP ? u.push_tp_hit !== false : u.push_sl_hit !== false;
+            return TIER_ORDER[tier] >= tpMinTierOrder && !isExpired && typeAllowed;
           })
           .map((u: { id: string }) => u.id);
 
