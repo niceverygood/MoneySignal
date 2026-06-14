@@ -6,6 +6,7 @@
 // ============================================
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { VERDICT_STYLE } from "@/lib/verdict-style";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -85,13 +86,6 @@ const SEARCH_ITEMS: SearchItem[] = [
   })),
 ];
 
-const VERDICT_STYLE: Record<string, { label: string; color: string; bg: string }> = {
-  buy_more: { label: "추가매수 고려", color: "#00E676", bg: "rgba(0,230,118,0.1)" },
-  hold: { label: "보유 유지", color: "#448AFF", bg: "rgba(68,138,255,0.1)" },
-  reduce: { label: "비중 축소", color: "#F5B800", bg: "rgba(245,184,0,0.1)" },
-  cut: { label: "손절 검토", color: "#FF5252", bg: "rgba(255,82,82,0.1)" },
-};
-
 function fmtPrice(n: number, market: string): string {
   if (market === "kr_stock") return `${Math.round(n).toLocaleString()}원`;
   return n >= 100 ? `$${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : `$${n.toLocaleString(undefined, { maximumFractionDigits: 4 })}`;
@@ -125,6 +119,7 @@ export default function PortfolioPage() {
   const [diagnosing, setDiagnosing] = useState<string | null>(null); // holding id
   const [diagnoses, setDiagnoses] = useState<Record<string, Diagnosis>>({}); // holding id → 결과
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [deepLinkId, setDeepLinkId] = useState<string | null>(null);
 
   const fetchAll = useCallback(async () => {
     setError(false);
@@ -143,6 +138,25 @@ export default function PortfolioPage() {
       if (dRes.ok) {
         const data = await dRes.json();
         setRemaining(data.remaining);
+        // 저장된 진단 hydrate — 홈 평결카드에서 ?holding=<id>로 들어와도 평결이 바로 펼쳐 보이게
+        if (Array.isArray(data.recent)) {
+          const hydrated: Record<string, Diagnosis> = {};
+          for (const r of data.recent) {
+            if (!r.holding_id || hydrated[r.holding_id]) continue; // recent는 최신순 → 첫 등장이 최신
+            hydrated[r.holding_id] = {
+              symbol: r.symbol,
+              name: r.name,
+              currentPrice: Number(r.current_price),
+              pnlPercent: Number(r.pnl_percent),
+              consensus: r.consensus,
+              consensusLabel: VERDICT_STYLE[r.consensus]?.label ?? r.consensus,
+              consensusSummary: r.consensus_summary,
+              opinions: r.ai_opinions || [],
+              createdAt: r.created_at,
+            };
+          }
+          setDiagnoses((prev) => ({ ...hydrated, ...prev })); // 방금 실행한 새 진단(prev)이 우선
+        }
       }
     } catch {
       setError(true);
@@ -154,6 +168,24 @@ export default function PortfolioPage() {
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
+
+  // 홈 평결카드 딥링크 진입: ?add=1 등록폼 열기 / ?holding=<id> 해당 종목 펼침
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("add") === "1") setShowAdd(true);
+    const hid = params.get("holding");
+    if (hid) {
+      setExpanded(hid);
+      setDeepLinkId(hid);
+    }
+  }, []);
+
+  // 딥링크 종목이 로드되면 그 카드로 스크롤 (화면 밖이어도 위치 확인 가능)
+  useEffect(() => {
+    if (!deepLinkId || !holdings.some((h) => h.id === deepLinkId)) return;
+    document.getElementById(`holding-${deepLinkId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    setDeepLinkId(null);
+  }, [deepLinkId, holdings]);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -327,7 +359,7 @@ export default function PortfolioPage() {
             const pnlColor =
               h.pnl_percent === null ? "text-[#8B95A5]" : h.pnl_percent >= 0 ? "text-[#00E676]" : "text-[#FF5252]";
             return (
-              <Card key={h.id} className="bg-[#1A1D26] border-[#2A2D36] p-4 space-y-3">
+              <Card key={h.id} id={`holding-${h.id}`} className="bg-[#1A1D26] border-[#2A2D36] p-4 space-y-3">
                 {/* 종목 행 */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0">

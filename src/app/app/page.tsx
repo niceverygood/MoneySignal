@@ -9,7 +9,7 @@ import LiveResultsFeed from "@/components/signals/LiveResultsFeed";
 import FreeSampleSignal from "@/components/signals/FreeSampleSignal";
 import MarketSentimentGauge from "@/components/signals/MarketSentimentGauge";
 import DailyVerdictCard from "@/components/signals/DailyVerdictCard";
-import PortfolioSummaryCard from "@/components/signals/PortfolioSummaryCard";
+import MyHoldingsVerdictCard from "@/components/signals/MyHoldingsVerdictCard";
 import { cn } from "@/lib/utils";
 import { Lock, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -141,8 +141,8 @@ export default function SignalFeedPage() {
   return (
     <div className="py-4 space-y-4">
       {/* ── 핵심 위계: 내 돈 → AI 합의 → 시장 맥락 ── */}
-      {/* 내 종목 손익 요약 — 앱 열자마자 "내 돈" 먼저 */}
-      <PortfolioSummaryCard />
+      {/* 내 종목 AI 평결 — 앱 열자마자 "내 종목을 AI 3대장이 뭐라고 보는지" 전면 */}
+      <MyHoldingsVerdictCard />
 
       {/* AI 합의 Top 5 — 가장 차별적인 자산을 전면에 */}
       <DailyVerdictCard />

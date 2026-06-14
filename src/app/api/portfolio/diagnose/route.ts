@@ -240,7 +240,7 @@ export async function GET() {
       .gte("created_at", todayStart.toISOString()),
     supabase
       .from("portfolio_diagnoses")
-      .select("id, symbol, name, market, avg_price, current_price, pnl_percent, consensus, consensus_summary, ai_opinions, created_at")
+      .select("id, holding_id, symbol, name, market, avg_price, current_price, pnl_percent, consensus, consensus_summary, ai_opinions, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(10),

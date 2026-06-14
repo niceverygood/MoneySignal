@@ -8,6 +8,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { VERDICT_STYLE } from "@/lib/verdict-style";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,13 +41,6 @@ const SEARCH_ITEMS: SearchItem[] = [
     sub: `코인 · ${sym.replace("USDT", "")}`,
   })),
 ];
-
-const VERDICT_STYLE: Record<string, { label: string; color: string; bg: string }> = {
-  buy_more: { label: "추가매수 고려", color: "#00E676", bg: "rgba(0,230,118,0.1)" },
-  hold: { label: "보유 유지", color: "#448AFF", bg: "rgba(68,138,255,0.1)" },
-  reduce: { label: "비중 축소", color: "#F5B800", bg: "rgba(245,184,0,0.1)" },
-  cut: { label: "손절 검토", color: "#FF5252", bg: "rgba(255,82,82,0.1)" },
-};
 
 interface DiagnosisResult {
   consensus: string;

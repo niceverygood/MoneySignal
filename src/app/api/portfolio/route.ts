@@ -65,11 +65,61 @@ export async function GET() {
     })(),
   ]);
 
+  // 보유종목별 최신 AI 평결 — 개인화 진단(portfolio_diagnoses) 우선, 없으면 종목 일일합의(symbol_consensus_daily)
+  const symbols = list.map((h) => h.symbol);
+  // 진단 당시 평단가가 현재 평단가와 다르면 그 평결은 무효(추가매수/정정 시) → 현재 평단 기준만 채택
+  const avgByKey: Record<string, number> = {};
+  for (const h of list) avgByKey[`${h.market}:${h.symbol}`] = h.avg_price;
+  const verdictByKey: Record<
+    string,
+    { source: "diagnosis" | "daily"; consensus: string; summary: string | null; date: string }
+  > = {};
+  if (symbols.length > 0) {
+    // 일일 합의는 최근 5일 스냅샷만 평결로 사용(오래된 합의를 현재 평결로 쓰지 않음 + 윈도우 절단 방지)
+    const dailyFloor = new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+    const [diagRes, dailyRes] = await Promise.all([
+      supabase
+        .from("portfolio_diagnoses")
+        .select("symbol, market, consensus, consensus_summary, created_at, avg_price")
+        .eq("user_id", user.id)
+        .in("symbol", symbols)
+        .order("created_at", { ascending: false })
+        .limit(500),
+      supabase
+        .from("symbol_consensus_daily")
+        .select("symbol, market, consensus, consensus_summary, snapshot_date")
+        .in("symbol", symbols)
+        .gte("snapshot_date", dailyFloor)
+        .order("snapshot_date", { ascending: false })
+        .limit(200),
+    ]);
+    // 개인화 진단 — (market,symbol)별 최신 + 현재 평단가와 일치(0.5% 오차 내)하는 것만
+    for (const d of diagRes.data || []) {
+      const key = `${d.market}:${d.symbol}`;
+      if (verdictByKey[key]) continue;
+      const curAvg = avgByKey[key];
+      if (curAvg == null || d.avg_price == null) continue;
+      if (Math.abs(Number(d.avg_price) - curAvg) / curAvg > 0.005) continue; // 평단가 불일치 → 무효
+      verdictByKey[key] = { source: "diagnosis", consensus: d.consensus, summary: d.consensus_summary, date: d.created_at };
+    }
+    // 일일 종목 합의 — 진단이 없는(또는 평단 변경으로 무효화된) 종목에만 폴백
+    for (const s of dailyRes.data || []) {
+      const key = `${s.market}:${s.symbol}`;
+      if (!verdictByKey[key])
+        verdictByKey[key] = { source: "daily", consensus: s.consensus, summary: s.consensus_summary, date: s.snapshot_date };
+    }
+  }
+
   const enriched = list.map((h) => {
     const currentPrice = priceMap[`${h.market}:${h.symbol}`] ?? null;
     const pnlPercent =
       currentPrice !== null ? ((currentPrice - h.avg_price) / h.avg_price) * 100 : null;
-    return { ...h, current_price: currentPrice, pnl_percent: pnlPercent };
+    return {
+      ...h,
+      current_price: currentPrice,
+      pnl_percent: pnlPercent,
+      verdict: verdictByKey[`${h.market}:${h.symbol}`] ?? null,
+    };
   });
 
   // 포트폴리오 전체 요약 (평가금액 기준)

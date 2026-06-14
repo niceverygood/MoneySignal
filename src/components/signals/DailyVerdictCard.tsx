@@ -7,6 +7,7 @@ import { Loader2, Users, Crown, MessagesSquare, ChevronDown, ChevronUp } from "l
 import { AI_CHARACTERS } from "@/lib/ai-characters";
 import { getInvestmentVerdict } from "@/lib/market-sentiment";
 import DebateChat from "./DebateChat";
+import AccuracyBadge from "./AccuracyBadge";
 import type { ConsensusItem } from "@/lib/ai-characters";
 
 interface VerdictData {
@@ -25,18 +26,11 @@ interface VerdictData {
   debate_rounds?: { round: number; label: string; comments: { characterId: string; comment: string }[] }[];
 }
 
-interface AccuracyStat {
-  count: number;
-  hitRate: number;
-  avgReturn: number;
-}
-
 export default function DailyVerdictCard() {
   const [verdict, setVerdict] = useState<VerdictData | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
   const [showDebate, setShowDebate] = useState(false);
-  const [accuracy, setAccuracy] = useState<{ d7: AccuracyStat | null; d30: AccuracyStat | null } | null>(null);
 
   useEffect(() => {
     fetch("/api/verdict")
@@ -44,11 +38,6 @@ export default function DailyVerdictCard() {
       .then((d) => { if (d.verdict) setVerdict(d.verdict); })
       .catch(console.error)
       .finally(() => setLoading(false));
-    // AI 적중률 (별도 — 실패해도 카드는 정상)
-    fetch("/api/verdict/accuracy")
-      .then((res) => res.json())
-      .then((d) => setAccuracy({ d7: d.d7 ?? null, d30: d.d30 ?? null }))
-      .catch(() => {});
   }, []);
 
   if (loading) {
@@ -81,39 +70,7 @@ export default function DailyVerdictCard() {
       </div>
 
       {/* AI 적중률 — 신뢰의 핵심. 리딩방과 다르게 "검증되는" AI임을 증명 */}
-      {(() => {
-        const best = accuracy?.d30?.count ? accuracy.d30 : accuracy?.d7?.count ? accuracy.d7 : null;
-        const horizon = accuracy?.d30?.count ? "30일" : "7일";
-        if (!best) {
-          return (
-            <div className="flex items-center gap-1.5 rounded-lg bg-[#0D0F14] px-2.5 py-1.5">
-              <span className="text-[10px] text-[#8B95A5]">
-                📊 AI 적중률 집계 중 — 모든 추천은 발행가와 함께 서버에 기록되어 곧 공개됩니다
-              </span>
-            </div>
-          );
-        }
-        const positive = best.avgReturn >= 0;
-        return (
-          <div className="flex items-center justify-between rounded-lg bg-[#0D0F14] px-2.5 py-1.5">
-            <span className="text-[10px] text-[#8B95A5]">
-              최근 {horizon} 매수의견 적중률
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="text-xs font-bold text-[#F5B800]">{best.hitRate}%</span>
-              <span
-                className={cn(
-                  "text-[10px] font-bold font-mono",
-                  positive ? "text-[#00E676]" : "text-[#FF5252]"
-                )}
-              >
-                평균 {positive ? "+" : ""}{best.avgReturn}%
-              </span>
-              <span className="text-[9px] text-[#8B95A5]/60">({best.count}종목)</span>
-            </span>
-          </div>
-        );
-      })()}
+      <AccuracyBadge />
 
       {/* AI Characters mini-cards */}
       <div className="flex gap-2">
