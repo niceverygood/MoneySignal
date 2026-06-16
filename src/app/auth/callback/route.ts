@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { createServiceClient } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -54,20 +55,27 @@ export async function GET(request: Request) {
       const { data: exchangeData, error } = await supabase.auth.exchangeCodeForSession(code);
 
       if (!error) {
-        // 신규 유저면 온보딩 완료 플래그를 즉시 세우고(반복 라우팅 방지),
-        // 명시적 딥링크가 없을 때만 온보딩으로 유도. 딥링크면 플립만 하고 목적지는 유지.
-        // (response에 이미 세션 쿠키가 붙어 있으므로 Location 헤더만 바꿔 쿠키를 보존)
+        // 신규 유저 온보딩 게이트. ⚠️ 중요: 세션 쿠키를 쥔 supabase(auth) 클라이언트를
+        // exchange 이후 다시 호출하면 GoTrue가 세션을 재검증하며 응답 쿠키를 덮어버려
+        // 첫 /app 진입에 세션이 유실되고 로그인으로 튕긴다(2번째에야 들어가짐).
+        // → 온보딩 조회/갱신은 쿠키를 만지지 않는 service-role 클라이언트로 분리하고,
+        //    auth 클라이언트는 exchange 이후 절대 재호출하지 않는다.
         if (exchangeData?.user) {
-          const { data: prof } = await supabase
-            .from("profiles")
-            .select("onboarded")
-            .eq("id", exchangeData.user.id)
-            .maybeSingle();
-          if (prof && prof.onboarded === false) {
-            await supabase.from("profiles").update({ onboarded: true }).eq("id", exchangeData.user.id);
-            if (redirectTo === "/app") {
-              response.headers.set("Location", `${baseUrl}/app/onboarding`);
+          try {
+            const admin = await createServiceClient();
+            const { data: prof } = await admin
+              .from("profiles")
+              .select("onboarded")
+              .eq("id", exchangeData.user.id)
+              .maybeSingle();
+            if (prof && prof.onboarded === false) {
+              await admin.from("profiles").update({ onboarded: true }).eq("id", exchangeData.user.id);
+              if (redirectTo === "/app") {
+                response.headers.set("Location", `${baseUrl}/app/onboarding`);
+              }
             }
+          } catch {
+            // 온보딩 게이트 실패해도 로그인은 정상 진행 (세션 쿠키는 이미 response에 부착됨)
           }
         }
         return response;
