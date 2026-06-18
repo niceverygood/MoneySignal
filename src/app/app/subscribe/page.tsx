@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -505,6 +505,13 @@ export default function SubscribePage() {
         </div>
       </div>
 
+      {/* 연간 선택 시 Premium·VIP는 월/분기만 제공됨을 안내 (조용히 사라지지 않게) */}
+      {billingCycle === "yearly" && (
+        <p className="text-center text-[10px] text-[#8B95A5] -mt-4">
+          ※ Premium · VIP Bundle은 월간 · 분기 주기로 제공됩니다
+        </p>
+      )}
+
       {/* 결제 수단 선택 (웹/Android — iOS는 Apple 인앱결제 사용) */}
       {!isIOS && (
         <div className="flex flex-col items-center gap-1.5">
@@ -746,8 +753,8 @@ export default function SubscribePage() {
             </thead>
             <tbody>
               {COMPARISON_SECTIONS.map((section) => (
-                <>
-                  <tr key={section.title}>
+                <Fragment key={section.title}>
+                  <tr>
                     <td colSpan={6} className="pt-4 pb-2 px-2 text-[#F5B800] font-bold text-[11px]">
                       {section.title}
                     </td>
@@ -765,7 +772,7 @@ export default function SubscribePage() {
                       ))}
                     </tr>
                   ))}
-                </>
+                </Fragment>
               ))}
             </tbody>
           </table>
