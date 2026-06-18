@@ -386,6 +386,8 @@ export default function SubscribePage() {
         phoneNumber: authUser?.phone || "01000000000",
       };
       const issueName = `머니시그널 ${tierNames[tier] || tier} 정기구독`;
+      // INICIS 등 일부 PG는 빌링키 발급 시 고유 issueId가 필수 — 누락 시 발급창이 아예 열리지 않음
+      const issueId = `bk_${tier}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
       const response =
         method === "kakaopay"
@@ -394,6 +396,7 @@ export default function SubscribePage() {
               channelKey: kakaopayChannelKey,
               billingKeyMethod: "EASY_PAY",
               easyPay: { easyPayProvider: "KAKAOPAY" },
+              issueId,
               issueName,
               customer,
             })
@@ -401,6 +404,7 @@ export default function SubscribePage() {
               storeId,
               channelKey: cardChannelKey,
               billingKeyMethod: "CARD",
+              issueId,
               issueName,
               customer,
             });
