@@ -10,8 +10,9 @@ import FreeSampleSignal from "@/components/signals/FreeSampleSignal";
 import MarketSentimentGauge from "@/components/signals/MarketSentimentGauge";
 import DailyVerdictCard from "@/components/signals/DailyVerdictCard";
 import MyHoldingsVerdictCard from "@/components/signals/MyHoldingsVerdictCard";
+import SignalCalendar from "@/components/signals/SignalCalendar";
 import { cn } from "@/lib/utils";
-import { Lock, RefreshCw } from "lucide-react";
+import { Lock, RefreshCw, List, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -35,6 +36,7 @@ export default function SignalFeedPage() {
   const [viewedToday, setViewedToday] = useState(0);
   const [dailyLimit, setDailyLimit] = useState<number | null>(null);
   const [buyWeight, setBuyWeight] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
 
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
@@ -197,12 +199,37 @@ export default function SignalFeedPage() {
             </span>
           )}
         </p>
-        <Button variant="ghost" size="sm" onClick={fetchSignals} className="text-[#8B95A5] hover:text-white">
-          <RefreshCw className="w-4 h-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          {/* 리스트 ⇄ 캘린더 토글 */}
+          <div className="flex items-center rounded-lg bg-[#1A1D26] p-0.5">
+            <button
+              onClick={() => setViewMode("list")}
+              aria-label="리스트 보기"
+              className={cn(
+                "flex items-center px-2.5 py-1 rounded-md transition-colors",
+                viewMode === "list" ? "bg-[#F5B800] text-[#0D0F14]" : "text-[#8B95A5] hover:text-white"
+              )}
+            >
+              <List className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setViewMode("calendar")}
+              aria-label="캘린더 보기"
+              className={cn(
+                "flex items-center px-2.5 py-1 rounded-md transition-colors",
+                viewMode === "calendar" ? "bg-[#F5B800] text-[#0D0F14]" : "text-[#8B95A5] hover:text-white"
+              )}
+            >
+              <CalendarDays className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <Button variant="ghost" size="sm" onClick={fetchSignals} className="text-[#8B95A5] hover:text-white">
+            <RefreshCw className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
 
-      {/* Signal list */}
+      {/* Signal list / Calendar */}
       {loading ? (
         <div className="flex flex-col gap-5">
           {[0, 1, 2].map((i) => (
@@ -226,6 +253,8 @@ export default function SignalFeedPage() {
             </div>
           ))}
         </div>
+      ) : viewMode === "calendar" ? (
+        <SignalCalendar signals={signals.filter((s) => s.status !== "active")} />
       ) : signals.length === 0 ? (
         <div className="text-center py-20">
           <p className="text-[#8B95A5]">시그널이 없습니다</p>
