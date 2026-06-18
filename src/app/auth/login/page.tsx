@@ -32,6 +32,7 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [kakaoLoading, setKakaoLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
+  const [testLoading, setTestLoading] = useState(false);
   const [isNativeIOS, setIsNativeIOS] = useState(false);
 
   useEffect(() => {
@@ -94,6 +95,34 @@ function LoginForm() {
       toast.error("로그인 중 오류가 발생했습니다.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // DEV 전용: 테스트 계정으로 즉시 로그인 (운영 빌드에선 버튼 자체가 렌더되지 않음)
+  const handleTestLogin = async () => {
+    setTestLoading(true);
+    try {
+      const res = await fetch("/api/dev/test-login", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "테스트 로그인을 사용할 수 없습니다");
+        setTestLoading(false);
+        return;
+      }
+      const { error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
+      if (error) {
+        toast.error(error.message);
+        setTestLoading(false);
+        return;
+      }
+      toast.success("테스트 로그인 성공");
+      window.location.href = redirectTo;
+    } catch {
+      toast.error("테스트 로그인 중 오류가 발생했습니다");
+      setTestLoading(false);
     }
   };
 
@@ -217,6 +246,18 @@ function LoginForm() {
         )}
 
         <Card className="bg-[#1A1D26] border-[#2A2D36] p-6">
+          {/* DEV 전용 테스트 로그인 — 운영 빌드(NODE_ENV=production)에선 렌더되지 않음 */}
+          {process.env.NODE_ENV !== "production" && (
+            <Button
+              onClick={handleTestLogin}
+              disabled={testLoading}
+              className="w-full mb-3 bg-[#22262F] text-[#F5B800] border border-dashed border-[#F5B800]/40 hover:bg-[#2A2D36] font-semibold h-11"
+            >
+              {testLoading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              🧪 테스트 로그인 (dev)
+            </Button>
+          )}
+
           {/* Apple Login */}
           <Button
             onClick={handleAppleLogin}
