@@ -41,33 +41,38 @@ function LoginForm() {
     });
   }, []);
 
-  // 보호 페이지에서 쿠키 레이스로 튕겨 들어온 경우(redirectTo 존재) 세션이 이미 유효하면
-  // 자동으로 목적지로 이동. onAuthStateChange로 세션 준비 즉시 반응(getUser() 폴링보다 빠름).
-  // 루프 방지: 10초 이내 2회 자동이동 초과 시 폼 노출. 10초 지나면(새 로그인 시도) 카운터 리셋.
+  // redirectTo가 있는 경우: 세션이 이미 있으면 바로 목적지로 이동.
+  // just_authed 미들웨어 수정으로 OAuth 후 레이스는 원천 차단됐고,
+  // 이 로직은 혹시 남은 경우에 대한 폴백이다.
+  // 루프 방지: 세션 내 2회 초과 자동이동 시 폼 노출.
   useEffect(() => {
     const dest = searchParams.get("redirectTo");
     if (!dest) return;
 
-    const now = Date.now();
-    const lastTs = Number(sessionStorage.getItem("autofwd_ts") || "0");
-    const tries = now - lastTs < 10_000 ? Number(sessionStorage.getItem("autofwd") || "0") : 0;
+    const tries = Number(sessionStorage.getItem("autofwd") || "0");
     if (tries >= 2) return;
 
     let navigated = false;
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+
+    const forward = () => {
       if (navigated) return;
-      if (event === "INITIAL_SESSION" || event === "SIGNED_IN") {
-        if (session) {
-          navigated = true;
-          sessionStorage.setItem("autofwd", String(tries + 1));
-          sessionStorage.setItem("autofwd_ts", String(now));
-          subscription.unsubscribe();
-          window.location.href = dest;
-        } else if (event === "INITIAL_SESSION") {
-          // 세션 없음 — 카운터 리셋(다음 로그인 시도에서 auto-forward 허용)
-          sessionStorage.removeItem("autofwd");
-          sessionStorage.removeItem("autofwd_ts");
-        }
+      navigated = true;
+      sessionStorage.setItem("autofwd", String(tries + 1));
+      window.location.href = dest;
+    };
+
+    // 즉시 확인: 쿠키 기반 세션은 네트워크 없이 동기적으로 읽힌다
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) forward();
+    });
+
+    // 폴백: OAuth SIGNED_IN 이벤트 수신 시 이동
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if ((event === "INITIAL_SESSION" || event === "SIGNED_IN") && session) {
+        forward();
+        subscription.unsubscribe();
+      } else if (event === "INITIAL_SESSION" && !session) {
+        sessionStorage.removeItem("autofwd");
       }
     });
 

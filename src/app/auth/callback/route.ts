@@ -55,6 +55,16 @@ export async function GET(request: Request) {
       const { data: exchangeData, error } = await supabase.auth.exchangeCodeForSession(code);
 
       if (!error) {
+        // OAuth 완료 직후 미들웨어 getUser() 타이밍 레이스를 방지한다.
+        // 미들웨어는 이 쿠키를 보면 getUser() 없이 즉시 통과시키고 쿠키를 삭제한다.
+        // httpOnly: JS에서 위조 불가, maxAge: 30초면 충분.
+        response.cookies.set("just_authed", "1", {
+          path: "/",
+          maxAge: 30,
+          httpOnly: true,
+          sameSite: "lax",
+        });
+
         // 신규 유저 온보딩 게이트. ⚠️ 중요: 세션 쿠키를 쥔 supabase(auth) 클라이언트를
         // exchange 이후 다시 호출하면 GoTrue가 세션을 재검증하며 응답 쿠키를 덮어버려
         // 첫 /app 진입에 세션이 유실되고 로그인으로 튕긴다(2번째에야 들어가짐).

@@ -25,6 +25,19 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.next({ request });
   }
 
+  // Protected routes — require authentication
+  const isProtectedRoute =
+    pathname.startsWith("/app") ||
+    pathname.startsWith("/admin");
+
+  // OAuth 콜백 직후 just_authed 쿠키가 있으면 getUser() 레이스 없이 즉시 통과.
+  // 쿠키는 콜백 서버에서만 설정(httpOnly) → JS 위조 불가.
+  if (request.cookies.get("just_authed")?.value === "1" && isProtectedRoute) {
+    const res = NextResponse.next({ request });
+    res.cookies.delete("just_authed");
+    return res;
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   try {
@@ -58,11 +71,6 @@ export async function updateSession(request: NextRequest) {
         .eq("id", user.id)
         .then(() => {}, () => {});
     }
-
-    // Protected routes — require authentication
-    const isProtectedRoute =
-      pathname.startsWith("/app") ||
-      pathname.startsWith("/admin");
 
     if (!user && isProtectedRoute) {
       const url = request.nextUrl.clone();
