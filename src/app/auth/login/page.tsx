@@ -41,25 +41,37 @@ function LoginForm() {
     });
   }, []);
 
-  // 보호 페이지에서 쿠키 적용 레이스로 튕겨 들어온 경우(redirectTo 존재) 세션이 이미 유효하면
-  // 수동 재클릭 없이 자동으로 목적지로 보낸다. getUser는 서버 검증 + 같은 origin 쿠키라 사실상 루프 불가능하나,
-  // 인증 루프 방지용으로 세션당 자동이동을 2회로 제한(초과 시 폼 노출), 로그아웃 상태면 카운터 리셋.
+  // 보호 페이지에서 쿠키 레이스로 튕겨 들어온 경우(redirectTo 존재) 세션이 이미 유효하면
+  // 자동으로 목적지로 이동. onAuthStateChange로 세션 준비 즉시 반응(getUser() 폴링보다 빠름).
+  // 루프 방지: 10초 이내 2회 자동이동 초과 시 폼 노출. 10초 지나면(새 로그인 시도) 카운터 리셋.
   useEffect(() => {
     const dest = searchParams.get("redirectTo");
     if (!dest) return;
-    const tries = Number(sessionStorage.getItem("autofwd") || "0");
+
+    const now = Date.now();
+    const lastTs = Number(sessionStorage.getItem("autofwd_ts") || "0");
+    const tries = now - lastTs < 10_000 ? Number(sessionStorage.getItem("autofwd") || "0") : 0;
     if (tries >= 2) return;
-    let cancelled = false;
-    supabase.auth.getUser().then(({ data }) => {
-      if (cancelled) return;
-      if (data.user) {
-        sessionStorage.setItem("autofwd", String(tries + 1));
-        window.location.href = dest;
-      } else {
-        sessionStorage.removeItem("autofwd");
+
+    let navigated = false;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (navigated) return;
+      if (event === "INITIAL_SESSION" || event === "SIGNED_IN") {
+        if (session) {
+          navigated = true;
+          sessionStorage.setItem("autofwd", String(tries + 1));
+          sessionStorage.setItem("autofwd_ts", String(now));
+          subscription.unsubscribe();
+          window.location.href = dest;
+        } else if (event === "INITIAL_SESSION") {
+          // 세션 없음 — 카운터 리셋(다음 로그인 시도에서 auto-forward 허용)
+          sessionStorage.removeItem("autofwd");
+          sessionStorage.removeItem("autofwd_ts");
+        }
       }
     });
-    return () => { cancelled = true; };
+
+    return () => subscription.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
