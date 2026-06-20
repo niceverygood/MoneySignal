@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Users, Crown, MessagesSquare, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, Crown, MessagesSquare, ChevronDown, ChevronUp } from "lucide-react";
 import { AI_CHARACTERS } from "@/lib/ai-characters";
 import { getInvestmentVerdict } from "@/lib/market-sentiment";
 import DebateChat from "./DebateChat";
@@ -50,12 +50,6 @@ export default function DailyVerdictCard() {
 
   if (!verdict) return null;
 
-  const characters = [
-    { ...AI_CHARACTERS.claude, top5: verdict.claude_top5 },
-    { ...AI_CHARACTERS.gemini, top5: verdict.gemini_top5 },
-    { ...AI_CHARACTERS.gpt, top5: verdict.gpt_top5 },
-  ];
-
   return (
     <div className="rounded-xl border border-[#2A2D36] bg-[#1A1D26] p-4 space-y-4">
       {/* Header */}
@@ -71,23 +65,6 @@ export default function DailyVerdictCard() {
 
       {/* AI 적중률 — 신뢰의 핵심. 리딩방과 다르게 "검증되는" AI임을 증명 */}
       <AccuracyBadge />
-
-      {/* AI Characters mini-cards */}
-      <div className="flex gap-2">
-        {characters.map((char) => (
-          <div
-            key={char.id}
-            className="flex-1 rounded-lg px-2 py-1.5 text-center"
-            style={{ backgroundColor: char.bgColor }}
-          >
-            <p className="text-lg leading-none">{char.avatar}</p>
-            <p className="text-[10px] font-bold mt-0.5" style={{ color: char.color }}>
-              {char.name}
-            </p>
-            <p className="text-[8px] text-[#8B95A5] truncate">{char.role}</p>
-          </div>
-        ))}
-      </div>
 
       {/* Summary */}
       {verdict.consensus_summary && (
@@ -177,11 +154,11 @@ export default function DailyVerdictCard() {
                     : "border-[#2A2D36] bg-[#0D0F14] hover:border-[#3A3D46]"
                 )}
               >
-                {/* Row 1: Rank + Name + Unanimous */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                {/* Row 1: Rank + Name + Verdict */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
                     <span className={cn(
-                      "text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center",
+                      "text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0",
                       idx === 0 ? "bg-[#F5B800] text-[#0D0F14]" :
                       idx === 1 ? "bg-[#C0C0C0] text-[#0D0F14]" :
                       idx === 2 ? "bg-[#CD7F32] text-white" :
@@ -189,70 +166,27 @@ export default function DailyVerdictCard() {
                     )}>
                       {item.rank}
                     </span>
-                    <span className="text-sm font-bold text-white">{item.name}</span>
-                    <span className="text-[10px] text-[#8B95A5] font-mono">{item.symbol}</span>
-                    {/* 합의 강도 — 만장일치/2:1/1:2를 항상 명시 (어디서 갈렸는지 투명) */}
-                    <Badge
-                      className="text-[8px] border-0 px-1 py-0 gap-0.5"
-                      style={{
-                        backgroundColor: votedCount >= 3 ? "rgba(245,184,0,0.1)" : "rgba(139,149,165,0.12)",
-                        color: votedCount >= 3 ? "#F5B800" : "#8B95A5",
-                      }}
-                    >
-                      {votedCount >= 3 && <Crown className="w-2.5 h-2.5" />}
-                      {consensusLabel}
-                    </Badge>
+                    <span className="text-sm font-bold text-white truncate">{item.name}</span>
+                    {votedCount >= 3 && <Crown className="w-3 h-3 text-[#F5B800] shrink-0" />}
                   </div>
                   <span
-                    className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                    className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0"
                     style={{ color: investVerdict.color, backgroundColor: investVerdict.bgColor }}
                   >
                     {investVerdict.emoji} {investVerdict.label}
                   </span>
                 </div>
 
-                {/* Row 2: AI scores + Vote info */}
-                <div className="flex items-center gap-3 mt-1.5">
-                  {/* Per-AI scores */}
-                  {(["claude", "gemini", "gpt"] as const).map((aiId) => {
-                    const char = AI_CHARACTERS[aiId];
-                    const score = item.scores?.[aiId];
-                    return (
-                      <div key={aiId} className="flex items-center gap-1">
-                        <span className="text-xs">{char.avatar}</span>
-                        {score ? (
-                          <span className="text-[10px] font-mono font-bold" style={{ color: char.color }}>
-                            {score.toFixed(1)}
-                          </span>
-                        ) : (
-                          <span className="text-[10px] text-[#8B95A5]/40">—</span>
-                        )}
-                      </div>
-                    );
-                  })}
-                  <span className="text-[10px] text-[#8B95A5] ml-auto">
-                    평균 <span className="text-white font-mono font-bold">{item.avgScore.toFixed(1)}</span>
-                    <span className="mx-1">→</span>
-                    가중 <span className="font-mono font-bold" style={{ color: investVerdict.color }}>
-                      {weightedScore.toFixed(1)}
-                    </span>
-                  </span>
-                </div>
-
-                {/* Row 3: AI 합의 지수 (0~100) — 한 눈에 보이는 합의 강도 */}
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="text-[9px] text-[#8B95A5] shrink-0">AI 합의 지수</span>
-                  <div className="flex-1 h-1.5 bg-[#22262F] rounded-full overflow-hidden">
+                {/* Row 2: 합의 바 */}
+                <div className="flex items-center gap-2 mt-1.5">
+                  <div className="flex-1 h-1 bg-[#22262F] rounded-full overflow-hidden">
                     <div
-                      className="h-full rounded-full transition-all"
+                      className="h-full rounded-full"
                       style={{ width: `${consensusIndex}%`, backgroundColor: strengthColor }}
                     />
                   </div>
-                  <span
-                    className="text-[10px] font-bold font-mono shrink-0"
-                    style={{ color: strengthColor }}
-                  >
-                    {consensusIndex}
+                  <span className="text-[9px] shrink-0" style={{ color: strengthColor }}>
+                    {consensusLabel} {consensusIndex}
                   </span>
                 </div>
               </button>
@@ -289,16 +223,6 @@ export default function DailyVerdictCard() {
         })}
       </div>
 
-      {/* Voted by legend */}
-      <div className="flex items-center gap-1.5 text-[10px] text-[#8B95A5]">
-        <Users className="w-3 h-3" />
-        <span>
-          {verdict.top5.filter(t => t.isUnanimous).length > 0
-            ? `만장일치 ${verdict.top5.filter(t => t.isUnanimous).length}종목`
-            : "합의 결과"}
-          {" · "}투표 수 = Top 5에 포함시킨 AI 수 · 점수 탭하면 상세 분석
-        </span>
-      </div>
     </div>
   );
 }

@@ -12,7 +12,6 @@ import { Card } from "@/components/ui/card";
 import { ChevronRight, Lock, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { VERDICT_STYLE, STOCK_VERDICT_STYLE } from "@/lib/verdict-style";
-import AccuracyBadge from "./AccuracyBadge";
 
 interface Verdict {
   source: "diagnosis" | "daily";
@@ -115,8 +114,7 @@ export default function MyHoldingsVerdictCard() {
           <ShieldCheck className="w-4 h-4 text-[#F5B800]" />
           <span className="text-sm font-bold text-white">AI 3대장 · 내 종목 평결</span>
         </div>
-        <AccuracyBadge />
-        <div>
+                <div>
           <p className="text-sm font-bold text-white">AI 3대장이 당신 종목을 매일 평결합니다</p>
           <p className="text-[11px] text-[#8B95A5] mt-0.5">— 아직 볼 게 없어요. 종목을 등록하면 바로 채워집니다.</p>
         </div>
@@ -147,10 +145,7 @@ export default function MyHoldingsVerdictCard() {
         >
           내 종목 등록하고 오늘 평결 받기
         </button>
-        <p className="text-[10px] text-[#8B95A5] leading-relaxed">
-          같은 종목도 평단가에 따라 평결이 손절↔추매로 갈립니다.
-          <br />참고용 AI 분석이며 개별 1:1 투자자문이 아닙니다.
-        </p>
+        <p className="text-[10px] text-[#8B95A5]">참고용 AI 분석 · 1:1 투자자문 아님</p>
       </Card>
     );
   }
@@ -179,8 +174,7 @@ export default function MyHoldingsVerdictCard() {
           </span>
         )}
       </div>
-      <AccuracyBadge />
-
+      
       {/* 척추: 평결 행 */}
       <div className="space-y-2">
         {topRows.map((h) => {
@@ -246,9 +240,7 @@ export default function MyHoldingsVerdictCard() {
         </button>
       )}
 
-      <p className="text-[10px] text-[#8B95A5] pt-0.5 border-t border-[#2A2D36]">
-        참고용 AI 분석이며 개별 1:1 투자자문이 아닙니다.
-      </p>
+      <p className="text-[10px] text-[#8B95A5] pt-0.5 border-t border-[#2A2D36]">참고용 AI 분석 · 1:1 투자자문 아님</p>
     </Card>
   );
 }

@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { cn } from "@/lib/utils";
 import { getMarketLevel } from "@/lib/market-sentiment";
 import type { SentimentResult } from "@/lib/market-sentiment";
-import { Loader2, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 export default function MarketSentimentGauge() {
   const [data, setData] = useState<SentimentResult | null>(null);
@@ -106,44 +105,6 @@ export default function MarketSentimentGauge() {
           </div>
           <p className="text-[11px] text-[#8B95A5] mt-1.5 leading-snug">{hint}</p>
         </div>
-      </div>
-
-      {/* Indicators */}
-      <div className="grid grid-cols-3 gap-2">
-        {data.indicators.map((ind) => (
-          <div
-            key={ind.name}
-            className="rounded-lg bg-[#0D0F14] px-2.5 py-2 text-center"
-          >
-            <p className="text-[10px] text-[#8B95A5] truncate">{ind.name}</p>
-            <p className="text-xs font-mono text-white mt-0.5">
-              {ind.name === "VIX"
-                ? ind.value.toFixed(1)
-                : ind.name === "USD/KRW"
-                  ? ind.value.toFixed(0)
-                  : ind.value >= 1000
-                    ? ind.value.toLocaleString("ko-KR", { maximumFractionDigits: 0 })
-                    : ind.value.toFixed(2)}
-            </p>
-            <div className="flex items-center justify-center gap-0.5 mt-0.5">
-              {ind.change > 0 ? (
-                <TrendingUp className="w-2.5 h-2.5 text-[#00E676]" />
-              ) : ind.change < 0 ? (
-                <TrendingDown className="w-2.5 h-2.5 text-[#FF5252]" />
-              ) : (
-                <Minus className="w-2.5 h-2.5 text-[#8B95A5]" />
-              )}
-              <span
-                className={cn(
-                  "text-[10px] font-mono",
-                  ind.change > 0 ? "text-[#00E676]" : ind.change < 0 ? "text-[#FF5252]" : "text-[#8B95A5]"
-                )}
-              >
-                {ind.change >= 0 ? "+" : ""}{ind.change.toFixed(2)}%
-              </span>
-            </div>
-          </div>
-        ))}
       </div>
 
     </div>

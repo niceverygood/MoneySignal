@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/client";
 import SignalCard from "@/components/signals/SignalCard";
 import TierUpgradeBanner from "@/components/signals/TierUpgradeBanner";
 import MissedProfitBanner from "@/components/signals/MissedProfitBanner";
-import LiveResultsFeed from "@/components/signals/LiveResultsFeed";
 import FreeSampleSignal from "@/components/signals/FreeSampleSignal";
 import MarketSentimentGauge from "@/components/signals/MarketSentimentGauge";
 import DailyVerdictCard from "@/components/signals/DailyVerdictCard";
@@ -296,18 +295,6 @@ export default function SignalFeedPage() {
 
       {/* basic+: 업그레이드 (free는 위 배너로 충분 → 중복 제거) */}
       {userTier !== "free" && <TierUpgradeBanner tier={userTier} />}
-
-      {/* 실시간 체결 결과 티커 — 보조 정보로 하단 강등 */}
-      <LiveResultsFeed
-        results={signals
-          .filter((s) => s.status !== "active" && s.result_pnl_percent !== null)
-          .map((s) => ({
-            symbol_name: s.symbol_name,
-            direction: s.direction,
-            result_pnl_percent: Number(s.result_pnl_percent),
-            status: s.status,
-          }))}
-      />
 
       {/* Investment disclaimer */}
       <div className="mt-8 p-3 rounded-lg bg-[#1A1D26] border border-[#2A2D36]">
