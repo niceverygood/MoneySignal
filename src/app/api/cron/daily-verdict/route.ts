@@ -88,7 +88,8 @@ export async function GET(request: Request) {
     // DB 저장
     const { data, error } = await supabase
       .from("verdicts")
-      .insert({
+      // force 재생성 시 같은 날짜를 덮어쓰도록 upsert (date UNIQUE 제약)
+      .upsert({
         date: today,
         top5: verdict.top5,
         claude_top5: verdict.claudeTop5,
@@ -101,7 +102,7 @@ export async function GET(request: Request) {
         buy_weight: verdict.sentiment.buyWeight,
         consensus_summary: verdict.consensusSummary,
         debate_rounds: verdict.debateRounds,
-      })
+      }, { onConflict: "date" })
       .select()
       .single();
 
@@ -156,7 +157,11 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("[DailyVerdict] Error:", error);
     return NextResponse.json(
-      { error: "Failed to generate daily verdict" },
+      {
+        error: "Failed to generate daily verdict",
+        detail: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack?.split("\n").slice(0, 6) : undefined,
+      },
       { status: 500 }
     );
   }

@@ -71,30 +71,52 @@ ${marketData}
   };
 }
 
+function normalizeItem(
+  item: { rank?: number; symbol?: string; name?: string; score?: number; reason?: string },
+  idx: number
+): AITop5Item {
+  return {
+    rank: item.rank || idx + 1,
+    symbol: String(item.symbol ?? ""),
+    name: String(item.name ?? ""),
+    score: Math.max(1, Math.min(5, Number(item.score) || 3)),
+    reason: String(item.reason || ""),
+  };
+}
+
 function parseTop5Response(response: string): { top5: AITop5Item[]; marketComment: string } {
+  const jsonMatch =
+    response.match(/```(?:json)?\s*([\s\S]*?)```/) || response.match(/(\{[\s\S]*\})/);
+  if (!jsonMatch) {
+    console.error("[Consensus] No JSON found in response");
+    return { top5: [], marketComment: "" };
+  }
+  const raw = jsonMatch[1] || jsonMatch[0];
+
+  // 1) 정상 파싱
   try {
-    const jsonMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/) ||
-      response.match(/(\{[\s\S]*\})/);
-
-    if (!jsonMatch) {
-      console.error("[Consensus] No JSON found in response");
-      return { top5: [], marketComment: "" };
-    }
-
-    const parsed = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+    const parsed = JSON.parse(raw);
     return {
-      top5: (parsed.top5 || []).map((item: AITop5Item, idx: number) => ({
-        rank: item.rank || idx + 1,
-        symbol: String(item.symbol),
-        name: String(item.name),
-        score: Math.max(1, Math.min(5, Number(item.score) || 3)),
-        reason: String(item.reason || ""),
-      })),
+      top5: (parsed.top5 || []).map((item: AITop5Item, idx: number) => normalizeItem(item, idx)),
       marketComment: parsed.market_comment || "",
     };
-  } catch (e) {
-    console.error("[Consensus] Parse error:", e);
-    return { top5: [], marketComment: "" };
+  } catch {
+    // 2) 잘린/깨진 JSON 복구 — top5 배열에서 완전한 {…} 객체만 개별 파싱
+    //    (모델이 maxTokens로 잘려도 "한 AI 통째로 드롭"을 막는다)
+    const items: AITop5Item[] = [];
+    const objRe = /\{[^{}]*\}/g;
+    let m: RegExpExecArray | null;
+    while ((m = objRe.exec(raw)) !== null) {
+      try {
+        const o = JSON.parse(m[0]);
+        if (o && (o.symbol || o.name)) items.push(normalizeItem(o, items.length));
+      } catch {
+        /* skip malformed object */
+      }
+    }
+    const cmt = (raw.match(/"market_comment"\s*:\s*"([^"]*)"/) || [])[1] || "";
+    if (items.length === 0) console.error("[Consensus] Parse salvage failed");
+    return { top5: items.slice(0, 5), marketComment: cmt };
   }
 }
 

@@ -304,27 +304,107 @@ ${JSON.stringify(priceData, null, 2)}`;
 }
 
 // ============================================
-// 전체 종목 스캔 (상위 40개 데이터 수집)
+// 동적 종목 발굴 — 당일 거래량 순위에서 실제 활성 종목 수집
+// (ETF·ETN·레버리지·인버스 등 파생상품은 개별종목 토론 대상이 아니므로 제외)
+// ============================================
+const NON_EQUITY_RE =
+  /(KODEX|TIGER|KBSTAR|ARIRANG|KOSEF|HANARO|ACE|PLUS|RISE|TIMEFOLIO|SOL |레버리지|인버스|선물|ETN|커버드콜|채권|국고|통안)/i;
+
+export interface MarketMover {
+  code: string;
+  name: string;
+  price: number;
+  changeRate: number;
+  volume: number;
+  tradingValue: number;
+}
+
+// 당일 거래량 순위 (파생상품 제외한 개별 종목만)
+export async function getMarketMovers(token?: string): Promise<MarketMover[]> {
+  const t = token || (await getAccessToken());
+  const params = new URLSearchParams({
+    FID_COND_MRKT_DIV_CODE: "J",
+    FID_COND_SCR_DIV_CODE: "20171",
+    FID_INPUT_ISCD: "0000",
+    FID_DIV_CLS_CODE: "0",
+    FID_BLNG_CLS_CODE: "0",
+    FID_TRGT_CLS_CODE: "111111111",
+    FID_TRGT_EXLS_CLS_CODE: "0000000000",
+    FID_INPUT_PRICE_1: "0",
+    FID_INPUT_PRICE_2: "0",
+    FID_VOL_CNT: "0",
+    FID_INPUT_DATE_1: "0",
+  });
+  const url = `${KIS_BASE_URL}/uapi/domestic-stock/v1/quotations/volume-rank?${params}`;
+  const res = await fetch(url, { headers: getHeaders(t, "FHPST01710000") });
+  if (!res.ok) {
+    console.error(`KIS volume-rank error: ${res.status}`);
+    return [];
+  }
+  const data = await res.json();
+  const out: Record<string, string>[] = data.output || [];
+  return out
+    .filter(
+      (r) =>
+        /^\d{6}$/.test(r.mksc_shrn_iscd || "") &&
+        !NON_EQUITY_RE.test(r.hts_kor_isnm || "")
+    )
+    .map((r) => ({
+      code: r.mksc_shrn_iscd,
+      name: r.hts_kor_isnm,
+      price: parseInt(r.stck_prpr) || 0,
+      changeRate: parseFloat(r.prdy_ctrt) || 0,
+      volume: parseInt(r.acml_vol) || 0,
+      tradingValue: parseInt(r.acml_tr_pbmn) || 0,
+    }));
+}
+
+// ============================================
+// 전체 종목 스캔 — 동적 발굴(거래량 순위) + 큐레이션 블루칩을 합쳐
+// "오늘 실제 움직이는 종목" 중심으로 데이터 수집
 // ============================================
 export async function scanTopStocks(): Promise<{
   prices: StockPrice[];
   formatted: string;
 }> {
-  const codes = KR_STOCK_SYMBOLS.slice(0, 40).map((s) => s.code);
+  // 1) 동적 발굴: 당일 거래량 순위(파생 제외) — 실패해도 큐레이션으로 진행
+  let universe: { code: string; name: string }[] = [];
+  try {
+    const movers = await getMarketMovers();
+    universe = movers.map((m) => ({ code: m.code, name: m.name }));
+  } catch (e) {
+    console.error("[KIS] getMarketMovers failed, fallback to curated:", e);
+  }
+
+  // 2) 큐레이션 블루칩과 합쳐 안정적 베이스 확보 (코드 기준 dedupe)
+  const seen = new Set(universe.map((u) => u.code));
+  for (const s of KR_STOCK_SYMBOLS) {
+    if (!seen.has(s.code)) {
+      universe.push(s);
+      seen.add(s.code);
+    }
+  }
+  universe = universe.slice(0, 35);
+
+  const nameMap = new Map(universe.map((u) => [u.code, u.name]));
+  const codes = universe.map((u) => u.code);
   const prices = await getMultipleStockPrices(codes);
 
-  // Sort by trading value (거래대금) descending - most active stocks
+  // 순위 API가 준 정확한 종목명으로 보정 (동적 종목은 KR_STOCK_SYMBOLS에 없을 수 있음)
+  for (const p of prices) {
+    const n = nameMap.get(p.code);
+    if (n) p.name = n;
+  }
+
+  // 거래대금(가장 활발) 내림차순 정렬
   prices.sort((a, b) => b.tradingValue - a.tradingValue);
 
-  // Get daily chart for top 15 by activity
+  // 상위 15개는 일봉 차트까지 상세 수집
   const top15 = prices.slice(0, 15);
   const detailedData: string[] = [];
-
   for (const stock of top15) {
     const daily = await getStockDailyChart(stock.code, "D", 30);
     detailedData.push(formatStockDataForAI(stock, daily));
-
-    // Rate limiting
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
 
