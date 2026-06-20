@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { Lock, Star, TrendingUp, TrendingDown } from "lucide-react";
+import { Lock, TrendingUp, TrendingDown } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import type { FilteredSignal } from "@/lib/tier-access";
 import type { TierKey } from "@/lib/tier-access";
@@ -105,16 +105,6 @@ export default function SignalCard({
               {isLong ? <TrendingUp className="w-3 h-3 mr-0.5" /> : <TrendingDown className="w-3 h-3 mr-0.5" />}
               {signal.direction.toUpperCase()}
             </Badge>
-          </div>
-          <div className="flex items-center gap-1">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Star
-                key={i}
-                fill={i < signal.confidence ? "#F5B800" : "none"}
-                stroke={i < signal.confidence ? "#F5B800" : "#2A2D36"}
-                className="w-3 h-3"
-              />
-            ))}
           </div>
         </div>
 

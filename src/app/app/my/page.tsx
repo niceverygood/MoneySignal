@@ -397,6 +397,11 @@ export default function MyPage() {
       {/* Menu items */}
       <div className="space-y-1">
         <MenuItem
+          icon={BarChart3}
+          label="백테스트 분석"
+          onClick={() => router.push("/app/backtest")}
+        />
+        <MenuItem
           icon={CreditCard}
           label="결제 내역"
           onClick={() => router.push("/app/my/payments")}

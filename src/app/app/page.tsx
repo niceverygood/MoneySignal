@@ -3,8 +3,6 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import SignalCard from "@/components/signals/SignalCard";
-import TierUpgradeBanner from "@/components/signals/TierUpgradeBanner";
-import MissedProfitBanner from "@/components/signals/MissedProfitBanner";
 import FreeSampleSignal from "@/components/signals/FreeSampleSignal";
 import MarketSentimentGauge from "@/components/signals/MarketSentimentGauge";
 import DailyVerdictCard from "@/components/signals/DailyVerdictCard";
@@ -279,22 +277,6 @@ export default function SignalFeedPage() {
         tier={userTier}
         signal={signals.find((s) => s.status !== "active" && Number(s.result_pnl_percent || 0) > 3) || null}
       />
-
-      {/* free/basic: 놓친 수익 (실적 기반) */}
-      <MissedProfitBanner
-        tier={userTier}
-        completedSignals={signals
-          .filter((s) => s.status !== "active")
-          .map((s) => ({
-            symbol_name: s.symbol_name,
-            result_pnl_percent: s.result_pnl_percent,
-            status: s.status,
-            direction: s.direction,
-          }))}
-      />
-
-      {/* basic+: 업그레이드 (free는 위 배너로 충분 → 중복 제거) */}
-      {userTier !== "free" && <TierUpgradeBanner tier={userTier} />}
 
       {/* Investment disclaimer */}
       <div className="mt-8 p-3 rounded-lg bg-[#1A1D26] border border-[#2A2D36]">
