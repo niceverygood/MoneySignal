@@ -44,7 +44,7 @@ export const AI_CHARACTERS: Record<string, AICharacter> = {
     avatar: "🚀",
     color: "#4285F4",
     bgColor: "rgba(66,133,244,0.1)",
-    model: "google/gemini-pro-latest",
+    model: "google/gemini-3.5-flash",
     fallbackPersona: `당신은 "제미 나인", AI & 성장주 리서치 총괄입니다.
 - 혁신과 미래 성장 잠재력을 중심으로 분석합니다
 - 기술 트렌드, AI, 신산업 테마에 집중합니다
@@ -61,7 +61,7 @@ export const AI_CHARACTERS: Record<string, AICharacter> = {
     avatar: "🌍",
     color: "#10A37F",
     bgColor: "rgba(16,163,127,0.1)",
-    model: "openai/gpt-5.4-pro",
+    model: "openai/gpt-5.4",
     fallbackPersona: `당신은 "G.P. 테일러", 수석 장기전략 리스크 총괄입니다.
 - 거시경제, 금리, 환율, 지정학적 리스크를 종합 분석합니다
 - 리스크와 수익의 균형을 최우선으로 고려합니다

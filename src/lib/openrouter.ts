@@ -24,10 +24,13 @@ interface OpenRouterResponse {
   usage?: { prompt_tokens: number; completion_tokens: number };
 }
 
+// OpenRouter 실제 유효 모델 ID (2026-06 검증).
+// - gemini: pro/reasoning 계열은 추론에 토큰을 다 써 응답이 잘려(9회 토론에 부적합) flash로 고정
+// - gpt: -pro(reasoning) 대신 표준 모델이 JSON 출력에 안정적
 const MODEL_MAP: Record<AIModel, string> = {
   claude: "anthropic/claude-opus-4.8",
-  gemini: "google/gemini-pro-latest",
-  gpt: "openai/gpt-5.4-pro",
+  gemini: "google/gemini-3.5-flash",
+  gpt: "openai/gpt-5.4",
 };
 
 const AI_PERSONAS: Record<AIModel, string> = {
