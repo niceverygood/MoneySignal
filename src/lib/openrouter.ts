@@ -30,7 +30,7 @@ interface OpenRouterResponse {
 const MODEL_MAP: Record<AIModel, string> = {
   claude: "anthropic/claude-opus-4.8",
   gemini: "google/gemini-3.5-flash",
-  gpt: "openai/gpt-5.4",
+  gpt: "openai/gpt-5.5",
 };
 
 const AI_PERSONAS: Record<AIModel, string> = {
